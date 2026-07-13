@@ -1,0 +1,128 @@
+@startuml Remmi_Analysis
+skinparam defaultTextAlignment center
+skinparam backgroundColor White
+left to right direction
+
+' =============================================
+' DOMAIN ENTITIES
+' =============================================
+abstract class CalendarItem {
+  id
+  title
+  description
+  creationDate
+  lastModifiedDate
+  categories
+}
+
+class CalendarEvent extends CalendarItem {
+  startDateTime
+  endDateTime
+  location
+}
+
+class Task extends CalendarItem {
+  dueDateTime
+  priority
+  isCompleted
+  estimatedDuration
+}
+
+Task "0..1" --> "0..1" CalendarEvent : linked
+
+' =============================================
+' CATEGORIES
+' =============================================
+class Category {
+  name
+  color
+  icon
+}
+
+Category "0..*" --> "0..1" Category : parent
+CalendarItem "*" -- "*" Category
+
+' =============================================
+' AI PROCESSING
+' =============================================
+class IncomingMessage {
+  sourceApp
+  sender
+  content
+  timestamp
+}
+
+class AnalyzedContent {
+  rawText
+  detectedEvent
+  detectedTask
+  confidence
+}
+
+class VoiceRecording {
+  audioFile
+  duration
+  timestamp
+}
+
+IncomingMessage ..> AnalyzedContent : analyzed by
+VoiceRecording ..> AnalyzedContent : transcribed to
+AnalyzedContent ..> CalendarEvent : <<may create>>
+AnalyzedContent ..> Task : <<may create>>
+
+' =============================================
+' MONITORING
+' =============================================
+class MonitoringPreferences {
+  selectedApps
+  selectedContacts
+  selectedEmailFolders
+}
+
+MonitoringPreferences ..> IncomingMessage : filters
+
+' =============================================
+' EXTERNAL INTEGRATION
+' =============================================
+class ExternalCalendar {
+  provider
+  events
+}
+
+ExternalCalendar ..> CalendarEvent : syncs
+
+' =============================================
+' NOTIFICATIONS
+' =============================================
+class Notification {
+  type
+  content
+  triggerTime
+}
+
+' =============================================
+' USER
+' =============================================
+class "User" as User
+
+User --> CalendarEvent : manages
+User --> Task : manages
+User --> Category : manages
+User --> MonitoringPreferences : configures
+User --> VoiceRecording : initiates
+User --> Notification : configures
+
+note right of CalendarEvent
+  Can be created by user, AI, or
+  synced from ExternalCalendar.
+  If created by AI from a Task,
+  Task.calendarEventId links them.
+end note
+
+note right of Task
+  Can be created by user or AI.
+  Can be standalone or linked to
+  a CalendarEvent.
+end note
+
+@enduml
