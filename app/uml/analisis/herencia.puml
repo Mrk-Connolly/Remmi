@@ -1,0 +1,61 @@
+@startuml Remmi_Hierarchy
+skinparam defaultTextAlignment center
+skinparam backgroundColor White
+left to right direction
+
+package "Calendar Items" {
+  abstract class CalendarItem {
+    id
+    title
+    description
+    creationDate
+    lastModifiedDate
+    categories
+  }
+
+  class CalendarEvent extends CalendarItem {
+    startDateTime
+    endDateTime
+    location
+  }
+
+  class Task extends CalendarItem {
+    dueDateTime
+    priority
+    isCompleted
+    estimatedDuration
+  }
+
+  Task "0..1" --> "0..1" CalendarEvent : linked
+}
+
+package "Categories" {
+  class Category {
+    name
+    color
+    icon
+  }
+
+  Category "0..*" --> "0..1" Category : parent
+  CalendarItem "*" -- "*" Category
+}
+
+package "Recurring Events" {
+  class RepeatGroup {
+    type
+    interval
+    endDate
+  }
+
+  CalendarEvent "*" --> "1" RepeatGroup : member of
+}
+
+package "Notifications" {
+  class Notification {
+    type
+    triggerCondition
+    content
+  }
+}
+
+@enduml

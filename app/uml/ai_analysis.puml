@@ -1,0 +1,160 @@
+@startuml Remmi_AI_Analysis
+skinparam defaultTextAlignment center
+left to right direction
+
+' =============================================
+' ENUMS
+' =============================================
+enum FilterSource {
+  WHATSAPP
+  TELEGRAM
+  EMAIL
+  SMS
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+' =============================================
+' INTERFACES
+' =============================================
+interface AIAnalyzerService {
+  + analyzeText(text): AIAnalysisResult
+  + analyzeEmail(emailData): AIAnalysisResult
+  + transcribeAudio(audioFile): String
+}
+
+interface MessageMonitorService {
+  + startMonitoring(config): void
+  + stopMonitoring(): void
+  + onNewMessage(app, sender, content): void
+}
+
+interface EmailMonitorService {
+  + startMonitoring(config): void
+  + stopMonitoring(): void
+  + onNewEmail(folder, sender, subject, body): void
+}
+
+interface VoiceRecorderService {
+  + startRecording(): boolean
+  + stopAndAnalyze(): AIAnalysisResult?
+  + isRecording(): boolean
+}
+
+' =============================================
+' CONFIG
+' =============================================
+class MonitoringConfig {
+  - monitoredApps: List<AppFilter>
+  - monitoredEmailFolders: List<String>
+  - monitoredContacts: List<ContactFilter>
+  + shouldMonitor(app, sender): boolean
+}
+
+class AppFilter {
+  - appName: String
+  - isActive: boolean
+}
+
+class ContactFilter {
+  - contactId: String
+  - contactName: String
+  - source: FilterSource
+}
+
+' =============================================
+' ANALYSIS
+' =============================================
+class AIAnalysisResult {
+  - detectedEvent: ParsedEventData? (nullable)
+  - detectedTask: ParsedTaskData? (nullable)
+  - confidence: float
+  - rawText: String
+  - sourceMessageId: String
+}
+
+class ParsedEventData {
+  - title: String
+  - description: String
+  - startDate: Date
+  - endDate: Date
+  - location: String
+}
+
+class ParsedTaskData {
+  - title: String
+  - description: String
+  - dueDate: Date
+  - priority: TaskPriority
+}
+
+class AIAnalyzer {
+  - service: AIAnalyzerService
+  + analyzeText(text): AIAnalysisResult
+  + analyzeEmail(emailData): AIAnalysisResult
+  + analyzeVoice(audioFile): AIAnalysisResult
+}
+
+AIAnalyzer --> AIAnalyzerService
+AIAnalyzer --> AIAnalysisResult : produces
+AIAnalysisResult --> ParsedEventData
+AIAnalysisResult --> ParsedTaskData
+
+' =============================================
+' MONITORS & RECORDER
+' =============================================
+class MessageMonitorAdapter implements MessageMonitorService {
+  - config: MonitoringConfig
+  + startMonitoring(config): void
+  + stopMonitoring(): void
+  + onNewMessage(app, sender, content): void
+}
+
+class EmailMonitorAdapter implements EmailMonitorService {
+  - config: MonitoringConfig
+  + startMonitoring(config): void
+  + stopMonitoring(): void
+  + onNewEmail(folder, sender, subject, body): void
+}
+
+class VoiceRecorderAdapter implements VoiceRecorderService {
+  - isRecording: boolean
+  + startRecording(): boolean
+  + stopAndAnalyze(): AIAnalysisResult?
+  + isRecording(): boolean
+}
+
+MessageMonitorAdapter --> MonitoringConfig
+EmailMonitorAdapter --> MonitoringConfig
+
+MessageMonitorAdapter ..> AIAnalyzer : calls
+EmailMonitorAdapter ..> AIAnalyzer : calls
+VoiceRecorderAdapter ..> AIAnalyzer : calls
+
+' =============================================
+' EXTERNAL ADAPTERS
+' =============================================
+class RemoteAIAnalyzerService implements AIAnalyzerService {
+  + analyzeText(text): AIAnalysisResult
+  + analyzeEmail(emailData): AIAnalysisResult
+  + transcribeAudio(audioFile): String
+}
+
+RemoteAIAnalyzerService ..|> AIAnalyzerService
+
+' =============================================
+' WIDGET TRIGGER
+' =============================================
+class HomeWidgetProvider {
+  + onUpdate(): void
+  + onVoiceButtonPressed(): void
+}
+
+HomeWidgetProvider --> VoiceRecorderAdapter : triggers
+
+@enduml
