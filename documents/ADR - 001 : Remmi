@@ -1,0 +1,22 @@
+Lost my previuos version but lets see.
+
+Remmi is a dedicated hosting application that runs different plugins that will assist me
+with my day to day.
+
+The app will be separated in to groups,
+The core, that manages the basic necessary functions to have a working program. It should have
+the following functions:
+- Dashboard
+- Plugin installer
+- Settings
+- Notifications
+
+The plugins will add all the other important functions but customizable for any and all who wish
+to use my application. The intial one will include:
+- Calendar
+- Task list
+- AI assistant
+- Health monitor
+- Shopping monitor
+- Recipie holder
+

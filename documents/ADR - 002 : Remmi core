@@ -1,0 +1,6 @@
+The remmi core has to be able to manage all the plugins by its self.
+It need the ability to:
+- Locate plugins
+- Install plugins
+- Manage plugins
+
