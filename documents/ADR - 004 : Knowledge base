@@ -1,0 +1,93 @@
+Personal Knowledge Base
+
+Purpose
+
+Maintain structured information about the user, people, places, objects and preferences.
+
+Responsibilities
+
+Store long-term facts.
+Provide context to automations.
+Provide context to AI.
+Never execute actions.
+
+Non-responsibilities
+
+AI reasoning.
+Automation.
+Notifications.
+
+
+
+
+src/main/kotlin/com/remmi/app
+
+│
+├── core
+│   │
+│   ├── runtime
+│   │
+│   ├── plugin
+│   │
+│   ├── event
+│   │
+│   ├── automation
+│   │
+│   ├── knowledge
+│   │
+│   ├── navigation
+│   │
+│   ├── host
+│   │
+│   ├── service
+│   │
+│   ├── common
+│   │
+│   └── security          (future)
+│
+├── plugins
+│   │
+│   ├── calendar
+│   ├── tasks
+│   ├── weather
+│   ├── clock
+│   ├── ai
+│   ├── health
+│   ├── notes
+│   ├── contacts
+│   ├── alarms
+│   └── ...
+│
+├── features
+│   │
+│   ├── onboarding
+│   ├── settings
+│   └── about
+│
+└── platform
+    │
+    ├── android
+    ├── notification
+    ├── calendar
+    ├── location
+    ├── storage
+    ├── network
+    ├── bluetooth
+    ├── camera
+    └── sensors
+
+
+
+                              Remmi Runtime
+                                     │
+         ┌──────────────┬────────────┼──────────────┬──────────────┐
+         │              │            │              │              │
+     Plugin Manager   Event Bus  Knowledge Engine  Automation   Service Hub
+         │              │            │              │              │
+         └──────────────┴────────────┴──────────────┴──────────────┘
+                                     │
+                              Registered Plugins
+                                     │
+          ┌────────────┬─────────────┬─────────────┬─────────────┐
+          │            │             │             │             │
+     Calendar      Weather         Clock        Health         AI

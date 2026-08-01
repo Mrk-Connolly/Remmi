@@ -1,0 +1,7 @@
+I think this is worth recording as an architectural decision.
+
+Decision
+
+RemmiPlugin defines only the plugin lifecycle (onLoad, onUnload) and exposes a PluginMetadata object.
+Metadata (ID, name, version, author, permissions, capabilities, etc.) lives in separate classes.
+New metadata fields should be added to PluginMetadata rather than modifying the RemmiPlugin interface.
