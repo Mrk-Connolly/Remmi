@@ -2,6 +2,9 @@ package com.remmi.app.plugins.calendar
 
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
+import android.util.Log
+import com.remmi.app.core.events.MeetingCreatedEvent
+import com.remmi.app.core.plugins.PluginContext
 
 class CalendarPlugin : RemmiPlugin {
 
@@ -12,8 +15,12 @@ class CalendarPlugin : RemmiPlugin {
         author = "Mark"
     )
 
-    override fun onLoad() {
-        println("Calendar loaded")
+    override fun onLoad(context: PluginContext) {
+        Log.d("Remmi", "Calendar plugin loaded")
+
+        context.eventBus.publish(
+            MeetingCreatedEvent()
+        )
     }
 
     override fun onUnload() {

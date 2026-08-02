@@ -5,7 +5,7 @@ interface RemmiPlugin {
 
     val metadata : PluginMetadata
 
-    fun onLoad()
+    fun onLoad(context: PluginContext)
 
     fun onUnload()
 }
