@@ -12,6 +12,13 @@ import androidx.compose.material3.NavigationBarItem
 import com.remmi.app.HomeScreen
 import androidx.compose.material3.Text
 import com.remmi.app.core.widgets.WidgetManager
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import com.remmi.app.plugins.calendar.CalendarScreen
 
 sealed class RemmiDestination {
     data object Home : RemmiDestination()
@@ -23,35 +30,48 @@ sealed class RemmiDestination {
 @Composable
 fun AppNavigation(widgetManager: WidgetManager) {
     val navController = rememberNavController()
-
+    val currentRoute =
+        navController.currentBackStackEntry?.destination?.route
     Scaffold(
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
-                    selected = true,
-                    onClick = { },
-                    icon = { Text("🏠") },
+                    selected = currentRoute == "home",
+                    onClick = { navController.navigate("home")
+                    },
+                    icon = {
+                        Icon(imageVector = Icons.Default.Home,contentDescription = "Home" )
+                    },
                     label = { Text("Home") }
                 )
 
                 NavigationBarItem(
-                    selected = false,
-                    onClick = { },
-                    icon = { Text("📅") },
+                    selected = currentRoute == "calendar",
+                    onClick = { navController.navigate("calendar")
+                    },
+                    icon = {
+                        Icon(imageVector = Icons.Default.CalendarMonth,contentDescription = "Calendar" )
+                    },
                     label = { Text("Calendar") }
                 )
 
                 NavigationBarItem(
-                    selected = false,
-                    onClick = { },
-                    icon = { Text("✓") },
+                    selected = currentRoute == "tasks",
+                    onClick = {navController.navigate("tasks")
+                    },
+                    icon = {
+                        Icon(imageVector = Icons.Default.CheckCircle,contentDescription = "Tasks" )
+                    },
                     label = { Text("Tasks") }
                 )
 
                 NavigationBarItem(
-                    selected = false,
-                    onClick = { },
-                    icon = { Text("⚙") },
+                    selected = currentRoute == "settings",
+                    onClick = { navController.navigate("settings")
+                    },
+                    icon = {
+                        Icon(imageVector = Icons.Default.Settings,contentDescription = "Settings" )
+                    },
                     label = { Text("Settings") }
                 )
             }
@@ -68,7 +88,7 @@ fun AppNavigation(widgetManager: WidgetManager) {
             }
 
             composable("calendar") {
-                Text("Calendar")
+                CalendarScreen()
             }
 
             composable("tasks") {

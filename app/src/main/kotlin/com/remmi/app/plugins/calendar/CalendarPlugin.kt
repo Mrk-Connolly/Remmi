@@ -5,6 +5,7 @@ import com.remmi.app.core.plugins.RemmiPlugin
 import android.util.Log
 import com.remmi.app.core.events.MeetingCreatedEvent
 import com.remmi.app.core.plugins.PluginContext
+import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.widgets.RemmiWidget
 
 class CalendarPlugin : RemmiPlugin {
@@ -19,9 +20,6 @@ class CalendarPlugin : RemmiPlugin {
     override fun onLoad(context: PluginContext) {
         Log.d("Remmi", "Calendar plugin loaded")
 
-        context.eventBus.publish(
-            MeetingCreatedEvent()
-        )
     }
 
     override fun onUnload() {
@@ -31,4 +29,5 @@ class CalendarPlugin : RemmiPlugin {
     override fun getWidget(): RemmiWidget {
         return CalendarWidget()
     }
+
 }
