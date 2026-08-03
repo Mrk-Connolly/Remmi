@@ -1,5 +1,7 @@
 package com.remmi.app.core.plugins
 
+import android.util.Log
+
 class PluginRegistry {
 
     // Stores all loaded plugins
@@ -11,12 +13,17 @@ class PluginRegistry {
      */
     fun register(plugin: RemmiPlugin, context: PluginContext): Boolean {
 
+        Log.d("Remmi", "${plugin.metadata.name} being registered")
+
         if (plugins.containsKey(plugin.metadata.id)) {
+            Log.d("Remmi", "${plugin.metadata.name} could not be loaded")
             return false
         }
 
+
         plugins[plugin.metadata.id] = plugin
         plugin.onLoad(context)
+        Log.d("Remmi", "${plugin.metadata.name} loaded correctly")
 
         return true
     }

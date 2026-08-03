@@ -7,9 +7,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
+import com.remmi.app.core.widgets.WidgetManager
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(widgetManager: WidgetManager) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -17,5 +18,6 @@ fun HomeScreen() {
     ) {
         Text("Hello, I'm Remmi")
         Text("Your personal assistant")
+        widgetManager.getWidgets().forEach { it.Content() }
     }
 }

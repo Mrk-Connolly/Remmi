@@ -1,5 +1,6 @@
 package com.remmi.app.core.plugins
 
+import com.remmi.app.core.widgets.RemmiWidget
 
 interface RemmiPlugin {
 
@@ -8,4 +9,8 @@ interface RemmiPlugin {
     fun onLoad(context: PluginContext)
 
     fun onUnload()
+
+    fun getWidget(): RemmiWidget? {
+        return null
+    }
 }
