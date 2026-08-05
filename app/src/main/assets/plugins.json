@@ -1,0 +1,11 @@
+[
+  {
+    "id": "calendar",
+    "name": "Calendar",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true
+  }
+]

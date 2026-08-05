@@ -1,6 +1,6 @@
 package com.remmi.app.core.model.components
 
-data class ComponentMetadata(
+data class Metadata(
 
     val title: String,
 

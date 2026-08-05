@@ -1,11 +1,12 @@
 package com.remmi.app.core.model.components
 
-import java.time.LocalDateTime
+import kotlinx.datetime.LocalDateTime
+import kotlin.time.Instant
 
 data class TimeRange(
 
-    val start: LocalDateTime,
+    val start: Instant,
 
-    val end: LocalDateTime? = null
+    val end: Instant? = null
 
 )

@@ -1,16 +1,10 @@
 package com.remmi.app.core.screens
 
-import com.remmi.app.core.plugins.PluginRegistry
+import com.remmi.app.core.plugins.PluginManager
 
-class ScreenManager(private val registry: PluginRegistry) {
+class ScreenManager() {
 
     fun getScreens(): List<RemmiScreen> {
-
-        return registry
-            .getPlugins()
-            .mapNotNull {
-                it.getScreen()
-            }
-
+        return emptyList()
     }
 }

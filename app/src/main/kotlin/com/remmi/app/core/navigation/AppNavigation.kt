@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import com.remmi.app.HomeScreen
+import com.remmi.app.core.screens.HomeScreen
 import androidx.compose.material3.Text
 import com.remmi.app.core.widgets.WidgetManager
 import androidx.compose.material.icons.Icons

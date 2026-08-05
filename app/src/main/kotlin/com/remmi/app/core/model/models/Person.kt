@@ -4,7 +4,7 @@ import com.remmi.app.core.model.components.ContactInfo
 import com.remmi.app.core.model.components.Location
 import com.remmi.app.core.model.components.PersonName
 import com.remmi.app.core.model.components.Relationship
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
 data class Person(

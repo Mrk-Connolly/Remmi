@@ -1,31 +1,54 @@
 package com.remmi.app.core.runtime
 
-import android.util.Log
+import android.content.Context
+import com.remmi.app.core.actions.ActionManager
 import com.remmi.app.core.automation.AutomationEngine
-import com.remmi.app.core.events.EventBus
+import com.remmi.app.core.events.EventManager
 import com.remmi.app.core.plugins.PluginContext
-import com.remmi.app.core.plugins.PluginRegistry
+import com.remmi.app.core.plugins.PluginManager
+import com.remmi.app.core.screens.ScreenManager
+import com.remmi.app.core.service.ServiceManager
 import com.remmi.app.core.widgets.WidgetManager
-import com.remmi.app.plugins.calendar.CalendarPlugin
 
-class RemmiRuntime {
+class RemmiRuntime (private val androidContext: Context) {
 
-    val eventBus = EventBus()
-    val automationEngine = AutomationEngine()
-    val pluginRegistry = PluginRegistry()
-    val widgetManager = WidgetManager(pluginRegistry)
+    private val eventManager = EventManager()
+    private val automationEngine = AutomationEngine()
+    private val pluginManager = PluginManager()
+    private val widgetManager = WidgetManager()
+    private val screenManager = ScreenManager()
+    private val serviceManager = ServiceManager()
 
-    val context = PluginContext(
-        eventBus = eventBus,
-        pluginRegistry = pluginRegistry,
-        widgetManager = widgetManager
+    private val actionManager = ActionManager()
+
+    val controller = PluginContext(
+        automationEngine = automationEngine,
+        actionManager = actionManager,
+        eventManager = eventManager,
+        pluginManager = pluginManager,
+        widgetManager = widgetManager,
+        serviceManager = serviceManager,
+        screenManager = screenManager
     )
+
+
     fun start() {
-        Log.d("Remmi", "Calendar plugin registered")
-        pluginRegistry.register(CalendarPlugin(), context)
+        // Test db connection
+        serviceManager.testDBConnection()
+
+        // 1. Read plugin list
+        pluginManager.readPlugins(androidContext)
+
+        // 2. Load plugins
+        pluginManager.loadPlugins(widgetManager)
+
+        // 3. Load plugins items
+        serviceManager.loadPluginItems(pluginManager)
     }
 
     fun stop() {
-        // Later we'll unload everything
+        serviceManager.close()
+        pluginManager.close()
     }
 }
+

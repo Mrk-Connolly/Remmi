@@ -2,7 +2,7 @@ package com.remmi.app.plugins.alarm
 
 import com.remmi.app.core.model.components.RepeatRule
 import com.remmi.app.core.model.models.RemmiModel
-import java.time.LocalDateTime
+import kotlinx.datetime.LocalDateTime
 import kotlin.time.Instant
 
 data class AlarmItem(

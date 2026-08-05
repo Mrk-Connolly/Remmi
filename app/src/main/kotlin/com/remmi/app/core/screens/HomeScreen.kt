@@ -1,4 +1,4 @@
-package com.remmi.app
+package com.remmi.app.core.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

@@ -8,6 +8,7 @@ import com.remmi.app.core.model.components.RepeatRule
 import com.remmi.app.core.model.components.TimeRange
 import com.remmi.app.core.model.models.Person
 import com.remmi.app.core.model.models.RemmiModel
+import com.remmi.app.core.model.components.Metadata
 import kotlin.time.Instant
 
 data class CalendarItem(
@@ -18,7 +19,9 @@ data class CalendarItem(
 
     override var modified: Instant,
 
-    val metadata: Metadata,
+    val title: String,
+
+    val description: String,
 
     val time: TimeRange,
 

@@ -1,6 +1,6 @@
 package com.remmi.app.core.events
 
-class EventBus {
+class EventManager {
 
     private val listeners = mutableListOf<EventListener>()
 
