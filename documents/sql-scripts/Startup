@@ -1,0 +1,262 @@
+-- ============================================================
+-- REMMI DATABASE BOOTSTRAP
+-- Development Version
+-- ============================================================
+
+---------------------------------------------------------------
+-- Remove old tables
+---------------------------------------------------------------
+
+DROP TABLE IF EXISTS calendar CASCADE;
+DROP TABLE IF EXISTS tasks CASCADE;
+
+---------------------------------------------------------------
+-- Calendar
+---------------------------------------------------------------
+
+CREATE TABLE calendar (
+
+    id              TEXT PRIMARY KEY,
+
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+
+    title           TEXT NOT NULL,
+    description     TEXT,
+
+    starting_time   TIMESTAMPTZ,
+    ending_time     TIMESTAMPTZ,
+
+    priority        TEXT NOT NULL,
+
+    participants    JSONB,
+    repeat          JSONB,
+    reminders       JSONB,
+    location        JSONB,
+
+    linked_tasks    JSONB,
+    linked_alarm    TEXT,
+
+    relationships   JSONB
+
+);
+
+---------------------------------------------------------------
+-- Tasks
+---------------------------------------------------------------
+
+CREATE TABLE tasks (
+
+    id              TEXT PRIMARY KEY,
+
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+
+    title           TEXT NOT NULL,
+    description     TEXT,
+
+    completed       BOOLEAN NOT NULL DEFAULT FALSE,
+
+    due_date        TIMESTAMPTZ,
+
+    priority        TEXT NOT NULL,
+
+    parent_task     TEXT,
+
+    linked_calendar TEXT,
+
+    reminders       JSONB,
+
+    relationships   JSONB
+
+);
+
+---------------------------------------------------------------
+-- Permissions
+---------------------------------------------------------------
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE calendar
+TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE tasks
+TO anon;
+
+---------------------------------------------------------------
+-- Enable RLS
+---------------------------------------------------------------
+
+ALTER TABLE calendar ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+
+---------------------------------------------------------------
+-- Calendar Policies
+---------------------------------------------------------------
+
+CREATE POLICY "calendar_select"
+ON calendar
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "calendar_insert"
+ON calendar
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "calendar_update"
+ON calendar
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "calendar_delete"
+ON calendar
+FOR DELETE
+TO anon
+USING (true);
+
+---------------------------------------------------------------
+-- Task Policies
+---------------------------------------------------------------
+
+CREATE POLICY "tasks_select"
+ON tasks
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "tasks_insert"
+ON tasks
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "tasks_update"
+ON tasks
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "tasks_delete"
+ON tasks
+FOR DELETE
+TO anon
+USING (true);
+
+---------------------------------------------------------------
+-- Example Calendar Event
+---------------------------------------------------------------
+
+INSERT INTO calendar (
+
+    id,
+    created,
+    modified,
+
+    title,
+    description,
+
+    starting_time,
+    ending_time,
+
+    priority,
+
+    participants,
+    repeat,
+    reminders,
+    location,
+
+    linked_tasks,
+    linked_alarm,
+
+    relationships
+
+)
+
+VALUES (
+
+    'calendar_demo',
+
+    now(),
+    now(),
+
+    'Doctor Appointment',
+    'Annual checkup',
+
+    now() + interval '2 day',
+    now() + interval '2 day 1 hour',
+
+    'HIGH',
+
+    '[]',
+    NULL,
+    '[]',
+    NULL,
+
+    '[]',
+    NULL,
+
+    '[]'
+
+);
+
+---------------------------------------------------------------
+-- Example Task
+---------------------------------------------------------------
+
+INSERT INTO tasks (
+
+    id,
+
+    created,
+    modified,
+
+    title,
+    description,
+
+    completed,
+
+    due_date,
+
+    priority,
+
+    parent_task,
+
+    linked_calendar,
+
+    reminders,
+
+    relationships
+
+)
+
+VALUES (
+
+    'task_demo',
+
+    now(),
+    now(),
+
+    'Buy groceries',
+    'Milk, eggs, bread',
+
+    false,
+
+    now() + interval '1 day',
+
+    'NORMAL',
+
+    NULL,
+
+    NULL,
+
+    '[]',
+
+    '[]'
+
+);

@@ -1,31 +1,40 @@
 package com.remmi.app.plugins.calendar
 
-import kotlinx.datetime.LocalDate
-import java.util.UUID
-import kotlin.time.Clock
+import android.util.Log
 import com.remmi.app.core.model.components.Priority
 import com.remmi.app.core.model.components.TimeRange
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import java.util.UUID
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 class CalendarActions(
     private val repository: CalendarRepository
 ) {
 
+    companion object {
+        private const val TAG = "CalendarActions"
+    }
+
     /* --------------------------
      * CRUD
      * -------------------------- */
 
-    fun addEvent(
+    suspend fun addEvent(
 
         title: String,
 
         description: String,
 
-        date: String,
+        day: String,
+
+        month: String,
+
+        year: String,
 
         startTime: String,
 
@@ -33,86 +42,250 @@ class CalendarActions(
 
         priority: Priority
 
-    ) {
+    ): Boolean {
 
-        val startDateTime = LocalDateTime.parse("${date}T${startTime}")
-        val endDateTime = LocalDateTime.parse("${date}T${endTime}")
-        val timeZone = TimeZone.currentSystemDefault()
+        return try {
 
-        val item = CalendarItem(
+            val timeZone = TimeZone.currentSystemDefault()
 
-            id = UUID.randomUUID().toString(),
+            val startInstant = if (startTime.isNotEmpty()) {
+                try {
+                    LocalDateTime.parse(
+                        "${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T$startTime"
+                    ).toInstant(timeZone)
+                } catch (_: Exception) {
+                    null
+                }
+            } else {
+                null
+            }
 
-            created = Clock.System.now(),
+            val endInstant = if (endTime.isNotEmpty()) {
+                try {
+                    LocalDateTime.parse(
+                        "${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T$endTime"
+                    ).toInstant(timeZone)
+                } catch (_: Exception) {
+                    null
+                }
+            } else {
+                null
+            }
 
-            modified = Clock.System.now(),
+            val item = CalendarItem(
 
-            title = title,
+                id = UUID.randomUUID().toString(),
 
-            description = description,
+                created = Clock.System.now(),
 
-            time = TimeRange(
-                start = startDateTime.toInstant(timeZone),
-                end = endDateTime.toInstant(timeZone)
-            ),
+                modified = Clock.System.now(),
 
-            priority = priority
-        )
+                title = title,
 
-        repository.add(item)
+                description = description,
+
+                startingTime = startInstant,
+                endingTime = endInstant,
+                priority = priority
+
+            )
+
+            repository.insert(item)
+
+            Log.d(TAG, "Event inserted successfully")
+
+            true
+
+        } catch (e: Exception) {
+
+            Log.e(TAG, "Failed to insert event", e)
+
+            false
+
+        }
 
     }
 
-    fun removeEvent(id: String) {
-        repository.remove(id)
+    suspend fun removeEvent(id: String): Boolean {
+
+        return try {
+
+            repository.delete(id)
+
+            true
+
+        } catch (e: Exception) {
+
+            Log.e(TAG, "Failed to delete event", e)
+
+            false
+
+        }
+
     }
 
-    fun updateEvent(event: CalendarItem) {
-        repository.update(event)
+    suspend fun updateEvent(event: CalendarItem): Boolean {
+
+        return try {
+
+            repository.updateCloud(event)
+
+            true
+
+        } catch (e: Exception) {
+
+            Log.e(TAG, "Failed to update event", e)
+
+            false
+
+        }
+
     }
 
-    fun getEvent(id: String): CalendarItem? {
-        return repository.get(id)
+    suspend fun getEvent(id: String): CalendarItem? {
+
+        return try {
+
+            repository.get(id)
+
+        } catch (e: Exception) {
+
+            Log.e(TAG, "Failed to retrieve event", e)
+
+            null
+
+        }
+
     }
 
-    fun getAllEvents(): List<CalendarItem> {
-        return repository.getAll()
+    suspend fun getAllEvents(): List<CalendarItem> {
+
+        return try {
+
+            repository.getAll()
+
+        } catch (e: Exception) {
+
+            Log.e(TAG, "Failed to retrieve events", e)
+
+            emptyList()
+
+        }
+
+    }
+
+    suspend fun sync(): Boolean {
+
+        return try {
+
+            repository.sync()
+
+            true
+
+        } catch (e: Exception) {
+
+            Log.e(TAG, "Failed to synchronize calendar", e)
+
+            false
+
+        }
+
     }
 
     /* --------------------------
      * Date queries
      * -------------------------- */
 
-    fun getEventsOn(date: LocalDate): List<CalendarItem> {
-        return repository.getAll().filter {
-            it.time.start.toLocalDateTime(TimeZone.currentSystemDefault()).date == date
+    suspend fun getEventsOn(date: LocalDate): List<CalendarItem> {
+
+        return try {
+
+            repository.getAll().filter {
+
+                it.startingTime
+                    ?.toLocalDateTime(TimeZone.currentSystemDefault())
+                    ?.date == date
+
+            }
+
+        } catch (e: Exception) {
+
+            Log.e(TAG, "Failed to query events for date", e)
+
+            emptyList()
+
         }
+
     }
 
-    fun getToday(): List<CalendarItem> {
-        // We'll implement this once we have a Clock service.
-        return emptyList()
+    suspend fun getToday(): List<CalendarItem> {
+
+        return try {
+
+            emptyList()
+
+        } catch (e: Exception) {
+
+            Log.e(TAG, "Failed to retrieve today's events", e)
+
+            emptyList()
+
+        }
+
     }
 
-    fun getUpcomingEvents(): List<CalendarItem> {
-        return repository.getAll()
-            .sortedBy { it.time.start }
-    }
+    suspend fun getUpcomingEvents(): List<CalendarItem> {
 
+        return try {
+
+            repository.getAll()
+                .sortedBy {
+                    it.startingTime ?: Instant.fromEpochMilliseconds(0)
+                }
+
+        } catch (e: Exception) {
+
+            Log.e(TAG, "Failed to retrieve upcoming events", e)
+
+            emptyList()
+
+        }
+
+    }
 
     /* --------------------------
      * Helpers
      * -------------------------- */
 
-    fun hasEvents(date: LocalDate): Boolean {
+    suspend fun hasEvents(date: LocalDate): Boolean {
 
-        return getEventsOn(date).isNotEmpty()
+        return try {
+
+            getEventsOn(date).isNotEmpty()
+
+        } catch (e: Exception) {
+
+            Log.e(TAG, "Failed checking events", e)
+
+            false
+
+        }
 
     }
 
-    fun eventCount(): Int {
+    suspend fun eventCount(): Int {
 
-        return repository.getAll().size
+        return try {
+
+            repository.getAll().size
+
+        } catch (e: Exception) {
+
+            Log.e(TAG, "Failed counting events", e)
+
+            0
+
+        }
 
     }
 

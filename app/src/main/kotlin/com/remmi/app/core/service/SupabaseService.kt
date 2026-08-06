@@ -3,8 +3,14 @@ package com.remmi.app.core.service
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.postgrest
+import com.remmi.app.core.model.models.RemmiModel
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 
-object SupabaseService {
+object SupabaseService : DatabaseService {
 
     // TODO: Move these into BuildConfig or local.properties before publishing.
     private const val SUPABASE_URL =
@@ -19,5 +25,47 @@ object SupabaseService {
     ) {
         install(Auth)
         install(Postgrest)
+    }
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+
+    override suspend fun <T : RemmiModel> insert(tableName: String, item: T, serializer: KSerializer<T>) {
+        val jsonElement = json.encodeToJsonElement(serializer, item)
+        client.postgrest.from(tableName).insert(jsonElement)
+    }
+
+    override suspend fun delete(tableName: String, id: String) {
+        client.postgrest.from(tableName).delete {
+            filter {
+                eq("id", id)
+            }
+        }
+    }
+
+    override suspend fun <T : RemmiModel> update(tableName: String, item: T, serializer: KSerializer<T>) {
+        val jsonElement = json.encodeToJsonElement(serializer, item)
+        client.postgrest.from(tableName).update(jsonElement) {
+            filter {
+                eq("id", item.id)
+            }
+        }
+    }
+
+    override suspend fun <T : RemmiModel> getAll(tableName: String, serializer: KSerializer<T>): List<T> {
+        val result = client.postgrest.from(tableName).select()
+        return json.decodeFromString(ListSerializer(serializer), result.data)
+    }
+
+    override suspend fun <T : RemmiModel> getById(tableName: String, id: String, serializer: KSerializer<T>): T? {
+        val result = client.postgrest.from(tableName).select {
+            filter {
+                eq("id", id)
+            }
+        }
+        val list = json.decodeFromString(ListSerializer(serializer), result.data)
+        return list.firstOrNull()
     }
 }

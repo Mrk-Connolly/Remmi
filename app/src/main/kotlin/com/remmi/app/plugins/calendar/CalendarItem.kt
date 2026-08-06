@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.calendar
 
+import kotlinx.serialization.Serializable
 import com.remmi.app.core.model.components.Location
 import com.remmi.app.core.model.components.Priority
 import com.remmi.app.core.model.components.Relationship
@@ -11,6 +12,7 @@ import com.remmi.app.core.model.models.RemmiModel
 import com.remmi.app.core.model.components.Metadata
 import kotlin.time.Instant
 
+@Serializable
 data class CalendarItem(
 
     override val id: String,
@@ -19,11 +21,12 @@ data class CalendarItem(
 
     override var modified: Instant,
 
-    val title: String,
+    val title: String = "",
 
-    val description: String,
+    val description: String = "",
 
-    val time: TimeRange,
+    val startingTime: Instant? = null,
+    val endingTime: Instant? = null,
 
     val priority: Priority = Priority.NORMAL,
 

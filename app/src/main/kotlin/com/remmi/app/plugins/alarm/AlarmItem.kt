@@ -1,10 +1,13 @@
 package com.remmi.app.plugins.alarm
 
+import kotlinx.serialization.Serializable
+import com.remmi.app.core.model.components.Metadata
 import com.remmi.app.core.model.components.RepeatRule
 import com.remmi.app.core.model.models.RemmiModel
 import kotlinx.datetime.LocalDateTime
 import kotlin.time.Instant
 
+@Serializable
 data class AlarmItem(
 
     override val id: String,

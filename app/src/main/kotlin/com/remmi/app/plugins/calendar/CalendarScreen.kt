@@ -12,14 +12,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.model.components.Priority
 import io.github.boguszpawlowski.composecalendar.SelectableCalendar
+import kotlinx.coroutines.launch
 
 @Composable
-fun CalendarScreen() {
+fun CalendarScreen(actions: CalendarActions) {
 
     var showAddDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var events by remember { mutableStateOf(emptyList<CalendarItem>()) }
+
+    LaunchedEffect(Unit) {
+        events = actions.getAllEvents()
+    }
 
     Scaffold(
-
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
@@ -32,7 +38,6 @@ fun CalendarScreen() {
                 )
             }
         }
-
     ) { padding ->
 
         Column(
@@ -47,7 +52,7 @@ fun CalendarScreen() {
 
             SelectableCalendar()
 
-            Divider()
+            HorizontalDivider()
 
             Text(
                 text = "Upcoming",
@@ -63,14 +68,7 @@ fun CalendarScreen() {
                 modifier = Modifier.weight(1f)
             ) {
 
-                items(
-                    listOf(
-                        "Today - Doctor",
-                        "Today - Buy groceries",
-                        "Tomorrow - Meeting",
-                        "Friday - Dinner"
-                    )
-                ) { item ->
+                items(events) { item ->
 
                     Card(
                         modifier = Modifier
@@ -79,7 +77,7 @@ fun CalendarScreen() {
                     ) {
 
                         Text(
-                            text = item,
+                            text = item.title,
                             modifier = Modifier.padding(16.dp)
                         )
                     }
@@ -103,12 +101,13 @@ fun CalendarScreen() {
                 showAddDialog = false
             },
 
-            onSave = { title, description, date, startTime, endTime, priority -> Unit
+            onSave = { title, description, day, month, year, startTime, endTime, priority ->
 
-                // TODO
-                // CalendarAction.addEvent(...)
-
-                showAddDialog = false
+                scope.launch {
+                    actions.addEvent(title, description, day, month, year, startTime, endTime, priority)
+                    events = actions.getAllEvents()
+                    showAddDialog = false
+                }
             }
 
         )
@@ -122,7 +121,9 @@ fun AddEventDialog( onDismiss: () -> Unit,
                     onSave: (
                         title: String,
                         description: String,
-                        date: String,
+                        day: String,
+                        month: String,
+                        year: String,
                         startTime: String,
                         endTime: String,
                         priority: Priority
@@ -131,7 +132,9 @@ fun AddEventDialog( onDismiss: () -> Unit,
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("") }
+    var day by remember { mutableStateOf("") }
+    var month by remember { mutableStateOf("") }
+    var year by remember { mutableStateOf("") }
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf(Priority.NORMAL) }
@@ -157,10 +160,28 @@ fun AddEventDialog( onDismiss: () -> Unit,
                     label = { Text("Description") }
                 )
                 Spacer(Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = date,
-                    onValueChange = { date = it }, label = { Text("Date (YYYY-MM-DD)") }
-                )
+                Row {
+                    OutlinedTextField(
+                        modifier = Modifier.weight(1f),
+                        value = day,
+                        onValueChange = { day = it },
+                        label = { Text("Day") }
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedTextField(
+                        modifier = Modifier.weight(1f),
+                        value = month,
+                        onValueChange = { month = it },
+                        label = { Text("Month") }
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedTextField(
+                        modifier = Modifier.weight(1f),
+                        value = year,
+                        onValueChange = { year = it },
+                        label = { Text("Year") }
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 Row {
                     OutlinedTextField(
@@ -168,7 +189,7 @@ fun AddEventDialog( onDismiss: () -> Unit,
                         value = startTime,
                         onValueChange = { startTime = it
                         },
-                        label = { Text("Start")
+                        label = { Text("Start (HH:mm)")
                         }
                     )
                     Spacer(Modifier.width(8.dp))
@@ -177,7 +198,7 @@ fun AddEventDialog( onDismiss: () -> Unit,
                         value = endTime,
                         onValueChange = { endTime = it
                         },
-                        label = { Text("End")
+                        label = { Text("End (HH:mm)")
                         }
                     )
                 }
@@ -205,7 +226,9 @@ fun AddEventDialog( onDismiss: () -> Unit,
                     onSave(
                         title,
                         description,
-                        date,
+                        day,
+                        month,
+                        year,
                         startTime,
                         endTime,
                         priority
@@ -224,4 +247,3 @@ fun AddEventDialog( onDismiss: () -> Unit,
         }
     )
 }
-

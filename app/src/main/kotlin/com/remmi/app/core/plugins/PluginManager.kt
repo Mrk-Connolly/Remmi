@@ -6,8 +6,6 @@ import com.remmi.app.core.widgets.WidgetManager
 import com.remmi.app.plugins.calendar.CalendarPlugin
 import kotlinx.serialization.json.Json
 
-
-
 class PluginManager {
 
     val plugins = mutableMapOf<String, RemmiPlugin>()
@@ -15,6 +13,7 @@ class PluginManager {
 
     fun readPlugins(androidContext : Context) {
         Log.d("Remmi", "Accessing plugin information")
+        //william lo beso apasionadamenro y cillian lo resppndio con ferocidad
 
         val json = androidContext.assets
             .open("plugins.json")
@@ -27,7 +26,7 @@ class PluginManager {
         )
     }
 
-    fun loadPlugins(widgetManager: WidgetManager) {
+    fun loadPlugins(context: PluginContext) {
         Log.d("Remmi", "Loading plugins...")
 
         plugins.clear()
@@ -35,25 +34,27 @@ class PluginManager {
         pluginMetadata.forEach { metadata ->
 
             val plugin = when (metadata.id) {
-                "calendar" -> CalendarPlugin()
-
-                // Add here additional plugins
-                // "tasks" -> TaskPlugin()
-                // "weather" -> WeatherPlugin()
-
+                "calendar" -> CalendarPlugin(metadata)
                 else -> null
             }
 
             plugin?.let {
                 plugins[metadata.id] = plugin
+
+                plugin.onLoad()
+
+                if (metadata.showWidget) {
+                    context.widgetManager.register(plugin)
+                }
+                
                 Log.d("Remmi", "Loaded ${metadata.name}")
             }
-
-            widgetManager.register(CalendarPlugin(), )
         }
     }
 
     fun close() {
-        TODO("Not yet implemented")
+        plugins.values.forEach { it.onUnload() }
+        plugins.clear()
     }
+
 }

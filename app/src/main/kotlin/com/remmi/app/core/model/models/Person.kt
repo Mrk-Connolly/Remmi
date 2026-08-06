@@ -1,5 +1,6 @@
 package com.remmi.app.core.model.models
 
+import kotlinx.serialization.Serializable
 import com.remmi.app.core.model.components.ContactInfo
 import com.remmi.app.core.model.components.Location
 import com.remmi.app.core.model.components.PersonName
@@ -7,6 +8,7 @@ import com.remmi.app.core.model.components.Relationship
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
+@Serializable
 data class Person(
 
     override val id: String,

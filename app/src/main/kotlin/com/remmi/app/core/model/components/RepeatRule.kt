@@ -1,7 +1,9 @@
 package com.remmi.app.core.model.components
 
-import java.time.DayOfWeek
+import kotlinx.serialization.Serializable
+import kotlinx.datetime.DayOfWeek
 
+@Serializable
 enum class RepeatType {
 
     NONE,
@@ -18,6 +20,7 @@ enum class RepeatType {
 
 }
 
+@Serializable
 data class RepeatRule(
 
     val type: RepeatType,

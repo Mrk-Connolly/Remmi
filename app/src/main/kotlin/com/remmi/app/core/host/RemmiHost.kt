@@ -31,5 +31,5 @@ fun RemmiHost() { // Hosts the actual application
 
 
     // 3. Start ui bottom menu navigation
-    AppNavigation(widgetManager = runtime.controller.widgetManager)
+    AppNavigation(context = runtime.controller)
 }

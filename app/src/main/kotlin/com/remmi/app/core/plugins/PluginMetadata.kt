@@ -9,7 +9,6 @@ data class PluginMetadata(
     val version: String,
     val author: String,
     val enabled: Boolean,
-
-    val showInNavigation: Boolean = false,
-    val showWidget: Boolean = false
+    val showInNavigation: Boolean,
+    val showWidget: Boolean
 )

@@ -24,6 +24,8 @@ class WidgetManager() {
 
         Log.d("Remmi", "${plugin.metadata.name} being registered")
 
+        if (!plugin.metadata.showWidget) return false
+
         if (widgets.containsKey(plugin.metadata.id)) {
             Log.d("Remmi", "${plugin.metadata.name} could not be loaded")
             return false
@@ -46,5 +48,4 @@ class WidgetManager() {
 
         return true
     }
-
 }

@@ -1,18 +1,22 @@
 package com.remmi.app.plugins.calendar
 
+import com.remmi.app.core.model.components.Priority
+import com.remmi.app.core.model.components.RepeatRule
+import com.remmi.app.core.model.components.RepeatType
 import com.remmi.app.core.model.components.TimeRange
-import com.remmi.app.core.repository.MemoryRepository
+import com.remmi.app.core.repository.CloudRepository
+import com.remmi.app.core.service.DatabaseService
 import kotlin.time.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import com.remmi.app.core.model.components.Metadata
-import com.remmi.app.core.model.components.Priority
-import com.remmi.app.core.model.components.RepeatRule
-import com.remmi.app.core.model.components.RepeatType
 
-class CalendarRepository : MemoryRepository<CalendarItem>(
-
+class CalendarRepository(
+    databaseService: DatabaseService
+) : CloudRepository<CalendarItem>(
+    databaseService = databaseService,
+    tableName = "calendar",
+    serializer = CalendarItem.serializer()
 ) {
 
     init {
@@ -24,15 +28,8 @@ class CalendarRepository : MemoryRepository<CalendarItem>(
                 modified = Clock.System.now(),
                 title = "New Calendar Event",
                 description = "Default description",
-                time = TimeRange(
-                    start = LocalDateTime(
-                        year = 2026,
-                        monthNumber = 8,
-                        dayOfMonth = 12,
-                        hour = 9,
-                        minute = 30
-                    ).toInstant(TimeZone.currentSystemDefault())
-                ),
+                startingTime = Clock.System.now(),
+                endingTime = null,
                 priority = Priority.HIGH,
                 participants = mutableListOf(),
                 repeat = RepeatRule(RepeatType.YEARLY),

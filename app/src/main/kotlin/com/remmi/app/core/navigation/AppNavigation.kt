@@ -11,14 +11,15 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import com.remmi.app.core.screens.HomeScreen
 import androidx.compose.material3.Text
-import com.remmi.app.core.widgets.WidgetManager
+import com.remmi.app.core.plugins.PluginContext
+import com.remmi.app.plugins.calendar.CalendarPlugin
+import com.remmi.app.plugins.calendar.CalendarScreen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
-import com.remmi.app.plugins.calendar.CalendarScreen
 
 sealed class RemmiDestination {
     data object Home : RemmiDestination()
@@ -28,7 +29,7 @@ sealed class RemmiDestination {
 }
 
 @Composable
-fun AppNavigation(widgetManager: WidgetManager) {
+fun AppNavigation(context: PluginContext) {
     val navController = rememberNavController()
     val currentRoute =
         navController.currentBackStackEntry?.destination?.route
@@ -84,11 +85,16 @@ fun AppNavigation(widgetManager: WidgetManager) {
             modifier = Modifier.padding(paddingValues)
         ) {
             composable("home") {
-                HomeScreen(widgetManager)
+                HomeScreen(context.widgetManager)
             }
 
             composable("calendar") {
-                CalendarScreen()
+                val calendarPlugin = context.pluginManager.plugins["calendar"] as? CalendarPlugin
+                if (calendarPlugin != null) {
+                    CalendarScreen(calendarPlugin.actions)
+                } else {
+                    Text("Calendar Plugin not loaded")
+                }
             }
 
             composable("tasks") {
