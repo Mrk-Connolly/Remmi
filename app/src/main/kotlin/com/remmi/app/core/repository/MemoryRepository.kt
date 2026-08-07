@@ -3,7 +3,7 @@ package com.remmi.app.core.repository
 import com.remmi.app.core.model.models.RemmiModel
 
 abstract class MemoryRepository<T : RemmiModel> :
-    Repository<T> {
+    RemmiRepository<T> {
 
     protected val items = mutableMapOf<String, T>()
 

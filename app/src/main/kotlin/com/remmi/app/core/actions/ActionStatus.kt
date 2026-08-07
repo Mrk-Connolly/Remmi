@@ -1,4 +1,9 @@
 package com.remmi.app.core.actions
 
-class ActionStatus {
+import com.remmi.app.core.RemmiClass
+
+/**
+ * Represents the current status of an ongoing [RemmiAction].
+ */
+class ActionStatus : RemmiClass {
 }

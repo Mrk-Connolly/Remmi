@@ -3,7 +3,9 @@ package com.remmi.app.core.plugins
 import android.content.Context
 import android.util.Log
 import com.remmi.app.core.widgets.WidgetManager
+import com.remmi.app.plugins.alarm.AlarmPlugin
 import com.remmi.app.plugins.calendar.CalendarPlugin
+import com.remmi.app.plugins.tasks.TasksPlugin
 import kotlinx.serialization.json.Json
 
 class PluginManager {
@@ -35,6 +37,8 @@ class PluginManager {
 
             val plugin = when (metadata.id) {
                 "calendar" -> CalendarPlugin(metadata)
+                "tasks" -> TasksPlugin(metadata)
+                "alarm" -> AlarmPlugin(metadata)
                 else -> null
             }
 

@@ -11,17 +11,21 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 
-class CalendarRepository(
-    databaseService: DatabaseService
-) : CloudRepository<CalendarItem>(
+/**
+ * Repository implementation for managing [CalendarItem] data.
+ *
+ * This repository inherits from [CloudRepository], providing built-in synchronization
+ * with the Supabase backend while maintaining an in-memory cache for fast access.
+ */
+class CalendarRepository (databaseService: DatabaseService) : CloudRepository<CalendarItem>(
     databaseService = databaseService,
     tableName = "calendar",
     serializer = CalendarItem.serializer()
 ) {
 
     init {
+        // Add a default sample event to ensure the UI has something to display initially.
         add(
-
             CalendarItem(
                 id = "calendar_001",
                 created = Clock.System.now(),
