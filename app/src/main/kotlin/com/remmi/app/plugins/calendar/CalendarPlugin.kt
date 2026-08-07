@@ -8,6 +8,7 @@ import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.service.DatabaseService
 import com.remmi.app.core.service.SupabaseService
 import com.remmi.app.core.widgets.RemmiWidget
+import com.remmi.app.plugins.tasks.TasksRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,44 +23,45 @@ import kotlinx.coroutines.launch
 class CalendarPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
 
     /**
-     * The dashboard widget for displaying calendar information.
+     * Plugin Classes.
+     * Created and initialized on class instance creation
      */
     override val widget: RemmiWidget = CalendarWidget()
-
-    /**
-     * The repository that manages persistent calendar data.
-     */
     override val repository: CalendarRepository = CalendarRepository(SupabaseService)
-
-    /**
-     * The action controller that manages calendar business logic.
-     */
-    override val actions: CalendarActions = CalendarActions(repository)
-
-    /**
-     * The main full-screen UI for the calendar.
-     */
+    override val actions: CalendarActions = CalendarActions(
+        repository,
+        TasksRepository(SupabaseService)
+    )
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content() = CalendarScreen(actions)
     }
 
+
+    // --------------------------------------------------------------------------
+    //                       REMMI PLUGIN OVERRIDES.
+    // --------------------------------------------------------------------------
+
+
     /**
-     * Called when the plugin is loaded.
-     */
+     * On load function
+     *
+     *
+     *
+     *
+     * */
     override fun onLoad() {
         Log.d("Remmi", "Loading Calendar Plugin...")
 
-        Log.d(
-            "Remmi",
-            "Calendar loaded with ${repository.getAll().size} events."
-        )
+        loadItems(SupabaseService)
+
+        Log.d("Remmi", "Calendar Plugin Loaded")
     }
 
     /**
      * Called when the plugin is unloaded.
      */
     override fun onUnload() {
-        // Implementation for cleanup when the plugin is removed or the app closes.
+        Log.d("Remmi", "Unloading Calendar Plugin...")
     }
 
     /**
@@ -67,13 +69,7 @@ class CalendarPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
      */
     override fun loadItems(service: DatabaseService) {
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                Log.d("Remmi", "Syncing calendar items...")
-                actions.sync()
-                Log.d("Remmi", "Calendar synced with ${repository.getAll().size} events.")
-            } catch (e: Exception) {
-                Log.e("Remmi", "Failed to sync calendar: ${e.message}")
-            }
+            actions.sync()
         }
     }
 }

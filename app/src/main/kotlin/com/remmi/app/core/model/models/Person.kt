@@ -6,7 +6,7 @@ import com.remmi.app.core.model.components.Location
 import com.remmi.app.core.model.components.PersonName
 import com.remmi.app.core.model.components.Relationship
 import kotlinx.datetime.LocalDate
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 @Serializable
 data class Person(

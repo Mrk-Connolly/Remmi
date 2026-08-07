@@ -10,16 +10,6 @@ class ServiceManager {
 
     val serviceContext: DatabaseService = SupabaseService
 
-    fun loadPluginItems(pluginManager: PluginManager) {
-
-        pluginManager.plugins.values.forEach { plugin ->
-
-            plugin.loadItems(serviceContext)
-
-        }
-
-    }
-
     fun testDBConnection() {
         CoroutineScope(Dispatchers.IO).launch {
             testSupabase()

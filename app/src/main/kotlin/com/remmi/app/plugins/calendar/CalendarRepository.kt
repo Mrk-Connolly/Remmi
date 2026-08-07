@@ -6,7 +6,8 @@ import com.remmi.app.core.model.components.RepeatType
 import com.remmi.app.core.model.components.TimeRange
 import com.remmi.app.core.repository.CloudRepository
 import com.remmi.app.core.service.DatabaseService
-import kotlin.time.Clock
+
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -28,11 +29,11 @@ class CalendarRepository (databaseService: DatabaseService) : CloudRepository<Ca
         add(
             CalendarItem(
                 id = "calendar_001",
-                created = Clock.System.now(),
-                modified = Clock.System.now(),
+                created = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
+                modified = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
                 title = "New Calendar Event",
                 description = "Default description",
-                startingTime = Clock.System.now(),
+                startingTime = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
                 endingTime = null,
                 priority = Priority.HIGH,
                 participants = mutableListOf(),

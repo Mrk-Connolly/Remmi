@@ -12,8 +12,6 @@ import androidx.compose.material3.NavigationBarItem
 import com.remmi.app.core.screens.HomeScreen
 import androidx.compose.material3.Text
 import com.remmi.app.core.plugins.PluginContext
-import com.remmi.app.plugins.calendar.CalendarPlugin
-import com.remmi.app.plugins.calendar.CalendarScreen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -89,16 +87,11 @@ fun AppNavigation(context: PluginContext) {
             }
 
             composable("calendar") {
-                val calendarPlugin = context.pluginManager.plugins["calendar"] as? CalendarPlugin
-                if (calendarPlugin != null) {
-                    CalendarScreen(calendarPlugin.actions)
-                } else {
-                    Text("Calendar Plugin not loaded")
-                }
+                context.pluginManager.plugins["calendar"]?.screen?.Content() ?: Text("Calendar Plugin not loaded")
             }
 
             composable("tasks") {
-                Text("Tasks")
+                context.pluginManager.plugins["tasks"]?.screen?.Content() ?: Text("Tasks Plugin not loaded")
             }
 
             composable("settings") {

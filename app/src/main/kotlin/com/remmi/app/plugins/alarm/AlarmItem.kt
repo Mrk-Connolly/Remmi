@@ -5,7 +5,7 @@ import com.remmi.app.core.model.components.Metadata
 import com.remmi.app.core.model.components.RepeatRule
 import com.remmi.app.core.model.models.RemmiModel
 import kotlinx.datetime.LocalDateTime
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 @Serializable
 data class AlarmItem(

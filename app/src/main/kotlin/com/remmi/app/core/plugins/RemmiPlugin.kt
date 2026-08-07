@@ -42,7 +42,7 @@ interface RemmiPlugin : RemmiClass {
     val repository : RemmiRepository<out RemmiModel>
 
     /**
-     * Called when the plugin is first loaded into the system.
+     * Load plugin and items.
      */
     fun onLoad()
 

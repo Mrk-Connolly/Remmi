@@ -10,7 +10,7 @@ import com.remmi.app.core.model.components.TimeRange
 import com.remmi.app.core.model.models.Person
 import com.remmi.app.core.model.models.RemmiModel
 import com.remmi.app.core.model.components.Metadata
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 /**
  * Data model representing a single event in the calendar.

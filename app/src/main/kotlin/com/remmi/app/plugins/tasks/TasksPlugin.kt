@@ -7,6 +7,7 @@ import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.service.DatabaseService
 import com.remmi.app.core.service.SupabaseService
+import com.remmi.app.plugins.calendar.CalendarRepository
 import com.remmi.app.core.widgets.RemmiWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,11 +22,6 @@ import kotlinx.coroutines.launch
 class TasksPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
 
     /**
-     * Dashboard widget for quick task overview.
-     */
-    override val widget: RemmiWidget = TasksWidget()
-
-    /**
      * Repository for task data persistence.
      */
     override val repository: TasksRepository = TasksRepository(SupabaseService)
@@ -33,7 +29,15 @@ class TasksPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     /**
      * Action controller for task business logic.
      */
-    override val actions: TasksActions = TasksActions(repository)
+    override val actions: TasksActions = TasksActions(
+        repository,
+        CalendarRepository(SupabaseService)
+    )
+
+    /**
+     * Dashboard widget for quick task overview.
+     */
+    override val widget: RemmiWidget = TasksWidget(actions)
 
     /**
      * Main UI screen for detailed task management.
@@ -43,10 +47,11 @@ class TasksPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     }
 
     /**
-     * Called when the plugin is loaded.
+     * Load plugin and items.
      */
     override fun onLoad() {
         Log.d("Remmi", "Loading Tasks Plugin...")
+        loadItems(SupabaseService)
     }
 
     /**
@@ -60,11 +65,7 @@ class TasksPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
      */
     override fun loadItems(service: DatabaseService) {
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                actions.sync()
-            } catch (e: Exception) {
-                Log.e("Remmi", "Failed to sync tasks: ${e.message}")
-            }
+            actions.sync()
         }
     }
 }

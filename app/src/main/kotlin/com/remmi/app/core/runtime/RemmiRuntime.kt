@@ -42,8 +42,6 @@ class RemmiRuntime (private val androidContext: Context) {
         // 2. Load plugins
         pluginManager.loadPlugins(controller)
 
-        // 3. Load plugins items
-        serviceManager.loadPluginItems(pluginManager)
     }
 
     fun stop() {

@@ -46,6 +46,7 @@ class AlarmPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
      */
     override fun onLoad() {
         Log.d("Remmi", "Loading Alarm Plugin...")
+        loadItems(SupabaseService)
     }
 
     /**

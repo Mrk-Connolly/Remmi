@@ -1,7 +1,7 @@
 package com.remmi.app.core.model.components
 
 import com.remmi.app.core.RemmiClass
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 /**
  * Interface for reusable data components that are parts of a [RemmiModel].
