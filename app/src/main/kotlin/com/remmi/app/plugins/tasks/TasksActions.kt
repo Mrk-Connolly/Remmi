@@ -1,0 +1,140 @@
+package com.remmi.app.plugins.tasks
+
+import android.util.Log
+import com.remmi.app.core.actions.RemmiAction
+import com.remmi.app.core.model.components.Priority
+import com.remmi.app.core.model.components.RepeatRule
+import com.remmi.app.plugins.calendar.CalendarItem
+import com.remmi.app.plugins.calendar.CalendarRepository
+import kotlinx.datetime.*
+import java.util.UUID
+
+/**
+ * Action controller for the Tasks plugin.
+ */
+class TasksActions(
+    private val repository: TasksRepository,
+    private val calendarRepository: CalendarRepository,
+    override val id: String = "tasks_actions",
+    override val name: String = "Tasks Actions"
+) : RemmiAction {
+
+    companion object {
+        private const val TAG = "TasksActions"
+    }
+
+    suspend fun addTask(
+        title: String,
+        description: String,
+        dueDate: Instant? = null,
+        priority: Priority = Priority.Normal,
+        repeat: RepeatRule? = null,
+        addToCalendar: Boolean = false
+    ): Boolean {
+        return try {
+            val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+            val taskId = UUID.randomUUID().toString()
+            var calendarItemId: String? = null
+
+            if (addToCalendar) {
+                val startDateTime = dueDate?.toLocalDateTime(TimeZone.currentSystemDefault()) ?: now.toLocalDateTime(TimeZone.currentSystemDefault())
+                val calendarItem = CalendarItem(
+                    id = UUID.randomUUID().toString(),
+                    created = now,
+                    modified = now,
+                    title = title,
+                    description = description,
+                    startingDate = startDateTime.date,
+                    startingTime = startDateTime.time,
+                    priority = priority,
+                    linkedTasks = listOf(taskId)
+                )
+                calendarRepository.insert(calendarItem)
+                calendarItemId = calendarItem.id
+            }
+
+            val task = TaskItem(
+                id = taskId,
+                created = now,
+                modified = now,
+                title = title,
+                description = description,
+                dueDate = dueDate,
+                priority = priority,
+                completed = false,
+                repeat = repeat,
+                linkedCalendar = calendarItemId
+            )
+
+            repository.insert(task)
+            Log.d(TAG, "Task added successfully")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to add task", e)
+            false
+        }
+    }
+
+    suspend fun updateTask(task: TaskItem): Boolean {
+        return try {
+            task.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+            repository.updateCloud(task)
+
+            // Sync with linked calendar item
+            task.linkedCalendar?.let { calendarId ->
+                calendarRepository.get(calendarId)?.let { calendarItem ->
+                    val startDateTime = task.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())
+                    val updatedCalendarItem = calendarItem.copy(
+                        modified = task.modified,
+                        title = task.title,
+                        description = task.description,
+                        startingDate = startDateTime?.date ?: calendarItem.startingDate,
+                        startingTime = startDateTime?.time ?: calendarItem.startingTime,
+                        priority = task.priority
+                    )
+                    calendarRepository.updateCloud(updatedCalendarItem)
+                }
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update task", e)
+            false
+        }
+    }
+
+    suspend fun deleteTask(id: String): Boolean {
+        return try {
+            val task = repository.get(id)
+            task?.linkedCalendar?.let { calendarId ->
+                calendarRepository.delete(calendarId)
+            }
+            repository.delete(id)
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete task", e)
+            false
+        }
+    }
+
+    suspend fun toggleTask(task: TaskItem): Boolean {
+        val updatedTask = task.copy(completed = !task.completed)
+        return updateTask(updatedTask)
+    }
+
+    suspend fun getAllTasks(): List<TaskItem> {
+        return try {
+            repository.getAll().sortedByDescending { it.created }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to retrieve tasks", e)
+            emptyList()
+        }
+    }
+
+    suspend fun sync() {
+        try {
+            repository.sync()
+        } catch (e: Exception) {
+            Log.e(TAG, "Sync failed", e)
+        }
+    }
+}

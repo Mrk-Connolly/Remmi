@@ -1,0 +1,29 @@
+[
+  {
+    "id": "calendar",
+    "name": "Calendar",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true
+  },
+  {
+    "id": "tasks",
+    "name": "Tasks",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true
+  },
+  {
+    "id": "alarm",
+    "name": "Alarm",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true
+  }
+]

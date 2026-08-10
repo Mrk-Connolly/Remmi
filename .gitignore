@@ -1,0 +1,45 @@
+# --------------------
+# Gradle
+# --------------------
+.gradle/
+**/build/
+
+# --------------------
+# Kotlin
+# --------------------
+.kotlin/
+
+# --------------------
+# Android Studio
+# --------------------
+.idea/workspace.xml
+.idea/shelf/
+.idea/caches/
+.idea/deploymentTargetSelector.xml
+.idea/deviceManager.xml
+
+# Generated libraries
+.idea/libraries/
+
+# --------------------
+# Local configuration
+# --------------------
+local.properties
+
+# --------------------
+# Build artifacts
+# --------------------
+*.apk
+*.aab
+*.ap_
+
+# --------------------
+# Logs
+# --------------------
+*.log
+
+# --------------------
+# OS files
+# --------------------
+.DS_Store
+Thumbs.db
