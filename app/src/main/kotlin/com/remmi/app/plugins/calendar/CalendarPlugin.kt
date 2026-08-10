@@ -30,10 +30,13 @@ class CalendarPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     override val repository: CalendarRepository = CalendarRepository(SupabaseService)
     override val actions: CalendarActions = CalendarActions(
         repository,
-        TasksRepository(SupabaseService)
+        TasksRepository(SupabaseService),
+        id = "calendar_actions",
+        name = "Calendar Actions"
     )
     override val screen: RemmiScreen = object : RemmiScreen {
-        @Composable override fun Content() = CalendarScreen(actions)
+        @Composable
+        override fun Content() = CalendarScreen(actions)
     }
 
 
@@ -52,7 +55,9 @@ class CalendarPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     override fun onLoad() {
         Log.d("Remmi", "Loading Calendar Plugin...")
 
-        loadItems(SupabaseService)
+        CoroutineScope(Dispatchers.IO).launch {
+            actions.sync()
+        }
 
         Log.d("Remmi", "Calendar Plugin Loaded")
     }
@@ -64,12 +69,4 @@ class CalendarPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
         Log.d("Remmi", "Unloading Calendar Plugin...")
     }
 
-    /**
-     * Triggers a background sync of calendar items from the cloud database.
-     */
-    override fun loadItems(service: DatabaseService) {
-        CoroutineScope(Dispatchers.IO).launch {
-            actions.sync()
-        }
-    }
 }

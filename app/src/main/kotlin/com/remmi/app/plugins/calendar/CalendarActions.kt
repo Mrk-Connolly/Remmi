@@ -2,69 +2,58 @@ package com.remmi.app.plugins.calendar
 
 import android.util.Log
 import com.remmi.app.core.actions.RemmiAction
-import com.remmi.app.core.model.components.Location
 import com.remmi.app.core.model.components.Priority
-import com.remmi.app.core.model.components.RepeatRule
-import com.remmi.app.core.model.models.Person
 import com.remmi.app.plugins.tasks.TaskItem
 import com.remmi.app.plugins.tasks.TasksRepository
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.*
 import java.util.UUID
-import kotlinx.datetime.Instant
 
 /**
  * Action controller for the Calendar plugin.
- *
- * This class handles all business logic related to calendar events, including
- * CRUD operations, synchronization with the cloud, and date-based queries.
  */
 class CalendarActions(
     private val repository: CalendarRepository,
-    private val tasksRepository: TasksRepository
+    private val tasksRepository: TasksRepository,
+    override val id: String,
+    override val name: String
 ) : RemmiAction {
 
     companion object {
         private const val TAG = "CalendarActions"
     }
 
-    /* --------------------------
-     * CRUD Operations
-     * -------------------------- */
-
-    /**
-     * Adds a new event to the calendar.
-     */
     suspend fun addEvent(
         id: String = UUID.randomUUID().toString(),
         title: String,
         description: String,
-        startingTime: Instant? = null,
-        endingTime: Instant? = null,
-        priority: Priority = Priority.NORMAL,
-        repeat: RepeatRule? = null,
-        location: Location? = null,
-        participants: List<Person> = emptyList(),
+        startingDate: LocalDate,
+        startingTime: LocalTime? = null,
+        endingDate: LocalDate? = null,
+        endingTime: LocalTime? = null,
+        priority: Priority = Priority.Normal,
+        participants: List<String> = emptyList(),
+        repeat: List<String> = emptyList(),
+        location: List<String> = emptyList(),
         linkedTasks: List<String> = emptyList(),
         linkedAlarm: String? = null
     ): String? {
         return try {
+            val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             val item = CalendarItem(
                 id = id,
-                created = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
-                modified = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
+                created = now,
+                modified = now,
                 title = title,
                 description = description,
+                startingDate = startingDate,
                 startingTime = startingTime,
+                endingDate = endingDate,
                 endingTime = endingTime,
                 priority = priority,
+                participants = participants,
                 repeat = repeat,
                 location = location,
-                participants = participants.toMutableList(),
-                linkedTasks = linkedTasks.toMutableList(),
+                linkedTasks = linkedTasks,
                 linkedAlarm = linkedAlarm
             )
             repository.insert(item)
@@ -76,56 +65,6 @@ class CalendarActions(
         }
     }
 
-    /**
-     * Legacy addEvent method for backward compatibility if needed,
-     * or can be removed if all callers are updated.
-     */
-    suspend fun addEvent(
-        title: String,
-        description: String,
-        day: String,
-        month: String,
-        year: String,
-        startTime: String,
-        endTime: String,
-        priority: Priority
-    ): Boolean {
-        // ... (kept for now to avoid breaking existing UI until updated)
-        return try {
-            val timeZone = TimeZone.currentSystemDefault()
-            val startInstant = parseTime(year, month, day, startTime, timeZone)
-            val endInstant = parseTime(year, month, day, endTime, timeZone)
-
-            addEvent(
-                title = title,
-                description = description,
-                startingTime = startInstant,
-                endingTime = endInstant,
-                priority = priority
-            ) != null
-        } catch (e: Exception) {
-            false
-        }
-    }
-
-    private fun parseTime(year: String, month: String, day: String, time: String, timeZone: TimeZone): Instant? {
-        if (time.isEmpty()) return null
-        return try {
-            val normalizedTime = if (time.count { it == ':' } == 1) "$time:00" else time
-            LocalDateTime.parse(
-                "${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T$normalizedTime"
-            ).toInstant(timeZone)
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    /**
-     * Removes an event from the calendar by its [id].
-     *
-     * @param id The unique identifier of the event to remove.
-     * @return True if successful, false otherwise.
-     */
     suspend fun removeEvent(id: String): Boolean {
         return try {
             val event = repository.get(id)
@@ -140,14 +79,9 @@ class CalendarActions(
         }
     }
 
-    /**
-     * Updates an existing [event].
-     *
-     * @param event The updated event item.
-     * @return True if successful, false otherwise.
-     */
     suspend fun updateEvent(event: CalendarItem): Boolean {
         return try {
+            event.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             repository.updateCloud(event)
 
             // Sync with linked tasks
@@ -157,10 +91,8 @@ class CalendarActions(
                         modified = event.modified,
                         title = event.title,
                         description = event.description,
-                        startingTime = event.startingTime,
-                        endingTime = event.endingTime,
-                        priority = event.priority,
-                        repeat = event.repeat
+                        dueDate = event.startingDate.atTime(event.startingTime ?: LocalTime(0, 0)).toInstant(TimeZone.currentSystemDefault()),
+                        priority = event.priority
                     )
                     tasksRepository.updateCloud(updatedTask)
                 }
@@ -172,21 +104,6 @@ class CalendarActions(
         }
     }
 
-    /**
-     * Retrieves a single event by its [id].
-     */
-    suspend fun getEvent(id: String): CalendarItem? {
-        return try {
-            repository.get(id)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to retrieve event", e)
-            null
-        }
-    }
-
-    /**
-     * Retrieves all events stored in the repository.
-     */
     suspend fun getAllEvents(): List<CalendarItem> {
         return try {
             repository.getAll()
@@ -196,9 +113,6 @@ class CalendarActions(
         }
     }
 
-    /**
-     * Synchronizes the local repository with the cloud database.
-     */
     suspend fun sync(): Boolean {
         return try {
             repository.sync()
@@ -209,86 +123,26 @@ class CalendarActions(
         }
     }
 
-    /**
-     * Helper to add a task, used for linked creation.
-     */
     suspend fun addTask(task: TaskItem) {
         tasksRepository.insert(task)
     }
 
-    /* --------------------------
-     * Date Queries
-     * -------------------------- */
-
-    /**
-     * Filters all events occurring on a specific [date].
-     */
     suspend fun getEventsOn(date: LocalDate): List<CalendarItem> {
         return try {
-            repository.getAll().filter {
-                it.startingTime
-                    ?.toLocalDateTime(TimeZone.currentSystemDefault())
-                    ?.date == date
-            }
+            repository.getAll().filter { it.startingDate == date }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to query events for date", e)
             emptyList()
         }
     }
 
-    /**
-     * Retrieves events scheduled for today.
-     * Note: Current implementation returns an empty list (Placeholder).
-     */
-    suspend fun getToday(): List<CalendarItem> {
-        return try {
-            emptyList()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to retrieve today's events", e)
-            emptyList()
-        }
-    }
-
-    /**
-     * Retrieves all upcoming events, sorted by their start time.
-     */
     suspend fun getUpcomingEvents(): List<CalendarItem> {
         return try {
             repository.getAll()
-                .sortedBy {
-                    it.startingTime ?: Instant.fromEpochMilliseconds(0)
-                }
+                .sortedBy { it.startingDate }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to retrieve upcoming events", e)
             emptyList()
-        }
-    }
-
-    /* --------------------------
-     * Helper Methods
-     * -------------------------- */
-
-    /**
-     * Checks if there are any events scheduled for a given [date].
-     */
-    suspend fun hasEvents(date: LocalDate): Boolean {
-        return try {
-            getEventsOn(date).isNotEmpty()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed checking events", e)
-            false
-        }
-    }
-
-    /**
-     * Returns the total count of events in the calendar.
-     */
-    suspend fun eventCount(): Int {
-        return try {
-            repository.getAll().size
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed counting events", e)
-            0
         }
     }
 }

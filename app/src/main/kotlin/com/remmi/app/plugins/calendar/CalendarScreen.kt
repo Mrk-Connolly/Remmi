@@ -11,7 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,8 +23,9 @@ import com.remmi.app.core.model.components.Priority
 import io.github.boguszpawlowski.composecalendar.SelectableCalendar
 import io.github.boguszpawlowski.composecalendar.day.DayState
 import io.github.boguszpawlowski.composecalendar.selection.DynamicSelectionState
-import kotlinx.datetime.*
-import kotlinx.datetime.TimeZone
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toKotlinLocalDate
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -42,19 +43,13 @@ fun CalendarScreen(actions: CalendarActions) {
     }
 
     val groupedEvents = remember(events) {
-        events.filter { it.startingTime != null }
-            .groupBy { it.startingTime!!.toLocalDateTime(TimeZone.currentSystemDefault()).date }
+        events.groupBy { it.startingDate }
             .toSortedMap()
     }
 
-    val unscheduledEvents = remember(events) {
-        events.filter { it.startingTime == null }
-    }
-
-    val dateToIndexMap = remember(groupedEvents, unscheduledEvents) {
+    val dateToIndexMap = remember(groupedEvents) {
         val map = mutableMapOf<LocalDate, Int>()
         var currentIndex = 0
-        if (unscheduledEvents.isNotEmpty()) currentIndex += 1 + unscheduledEvents.size
         groupedEvents.forEach { (date, eventsOnDate) ->
             map[date] = currentIndex
             currentIndex += 1 + eventsOnDate.size
@@ -128,14 +123,6 @@ fun CalendarScreen(actions: CalendarActions) {
                             }
                         }
                     }
-                    if (unscheduledEvents.isNotEmpty()) {
-                        item {
-                            Text("Unscheduled Events", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
-                        }
-                        items(unscheduledEvents, key = { it.id }) { item ->
-                            EventCard(item = item, onClick = { selectedEvent = item })
-                        }
-                    }
                     groupedEvents.forEach { (date, eventsOnDate) ->
                         item {
                             Text("Day ${date.day}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
@@ -166,11 +153,6 @@ fun CalendarScreen(actions: CalendarActions) {
             }
         )
     }
-}
-
-sealed class EditorMode {
-    data class Create(val initialDate: LocalDate? = null) : EditorMode()
-    data class Edit(val event: CalendarItem) : EditorMode()
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -256,9 +238,9 @@ fun EventCard(
 
 fun getPriorityColor(priority: Priority): Color {
     return when (priority) {
-        Priority.HIGH -> Color(0xFFE57373)   // Red
-        Priority.NORMAL -> Color(0xFFFFD54F) // Yellow
-        Priority.LOW -> Color(0xFF81C784)    // Green
+        Priority.High -> Color(0xFFE57373)   // Red
+        Priority.Normal -> Color(0xFFFFD54F) // Yellow
+        Priority.Low -> Color(0xFF81C784)    // Green
     }
 }
 
@@ -269,10 +251,6 @@ fun EventDetailDialog(
     onDelete: () -> Unit,
     onEdit: () -> Unit
 ) {
-    val timeZone = TimeZone.currentSystemDefault()
-    val startDateTime = event.startingTime?.toLocalDateTime(timeZone)
-    val endDateTime = event.endingTime?.toLocalDateTime(timeZone)
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(event.title) },
@@ -282,8 +260,8 @@ fun EventDetailDialog(
                     Text(text = event.description, style = MaterialTheme.typography.bodyLarge)
                     Spacer(Modifier.height(16.dp))
                 }
-                Text(text = "Date: ${startDateTime?.date}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Time: ${startDateTime?.time} - ${endDateTime?.time ?: "N/A"}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Date: ${event.startingDate}", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Time: ${event.startingTime ?: "N/A"} - ${event.endingTime ?: "N/A"}", style = MaterialTheme.typography.bodyMedium)
                 Text(text = "Priority: ${event.priority.name}", style = MaterialTheme.typography.bodyMedium)
             }
         },

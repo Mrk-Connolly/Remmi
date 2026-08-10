@@ -4,10 +4,12 @@ import kotlinx.serialization.Serializable
 import com.remmi.app.core.model.components.ContactInfo
 import com.remmi.app.core.model.components.Location
 import com.remmi.app.core.model.components.PersonName
-import com.remmi.app.core.model.components.Relationship
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
 
+/**
+ * Data model representing a person or contact.
+ */
 @Serializable
 data class Person(
 
@@ -25,8 +27,6 @@ data class Person(
 
     val address: Location? = null,
 
-    val notes: String = "",
-
-    val relationships: MutableList<Relationship> = mutableListOf()
+    val notes: String = ""
 
 ) : RemmiModel

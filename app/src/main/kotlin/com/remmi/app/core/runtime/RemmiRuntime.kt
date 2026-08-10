@@ -1,52 +1,68 @@
 package com.remmi.app.core.runtime
 
 import android.content.Context
-import com.remmi.app.core.actions.ActionManager
 import com.remmi.app.core.automation.AutomationEngine
 import com.remmi.app.core.events.EventManager
 import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginManager
-import com.remmi.app.core.screens.ScreenManager
-import com.remmi.app.core.service.ServiceManager
 import com.remmi.app.core.widgets.WidgetManager
 
 class RemmiRuntime (private val androidContext: Context) {
 
-    private val eventManager = EventManager()
+    /**
+     *                               REMMI RUNTIME
+     *
+     * Class called by host to manage the core runtime, has the ability tu load, run and unload
+     * all plugins. Automation Engin will be run here and will have access to plugin manager and
+     * widget manager
+     *
+     * */
+
+    // ----------------------------------------------------------------------------
+    //                                 VARIABLES
+    // ----------------------------------------------------------------------------
+
     private val automationEngine = AutomationEngine()
     private val pluginManager = PluginManager()
     private val widgetManager = WidgetManager()
-    private val screenManager = ScreenManager()
-    private val serviceManager = ServiceManager()
-
-    private val actionManager = ActionManager()
 
     val controller = PluginContext(
         automationEngine = automationEngine,
-        actionManager = actionManager,
-        eventManager = eventManager,
         pluginManager = pluginManager,
-        widgetManager = widgetManager,
-        serviceManager = serviceManager,
-        screenManager = screenManager
+        widgetManager = widgetManager
     )
 
 
-    fun start() {
-        // Test db connection
-        serviceManager.testDBConnection()
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
 
+    /**                                   START
+     * */
+    fun start() {
         // 1. Read plugin list
         pluginManager.readPlugins(androidContext)
 
         // 2. Load plugins
         pluginManager.loadPlugins(controller)
-
     }
+
+
+    /**                                   STOP
+     * */
 
     fun stop() {
-        serviceManager.close()
         pluginManager.close()
     }
-}
 
+
+
+    /**                                    RUN
+     * */
+    fun run(){
+        // Automation engine with event listeners
+    }
+
+
+
+}

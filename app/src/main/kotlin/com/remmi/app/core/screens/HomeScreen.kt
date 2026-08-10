@@ -9,6 +9,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.widgets.WidgetManager
 
+
+/**                            CORE REMMI HOME SCREEN
+ *
+ * Doesn't belong to any plugin and will be the base screen of the application, will also
+ * hold the widgets
+ */
+
+
+// ----------------------------------------------------------------------------
+//                                 VARIABLES
+// ----------------------------------------------------------------------------
+
 @Composable
 fun HomeScreen(widgetManager: WidgetManager) {
     Column(
@@ -18,11 +30,6 @@ fun HomeScreen(widgetManager: WidgetManager) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-        // Widgets at the top
-        widgetManager.getWidgets().forEach { it.Content() }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
         Text(
             text = "Hello, I'm Remmi",
             style = MaterialTheme.typography.headlineSmall
@@ -31,5 +38,10 @@ fun HomeScreen(widgetManager: WidgetManager) {
             text = "Your personal assistant",
             style = MaterialTheme.typography.bodyLarge
         )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Widgets below the greeting
+        widgetManager.getWidgets().forEach { it.Content() }
     }
 }

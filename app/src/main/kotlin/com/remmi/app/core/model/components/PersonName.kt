@@ -6,9 +6,8 @@ import kotlinx.serialization.Serializable
 data class PersonName(
 
     val firstName: String,
-
-    val lastName: String? = null,
-
-    val nickname: String? = null
+    val lastName: String? = "",
+    val nickname: String? = "",
+    val group: String? = ""
 
 )

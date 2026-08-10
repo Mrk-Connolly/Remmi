@@ -5,8 +5,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -15,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -24,9 +23,6 @@ import kotlinx.datetime.*
 
 /**
  * Main screen for the Tasks plugin.
- *
- * Displays a list of tasks with completion status, allow adding new ones,
- * and managing existing ones through long-press actions.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -65,12 +61,12 @@ fun TasksScreen(actions: TasksActions) {
             val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
             val weekEnd = today.plus(7, DateTimeUnit.DAY)
 
-            val noDateTasks = tasks.filter { it.startingTime == null }
+            val noDateTasks = tasks.filter { it.dueDate == null }
             val todayTasks = tasks.filter { 
-                it.startingTime?.toLocalDateTime(TimeZone.currentSystemDefault())?.date == today 
+                it.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date == today 
             }
             val weekTasks = tasks.filter { 
-                val date = it.startingTime?.toLocalDateTime(TimeZone.currentSystemDefault())?.date
+                val date = it.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date
                 date != null && date > today && date <= weekEnd
             }
 
@@ -176,6 +172,7 @@ fun TaskRow(
 ) {
     val scope = rememberCoroutineScope()
     var isCompleted by remember(task.id, task.completed) { mutableStateOf(task.completed) }
+    val priorityColor = getPriorityColor(task.priority)
 
     Card(
         modifier = Modifier
@@ -184,7 +181,10 @@ fun TaskRow(
             .combinedClickable(
                 onClick = {},
                 onLongClick = onLongClick
-            )
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = priorityColor.copy(alpha = 0.2f)
+        )
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -215,13 +215,13 @@ fun TaskRow(
                     )
                 }
             }
-            if (task.priority != Priority.NORMAL) {
+            if (task.priority != Priority.Normal) {
                 Text(
                     text = task.priority.name,
                     style = MaterialTheme.typography.labelSmall,
                     color = when (task.priority) {
-                        Priority.HIGH -> MaterialTheme.colorScheme.error
-                        Priority.LOW -> MaterialTheme.colorScheme.outline
+                        Priority.High -> Color(0xFFD32F2F)
+                        Priority.Low -> Color(0xFF388E3C)
                         else -> MaterialTheme.colorScheme.onSurface
                     }
                 )
@@ -230,3 +230,10 @@ fun TaskRow(
     }
 }
 
+fun getPriorityColor(priority: Priority): Color {
+    return when (priority) {
+        Priority.High -> Color(0xFFE57373)   // Red
+        Priority.Normal -> Color(0xFFFFD54F) // Yellow
+        Priority.Low -> Color(0xFF81C784)    // Green
+    }
+}

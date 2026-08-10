@@ -14,13 +14,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.remmi.app.core.model.components.Priority
-import com.remmi.app.core.model.components.RepeatRule
-import com.remmi.app.core.model.components.RepeatType
 import com.remmi.app.plugins.tasks.TaskDialog
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
 import kotlinx.coroutines.launch
 import java.util.UUID
+
+sealed class EditorMode {
+    data class Create(val initialDate: LocalDate? = null) : EditorMode()
+    data class Edit(val event: CalendarItem) : EditorMode()
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -37,30 +40,26 @@ fun CalendarEditorScreen(
     var description by remember { mutableStateOf(initialEvent?.description ?: "") }
     
     val timeZone = TimeZone.currentSystemDefault()
-    val initialDateTime = initialEvent?.startingTime?.toLocalDateTime(timeZone) ?: 
-        (mode as? EditorMode.Create)?.initialDate?.atTime(LocalTime(0, 0)) ?:
-        kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone)
+    val initialDate = initialEvent?.startingDate ?: (mode as? EditorMode.Create)?.initialDate ?: Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone).date
+    val initialTime = initialEvent?.startingTime ?: LocalTime(0, 0)
 
-    var day by remember { mutableStateOf(initialDateTime.dayOfMonth.toString()) }
-    var month by remember { mutableStateOf(initialDateTime.monthNumber.toString()) }
-    var year by remember { mutableStateOf(initialDateTime.year.toString()) }
+    var day by remember { mutableStateOf(initialDate.dayOfMonth.toString()) }
+    var month by remember { mutableStateOf(initialDate.monthNumber.toString()) }
+    var year by remember { mutableStateOf(initialDate.year.toString()) }
     
-    var priority by remember { mutableStateOf(initialEvent?.priority ?: Priority.NORMAL) }
+    var priority by remember { mutableStateOf(initialEvent?.priority ?: Priority.Normal) }
     var isAdvancedExpanded by remember { mutableStateOf(false) }
 
-    var isRepeatable by remember { mutableStateOf(initialEvent?.repeat != null) }
-    var repeatType by remember { mutableStateOf(initialEvent?.repeat?.type ?: RepeatType.NONE) }
-    var repeatDays by remember { mutableStateOf(initialEvent?.repeat?.days ?: emptyList<DayOfWeek>()) }
+    var isRepeatable by remember { mutableStateOf(initialEvent?.repeat?.isNotEmpty() == true) }
+    var repeatList by remember { mutableStateOf(initialEvent?.repeat ?: emptyList<String>()) }
     var showRepeatDaysDialog by remember { mutableStateOf(false) }
 
-    var startDate by remember { mutableStateOf(initialDateTime.date) }
-    var startTime by remember { mutableStateOf(initialDateTime.time) }
-    var endDate by remember { mutableStateOf(initialEvent?.endingTime?.toLocalDateTime(timeZone)?.date ?: initialDateTime.date) }
+    var startDate by remember { mutableStateOf(initialDate) }
+    var startTime by remember { mutableStateOf(initialTime) }
+    var endDate by remember { mutableStateOf(initialEvent?.endingDate ?: initialDate) }
     var endTime by remember { 
-        mutableStateOf(
-            initialEvent?.endingTime?.toLocalDateTime(timeZone)?.time ?: 
-            initialDateTime.toInstant(timeZone).plus(1, DateTimeUnit.HOUR).toLocalDateTime(timeZone).time
-        ) 
+        val defaultEnd = if (initialTime.hour < 23) LocalTime(initialTime.hour + 1, initialTime.minute) else LocalTime(23, 59)
+        mutableStateOf(initialEvent?.endingTime ?: defaultEnd) 
     }
 
     var showStartDatePicker by remember { mutableStateOf(false) }
@@ -73,9 +72,9 @@ fun CalendarEditorScreen(
     val currentEventId = remember { initialEvent?.id ?: UUID.randomUUID().toString() }
     
     var showLocationDialog by remember { mutableStateOf(false) }
-    var location by remember { mutableStateOf(initialEvent?.location) }
+    val locations = remember { mutableStateListOf<String>().apply { addAll(initialEvent?.location ?: emptyList()) } }
     var showParticipantsDialog by remember { mutableStateOf(false) }
-    val participants = remember { mutableStateListOf<com.remmi.app.core.model.models.Person>().apply { addAll(initialEvent?.participants ?: emptyList()) } }
+    val participants = remember { mutableStateListOf<String>().apply { addAll(initialEvent?.participants ?: emptyList()) } }
 
     Scaffold(
         bottomBar = {
@@ -86,21 +85,22 @@ fun CalendarEditorScreen(
                 ) {
                     OutlinedButton(modifier = Modifier.weight(1f), onClick = onDismiss) { Text("Back") }
                     Button(modifier = Modifier.weight(1f), onClick = {
-                        val start = LocalDateTime(year.toInt(), month.toInt(), day.toInt(), startTime.hour, startTime.minute).toInstant(timeZone)
-                        val end = LocalDateTime(endDate.year, endDate.monthNumber, endDate.dayOfMonth, endTime.hour, endTime.minute).toInstant(timeZone)
-                        val repeatRule = if (isRepeatable) RepeatRule(repeatType, repeatDays) else null
+                        val finalStartDate = try { LocalDate(year.toInt(), month.toInt(), day.toInt()) } catch (e: Exception) { startDate }
                         
                         scope.launch {
                             if (initialEvent != null) {
                                 actions.updateEvent(initialEvent.copy(
+                                    modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
                                     title = title,
                                     description = description,
-                                    startingTime = start,
-                                    endingTime = end,
+                                    startingDate = finalStartDate,
+                                    startingTime = startTime,
+                                    endingDate = endDate,
+                                    endingTime = endTime,
                                     priority = priority,
-                                    repeat = repeatRule,
+                                    repeat = repeatList,
                                     linkedTasks = linkedTaskIds,
-                                    location = location,
+                                    location = locations,
                                     participants = participants
                                 ))
                             } else {
@@ -108,12 +108,14 @@ fun CalendarEditorScreen(
                                     id = currentEventId,
                                     title = title,
                                     description = description,
-                                    startingTime = start,
-                                    endingTime = end,
+                                    startingDate = finalStartDate,
+                                    startingTime = startTime,
+                                    endingDate = endDate,
+                                    endingTime = endTime,
                                     priority = priority,
-                                    repeat = repeatRule,
+                                    repeat = repeatList,
                                     linkedTasks = linkedTaskIds,
-                                    location = location,
+                                    location = locations,
                                     participants = participants
                                 )
                             }
@@ -168,16 +170,15 @@ fun CalendarEditorScreen(
                     if (isRepeatable) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                listOf(RepeatType.DAILY, RepeatType.WEEKLY, RepeatType.MONTHLY).forEach { type ->
+                                listOf("DAILY", "WEEKLY", "MONTHLY").forEach { type ->
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        RadioButton(selected = repeatType == type, onClick = { repeatType = type })
-                                        Text(type.name.lowercase().replaceFirstChar { it.uppercase() })
+                                        RadioButton(selected = repeatList.contains(type), onClick = { repeatList = listOf(type) })
+                                        Text(type.lowercase().replaceFirstChar { it.uppercase() })
                                     }
                                 }
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(selected = repeatType == RepeatType.CUSTOM, onClick = { 
-                                    repeatType = RepeatType.CUSTOM
+                                RadioButton(selected = repeatList.size > 1 || (repeatList.isNotEmpty() && !listOf("DAILY", "WEEKLY", "MONTHLY").contains(repeatList[0])), onClick = { 
                                     showRepeatDaysDialog = true
                                 })
                                 Text("Optional")
@@ -213,10 +214,10 @@ fun CalendarEditorScreen(
 
     if (showRepeatDaysDialog) {
         RepeatDaysDialog(
-            selectedDays = repeatDays,
+            selectedDays = repeatList,
             onDismiss = { showRepeatDaysDialog = false },
             onConfirm = { 
-                repeatDays = it
+                repeatList = it
                 showRepeatDaysDialog = false
             }
         )
@@ -229,7 +230,7 @@ fun CalendarEditorScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        val newDate = kotlinx.datetime.Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date
+                        val newDate = Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date
                         startDate = newDate
                         day = newDate.dayOfMonth.toString()
                         month = newDate.monthNumber.toString()
@@ -266,7 +267,7 @@ fun CalendarEditorScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        endDate = kotlinx.datetime.Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date
+                        endDate = Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date
                     }
                     showEndDatePicker = false
                 }) { Text("OK") }
@@ -299,19 +300,18 @@ fun CalendarEditorScreen(
             onDismiss = { showTaskDialog = false },
             onSave = { t, d, s, e, p, r, sync ->
                 scope.launch {
+                    val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
                     val newTaskId = UUID.randomUUID().toString()
                     val newTask = com.remmi.app.plugins.tasks.TaskItem(
                         id = newTaskId,
-                        created = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
-                        modified = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
+                        created = now,
+                        modified = now,
                         title = t,
                         description = d,
-                        startingTime = s,
-                        endingTime = e,
+                        dueDate = s,
                         priority = p,
-                        repeat = r,
                         completed = false,
-                        linkedCalendarItem = currentEventId
+                        linkedCalendar = currentEventId
                     )
                     actions.addTask(newTask)
                     linkedTaskIds.add(newTaskId)
@@ -323,10 +323,11 @@ fun CalendarEditorScreen(
 
     if (showLocationDialog) {
         LocationDialog(
-            initialLocation = location,
+            initialLocations = locations,
             onDismiss = { showLocationDialog = false },
             onConfirm = { 
-                location = it
+                locations.clear()
+                locations.addAll(it)
                 showLocationDialog = false
             }
         )
@@ -342,24 +343,29 @@ fun CalendarEditorScreen(
 
 @Composable
 fun LocationDialog(
-    initialLocation: com.remmi.app.core.model.components.Location?,
+    initialLocations: List<String>,
     onDismiss: () -> Unit,
-    onConfirm: (com.remmi.app.core.model.components.Location) -> Unit
+    onConfirm: (List<String>) -> Unit
 ) {
-    var name by remember { mutableStateOf(initialLocation?.name ?: "") }
-    var address by remember { mutableStateOf(initialLocation?.address ?: "") }
+    var name by remember { mutableStateOf("") }
+    val currentLocations = remember { mutableStateListOf<String>().apply { addAll(initialLocations) } }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Location") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = address, onValueChange = { address = it }, label = { Text("Address") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Location Name") }, modifier = Modifier.fillMaxWidth())
+                currentLocations.forEach { loc ->
+                    Text(text = loc, style = MaterialTheme.typography.bodyMedium)
+                }
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(com.remmi.app.core.model.components.Location(name, address)) }) { Text("Confirm") }
+            Row {
+                TextButton(onClick = { if (name.isNotBlank()) currentLocations.add(name); name = "" }) { Text("Add") }
+                Button(onClick = { onConfirm(currentLocations.toList()) }) { Text("Confirm") }
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
@@ -370,30 +376,21 @@ fun LocationDialog(
 @Composable
 fun ParticipantsDialog(
     onDismiss: () -> Unit,
-    onAdd: (com.remmi.app.core.model.models.Person) -> Unit
+    onAdd: (String) -> Unit
 ) {
-    var firstName by remember { mutableStateOf("") }
-    var lastName by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Participant") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = firstName, onValueChange = { firstName = it }, label = { Text("First Name") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = lastName, onValueChange = { lastName = it }, label = { Text("Last Name") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
             Button(onClick = {
-                val person = com.remmi.app.core.model.models.Person(
-                    id = UUID.randomUUID().toString(),
-                    created = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
-                    modified = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
-                    name = com.remmi.app.core.model.components.PersonName(firstName, lastName),
-                    contact = com.remmi.app.core.model.components.ContactInfo("")
-                )
-                onAdd(person)
+                if (name.isNotBlank()) onAdd(name)
                 onDismiss()
             }) { Text("Add") }
         },
@@ -405,12 +402,12 @@ fun ParticipantsDialog(
 
 @Composable
 fun RepeatDaysDialog(
-    selectedDays: List<DayOfWeek>,
+    selectedDays: List<String>,
     onDismiss: () -> Unit,
-    onConfirm: (List<DayOfWeek>) -> Unit
+    onConfirm: (List<String>) -> Unit
 ) {
     val days = DayOfWeek.entries
-    val currentSelected = remember { mutableStateListOf<DayOfWeek>().apply { addAll(selectedDays) } }
+    val currentSelected = remember { mutableStateListOf<String>().apply { addAll(selectedDays) } }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -418,11 +415,12 @@ fun RepeatDaysDialog(
         text = {
             Column {
                 days.forEach { day ->
+                    val dayStr = day.name
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().combinedClickable {
-                        if (currentSelected.contains(day)) currentSelected.remove(day) else currentSelected.add(day)
+                        if (currentSelected.contains(dayStr)) currentSelected.remove(dayStr) else currentSelected.add(dayStr)
                     }) {
-                        Checkbox(checked = currentSelected.contains(day), onCheckedChange = {
-                            if (it) currentSelected.add(day) else currentSelected.remove(day)
+                        Checkbox(checked = currentSelected.contains(dayStr), onCheckedChange = {
+                            if (it) currentSelected.add(dayStr) else currentSelected.remove(dayStr)
                         })
                         Text(day.name.lowercase().replaceFirstChar { it.uppercase() })
                     }
@@ -437,4 +435,3 @@ fun RepeatDaysDialog(
         }
     )
 }
-

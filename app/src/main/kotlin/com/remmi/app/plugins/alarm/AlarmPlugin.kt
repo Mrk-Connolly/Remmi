@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.service.DatabaseService
 import com.remmi.app.core.service.SupabaseService
 import com.remmi.app.core.widgets.RemmiWidget
 import kotlinx.coroutines.CoroutineScope
@@ -20,11 +19,6 @@ import kotlinx.coroutines.launch
 class AlarmPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
 
     /**
-     * Dashboard widget for alarms.
-     */
-    override val widget: RemmiWidget = AlarmWidget()
-
-    /**
      * Repository for persistent alarm data.
      */
     override val repository: AlarmRepository = AlarmRepository(SupabaseService)
@@ -33,6 +27,11 @@ class AlarmPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
      * Action controller for alarm logic.
      */
     override val actions: AlarmActions = AlarmActions(repository)
+
+    /**
+     * Dashboard widget for alarms.
+     */
+    override val widget: RemmiWidget = AlarmWidget(actions)
 
     /**
      * UI screen for detailed alarm management.
@@ -46,19 +45,6 @@ class AlarmPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
      */
     override fun onLoad() {
         Log.d("Remmi", "Loading Alarm Plugin...")
-        loadItems(SupabaseService)
-    }
-
-    /**
-     * Called when the plugin is unloaded.
-     */
-    override fun onUnload() {
-    }
-
-    /**
-     * Triggers a sync of alarms from the cloud.
-     */
-    override fun loadItems(service: DatabaseService) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 actions.sync()
@@ -66,5 +52,11 @@ class AlarmPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
                 Log.e("Remmi", "Failed to sync alarms: ${e.message}")
             }
         }
+    }
+
+    /**
+     * Called when the plugin is unloaded.
+     */
+    override fun onUnload() {
     }
 }

@@ -9,9 +9,30 @@ import kotlinx.serialization.json.Json
 
 class PluginManager {
 
+    /**
+     *                            PLUGIN MANAGER
+     *
+     * Loads, unload and manages all interaction from runtime with the plugins
+     *
+     * */
+
+    // ----------------------------------------------------------------------------
+    //                                 VARIABLES
+    // ----------------------------------------------------------------------------
+
     val plugins = mutableMapOf<String, RemmiPlugin>()
     val pluginMetadata = mutableListOf<PluginMetadata>()
 
+
+
+    // ----------------------------------------------------------------------------
+    //                               CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                               READ PLUGINS
+     *
+     * recieves android contextex from host -> runtime to access plugin.json file and
+     * reads all available plugins to be installed and saves their information*/
     fun readPlugins(androidContext : Context) {
         Log.d("Remmi", "Accessing plugin information")
         //william lo beso apasionadamenro y cillian lo resppndio con ferocidad
@@ -22,15 +43,28 @@ class PluginManager {
             .use { it.readText() }
 
         pluginMetadata.clear()
-        pluginMetadata.addAll(
-            Json.decodeFromString<List<PluginMetadata>>(json)
-        )
+
+        try {
+            pluginMetadata.addAll(
+                Json.decodeFromString<List<PluginMetadata>>(json)
+            )
+        } catch (e: Exception) {
+            println("Something went wrong while reading file: ${e.message}, check assets/plugins.json file")
+        }
     }
+
+
+
+    /**                               READ PLUGINS
+     *
+     * recieves android contextex from host -> runtime to access plugin.json file and
+     * load all available plugins to be installed*/
 
     fun loadPlugins(context: PluginContext) {
         Log.d("Remmi", "Loading plugins...")
 
         plugins.clear()
+
 
         pluginMetadata.forEach { metadata ->
 
@@ -41,23 +75,41 @@ class PluginManager {
                 else -> null
             }
 
-            plugin?.let {
-                plugins[metadata.id] = plugin
+            try {
+                plugin?.let {
+                    plugins[metadata.id] = plugin
 
-                plugin.onLoad()
+                    plugin.onLoad()
 
-                if (metadata.showWidget) {
-                    context.widgetManager.register(plugin)
+                    if (metadata.showWidget) {
+                        context.widgetManager.register(plugin)
+                    }
+
+                    Log.d("Remmi", "Loaded ${metadata.name}")
                 }
-                
-                Log.d("Remmi", "Loaded ${metadata.name}")
+            } catch (e: Exception) {
+                println("Something went wrong loading plugin: ${e.message}, check plugin loader")
             }
         }
     }
 
+
+    /**                                 CLOSE PLUGIN MANAGER
+     *
+     * Should run a small script to erase plugin memory data to avoid clogging up the phone, but
+     * I don't know if kotlin does it automatically.
+     *
+     * Still calls unload function on each plugin
+     * */
     fun close() {
-        plugins.values.forEach { it.onUnload() }
-        plugins.clear()
+
+        try {
+            plugins.values.forEach { it.onUnload() }
+            plugins.clear()
+
+        }catch (e : Exception) {
+            println("Something went wrong unloading plugin: ${e.message}, check plugin unloader")
+        }
     }
 
 }

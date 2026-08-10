@@ -6,53 +6,48 @@ import com.remmi.app.core.model.components.Priority
 import com.remmi.app.core.model.components.RepeatRule
 import com.remmi.app.plugins.calendar.CalendarItem
 import com.remmi.app.plugins.calendar.CalendarRepository
-import kotlinx.datetime.Instant
-
+import kotlinx.datetime.*
 import java.util.UUID
 
 /**
  * Action controller for the Tasks plugin.
- *
- * Manages task-related logic, including creation, editing, deletion,
- * completion status toggling, and cloud synchronization.
  */
 class TasksActions(
     private val repository: TasksRepository,
-    private val calendarRepository: CalendarRepository
+    private val calendarRepository: CalendarRepository,
+    override val id: String = "tasks_actions",
+    override val name: String = "Tasks Actions"
 ) : RemmiAction {
 
     companion object {
         private const val TAG = "TasksActions"
     }
 
-    /**
-     * Adds a new task.
-     */
     suspend fun addTask(
         title: String,
         description: String,
-        startingTime: Instant? = null,
-        endingTime: Instant? = null,
-        priority: Priority = Priority.NORMAL,
+        dueDate: Instant? = null,
+        priority: Priority = Priority.Normal,
         repeat: RepeatRule? = null,
         addToCalendar: Boolean = false
     ): Boolean {
         return try {
+            val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             val taskId = UUID.randomUUID().toString()
             var calendarItemId: String? = null
 
             if (addToCalendar) {
+                val startDateTime = dueDate?.toLocalDateTime(TimeZone.currentSystemDefault()) ?: now.toLocalDateTime(TimeZone.currentSystemDefault())
                 val calendarItem = CalendarItem(
                     id = UUID.randomUUID().toString(),
-                    created = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
-                    modified = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
+                    created = now,
+                    modified = now,
                     title = title,
                     description = description,
-                    startingTime = startingTime,
-                    endingTime = endingTime,
+                    startingDate = startDateTime.date,
+                    startingTime = startDateTime.time,
                     priority = priority,
-                    repeat = repeat,
-                    linkedTasks = mutableListOf(taskId)
+                    linkedTasks = listOf(taskId)
                 )
                 calendarRepository.insert(calendarItem)
                 calendarItemId = calendarItem.id
@@ -60,16 +55,15 @@ class TasksActions(
 
             val task = TaskItem(
                 id = taskId,
-                created = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
-                modified = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
+                created = now,
+                modified = now,
                 title = title,
                 description = description,
-                startingTime = startingTime,
-                endingTime = endingTime,
+                dueDate = dueDate,
                 priority = priority,
                 completed = false,
                 repeat = repeat,
-                linkedCalendarItem = calendarItemId
+                linkedCalendar = calendarItemId
             )
 
             repository.insert(task)
@@ -81,25 +75,22 @@ class TasksActions(
         }
     }
 
-    /**
-     * Updates an existing task.
-     */
     suspend fun updateTask(task: TaskItem): Boolean {
         return try {
-            task.modified = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+            task.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             repository.updateCloud(task)
 
             // Sync with linked calendar item
-            task.linkedCalendarItem?.let { calendarId ->
+            task.linkedCalendar?.let { calendarId ->
                 calendarRepository.get(calendarId)?.let { calendarItem ->
+                    val startDateTime = task.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())
                     val updatedCalendarItem = calendarItem.copy(
                         modified = task.modified,
                         title = task.title,
                         description = task.description,
-                        startingTime = task.startingTime,
-                        endingTime = task.endingTime,
-                        priority = task.priority,
-                        repeat = task.repeat
+                        startingDate = startDateTime?.date ?: calendarItem.startingDate,
+                        startingTime = startDateTime?.time ?: calendarItem.startingTime,
+                        priority = task.priority
                     )
                     calendarRepository.updateCloud(updatedCalendarItem)
                 }
@@ -111,13 +102,10 @@ class TasksActions(
         }
     }
 
-    /**
-     * Deletes a task by its [id].
-     */
     suspend fun deleteTask(id: String): Boolean {
         return try {
             val task = repository.get(id)
-            task?.linkedCalendarItem?.let { calendarId ->
+            task?.linkedCalendar?.let { calendarId ->
                 calendarRepository.delete(calendarId)
             }
             repository.delete(id)
@@ -128,17 +116,11 @@ class TasksActions(
         }
     }
 
-    /**
-     * Toggles the completion status of a task.
-     */
     suspend fun toggleTask(task: TaskItem): Boolean {
         val updatedTask = task.copy(completed = !task.completed)
         return updateTask(updatedTask)
     }
 
-    /**
-     * Retrieves all tasks currently managed by the plugin.
-     */
     suspend fun getAllTasks(): List<TaskItem> {
         return try {
             repository.getAll().sortedByDescending { it.created }
@@ -148,9 +130,6 @@ class TasksActions(
         }
     }
 
-    /**
-     * Synchronizes local tasks with the cloud storage.
-     */
     suspend fun sync() {
         try {
             repository.sync()

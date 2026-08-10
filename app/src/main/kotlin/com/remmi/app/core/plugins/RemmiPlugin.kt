@@ -1,6 +1,5 @@
 package com.remmi.app.core.plugins
 
-import com.remmi.app.core.RemmiClass
 import com.remmi.app.core.actions.RemmiAction
 import com.remmi.app.core.model.models.RemmiModel
 import com.remmi.app.core.repository.RemmiRepository
@@ -14,7 +13,7 @@ import com.remmi.app.core.widgets.RemmiWidget
  * Each plugin must provide its own UI (screen and widget), data management (repository),
  * and business logic (actions).
  */
-interface RemmiPlugin : RemmiClass {
+interface RemmiPlugin {
 
     /**
      * Metadata describing the plugin (id, name, version, etc.).
@@ -51,8 +50,4 @@ interface RemmiPlugin : RemmiClass {
      */
     fun onUnload()
 
-    /**
-     * Triggered to load or sync items using the provided [service].
-     */
-    fun loadItems(service: DatabaseService)
 }

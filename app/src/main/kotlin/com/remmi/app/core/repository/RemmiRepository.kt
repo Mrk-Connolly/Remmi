@@ -1,6 +1,5 @@
 package com.remmi.app.core.repository
 
-import com.remmi.app.core.RemmiClass
 import com.remmi.app.core.model.models.RemmiModel
 
 /**
@@ -11,7 +10,7 @@ import com.remmi.app.core.model.models.RemmiModel
  *
  * @param T The type of [RemmiModel] managed by this repository.
  */
-interface RemmiRepository<T : RemmiModel> : RemmiClass {
+interface RemmiRepository<T : RemmiModel> {
 
     /**
      * Adds a new item to the repository.

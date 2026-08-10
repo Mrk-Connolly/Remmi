@@ -1,7 +1,6 @@
 package com.remmi.app.core.screens
 
 import androidx.compose.runtime.Composable
-import com.remmi.app.core.RemmiClass
 
 /**
  * Interface for full-screen UI views provided by plugins.
@@ -9,7 +8,7 @@ import com.remmi.app.core.RemmiClass
  * Each plugin typically has one main screen that handles its primary user
  * interactions.
  */
-interface RemmiScreen : RemmiClass {
+interface RemmiScreen {
 
     /**
      * The UI content of the screen, defined as a Composable function.

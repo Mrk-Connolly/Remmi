@@ -35,14 +35,14 @@ fun TasksEditorScreen(
     var description by remember { mutableStateOf(initialTask?.description ?: "") }
     
     val timeZone = TimeZone.currentSystemDefault()
-    val initialDateTime = initialTask?.startingTime?.toLocalDateTime(timeZone) ?: 
-        kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone)
+    val initialDateTime = initialTask?.dueDate?.toLocalDateTime(timeZone) ?: 
+        Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone)
 
     var day by remember { mutableStateOf(initialDateTime.dayOfMonth.toString()) }
     var month by remember { mutableStateOf(initialDateTime.monthNumber.toString()) }
     var year by remember { mutableStateOf(initialDateTime.year.toString()) }
     
-    var priority by remember { mutableStateOf(initialTask?.priority ?: Priority.NORMAL) }
+    var priority by remember { mutableStateOf(initialTask?.priority ?: Priority.Normal) }
     var isAdvancedExpanded by remember { mutableStateOf(false) }
 
     var isRepeatable by remember { mutableStateOf(initialTask?.repeat != null) }
@@ -50,20 +50,11 @@ fun TasksEditorScreen(
     
     var startDate by remember { mutableStateOf(initialDateTime.date) }
     var startTime by remember { mutableStateOf(initialDateTime.time) }
-    var endDate by remember { mutableStateOf(initialTask?.endingTime?.toLocalDateTime(timeZone)?.date ?: initialDateTime.date) }
-    var endTime by remember { 
-        mutableStateOf(
-            initialTask?.endingTime?.toLocalDateTime(timeZone)?.time ?: 
-            initialDateTime.toInstant(timeZone).plus(1, DateTimeUnit.HOUR).toLocalDateTime(timeZone).time
-        ) 
-    }
 
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showStartTimePicker by remember { mutableStateOf(false) }
-    var showEndDatePicker by remember { mutableStateOf(false) }
-    var showEndTimePicker by remember { mutableStateOf(false) }
     
-    var addToCalendar by remember { mutableStateOf(initialTask?.linkedCalendarItem != null) }
+    var addToCalendar by remember { mutableStateOf(initialTask?.linkedCalendar != null) }
 
     Scaffold(
         bottomBar = {
@@ -74,17 +65,20 @@ fun TasksEditorScreen(
                 ) {
                     OutlinedButton(modifier = Modifier.weight(1f), onClick = onDismiss) { Text("Back") }
                     Button(modifier = Modifier.weight(1f), onClick = {
-                        val start = LocalDateTime(year.toInt(), month.toInt(), day.toInt(), startTime.hour, startTime.minute).toInstant(timeZone)
-                        val end = LocalDateTime(endDate.year, endDate.monthNumber, endDate.dayOfMonth, endTime.hour, endTime.minute).toInstant(timeZone)
+                        val finalDueDate = try { 
+                            LocalDateTime(year.toInt(), month.toInt(), day.toInt(), startTime.hour, startTime.minute).toInstant(timeZone)
+                        } catch (e: Exception) { 
+                            initialTask?.dueDate 
+                        }
                         val repeatRule = if (isRepeatable) RepeatRule(repeatType) else null
                         
                         scope.launch {
                             if (initialTask != null) {
                                 actions.updateTask(initialTask.copy(
+                                    modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
                                     title = title,
                                     description = description,
-                                    startingTime = start,
-                                    endingTime = end,
+                                    dueDate = finalDueDate,
                                     priority = priority,
                                     repeat = repeatRule
                                 ))
@@ -92,8 +86,7 @@ fun TasksEditorScreen(
                                 actions.addTask(
                                     title = title,
                                     description = description,
-                                    startingTime = start,
-                                    endingTime = end,
+                                    dueDate = finalDueDate,
                                     priority = priority,
                                     repeat = repeatRule,
                                     addToCalendar = addToCalendar
@@ -160,16 +153,10 @@ fun TasksEditorScreen(
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Start Date", style = MaterialTheme.typography.labelMedium)
+                            Text("Due Date", style = MaterialTheme.typography.labelMedium)
                             TextButton(onClick = { showStartDatePicker = true }) { Text(startDate.toString()) }
-                            Text("Start Time", style = MaterialTheme.typography.labelMedium)
+                            Text("Due Time", style = MaterialTheme.typography.labelMedium)
                             TextButton(onClick = { showStartTimePicker = true }) { Text(startTime.toString().substring(0, 5)) }
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("End Date", style = MaterialTheme.typography.labelMedium)
-                            TextButton(onClick = { showEndDatePicker = true }) { Text(endDate.toString()) }
-                            Text("End Time", style = MaterialTheme.typography.labelMedium)
-                            TextButton(onClick = { showEndTimePicker = true }) { Text(endTime.toString().substring(0, 5)) }
                         }
                     }
                     
@@ -191,10 +178,10 @@ fun TasksEditorScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        val newDate = kotlinx.datetime.Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date
+                        val newDate = Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date
                         startDate = newDate
-                        day = newDate.day.toString()
-                        month = (newDate.monthNumber).toString()
+                        day = newDate.dayOfMonth.toString()
+                        month = newDate.monthNumber.toString()
                         year = newDate.year.toString()
                     }
                     showStartDatePicker = false
@@ -220,39 +207,6 @@ fun TasksEditorScreen(
             }
         }
     }
-
-    if (showEndDatePicker) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = endDate.atTime(0, 0).toInstant(timeZone).toEpochMilliseconds())
-        DatePickerDialog(
-            onDismissRequest = { showEndDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        endDate = kotlinx.datetime.Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date
-                    }
-                    showEndDatePicker = false
-                }) { Text("OK") }
-            }
-        ) { DatePicker(state = datePickerState) }
-    }
-
-    if (showEndTimePicker) {
-        val timePickerState = rememberTimePickerState(initialHour = endTime.hour, initialMinute = endTime.minute)
-        androidx.compose.ui.window.Dialog(onDismissRequest = { showEndTimePicker = false }) {
-            Surface(shape = MaterialTheme.shapes.extraLarge, tonalElevation = 6.dp) {
-                Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    TimePicker(state = timePickerState)
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { showEndTimePicker = false }) { Text("Cancel") }
-                        TextButton(onClick = {
-                            endTime = LocalTime(timePickerState.hour, timePickerState.minute)
-                            showEndTimePicker = false
-                        }) { Text("OK") }
-                    }
-                }
-            }
-        }
-    }
 }
 
 sealed class TaskEditorMode {
@@ -270,12 +224,11 @@ fun TaskDialog(
 ) {
     var title by remember { mutableStateOf(task?.title ?: initialTitle) }
     var desc by remember { mutableStateOf(task?.description ?: initialDescription) }
-    var priority by remember { mutableStateOf(task?.priority ?: Priority.NORMAL) }
+    var priority by remember { mutableStateOf(task?.priority ?: Priority.Normal) }
     var repeatType by remember { mutableStateOf(task?.repeat?.type ?: RepeatType.NONE) }
-    var addToCalendar by remember { mutableStateOf(task?.linkedCalendarItem != null) }
+    var addToCalendar by remember { mutableStateOf(task?.linkedCalendar != null) }
     
-    var startStr by remember { mutableStateOf(task?.startingTime?.toString() ?: "") }
-    var endStr by remember { mutableStateOf(task?.endingTime?.toString() ?: "") }
+    var startStr by remember { mutableStateOf(task?.dueDate?.toString() ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -288,8 +241,7 @@ fun TaskDialog(
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth())
                 
-                OutlinedTextField(value = startStr, onValueChange = { startStr = it }, label = { Text("Start (ISO 8601)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = endStr, onValueChange = { endStr = it }, label = { Text("End (ISO 8601)") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = startStr, onValueChange = { startStr = it }, label = { Text("Due Date (ISO 8601)") }, modifier = Modifier.fillMaxWidth())
 
                 Text("Priority", style = MaterialTheme.typography.labelLarge)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -326,9 +278,8 @@ fun TaskDialog(
             Button(
                 onClick = { 
                     val start = try { Instant.parse(startStr) } catch (e: Exception) { null }
-                    val end = try { Instant.parse(endStr) } catch (e: Exception) { null }
                     val repeatRule = if (repeatType == RepeatType.NONE) null else RepeatRule(repeatType)
-                    onSave(title, desc, start, end, priority, repeatRule, addToCalendar) 
+                    onSave(title, desc, start, null, priority, repeatRule, addToCalendar) 
                 }, 
                 enabled = title.isNotBlank()
             ) {
@@ -340,4 +291,3 @@ fun TaskDialog(
         }
     )
 }
-

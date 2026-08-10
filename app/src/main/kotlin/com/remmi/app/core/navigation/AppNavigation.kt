@@ -13,18 +13,30 @@ import com.remmi.app.core.screens.HomeScreen
 import androidx.compose.material3.Text
 import com.remmi.app.core.plugins.PluginContext
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 
-sealed class RemmiDestination {
-    data object Home : RemmiDestination()
-    data object Calendar : RemmiDestination()
-    data object Tasks : RemmiDestination()
-    data object Settings : RemmiDestination()
+sealed class RemmiDestination(val route: String) {
+    data object Home : RemmiDestination("home")
+    data object Calendar : RemmiDestination("calendar")
+    data object Tasks : RemmiDestination("tasks")
+    data object Alarm : RemmiDestination("alarm")
+    data object Settings : RemmiDestination("settings")
 }
+
+/**
+ * REMMI DESTINATION  is the bottom menu to access all plugins
+ *
+ * only contains 1 function
+ * */
+
+// ----------------------------------------------------------------------------
+//                                 APP NAVIGATION
+// ----------------------------------------------------------------------------
 
 @Composable
 fun AppNavigation(context: PluginContext) {
@@ -35,8 +47,8 @@ fun AppNavigation(context: PluginContext) {
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
-                    selected = currentRoute == "home",
-                    onClick = { navController.navigate("home")
+                    selected = currentRoute == RemmiDestination.Home.route,
+                    onClick = { navController.navigate(RemmiDestination.Home.route)
                     },
                     icon = {
                         Icon(imageVector = Icons.Default.Home,contentDescription = "Home" )
@@ -45,8 +57,8 @@ fun AppNavigation(context: PluginContext) {
                 )
 
                 NavigationBarItem(
-                    selected = currentRoute == "calendar",
-                    onClick = { navController.navigate("calendar")
+                    selected = currentRoute == RemmiDestination.Calendar.route,
+                    onClick = { navController.navigate(RemmiDestination.Calendar.route)
                     },
                     icon = {
                         Icon(imageVector = Icons.Default.CalendarMonth,contentDescription = "Calendar" )
@@ -55,8 +67,8 @@ fun AppNavigation(context: PluginContext) {
                 )
 
                 NavigationBarItem(
-                    selected = currentRoute == "tasks",
-                    onClick = {navController.navigate("tasks")
+                    selected = currentRoute == RemmiDestination.Tasks.route,
+                    onClick = {navController.navigate(RemmiDestination.Tasks.route)
                     },
                     icon = {
                         Icon(imageVector = Icons.Default.CheckCircle,contentDescription = "Tasks" )
@@ -65,8 +77,18 @@ fun AppNavigation(context: PluginContext) {
                 )
 
                 NavigationBarItem(
-                    selected = currentRoute == "settings",
-                    onClick = { navController.navigate("settings")
+                    selected = currentRoute == RemmiDestination.Alarm.route,
+                    onClick = { navController.navigate(RemmiDestination.Alarm.route)
+                    },
+                    icon = {
+                        Icon(imageVector = Icons.Default.Alarm, contentDescription = "Alarm")
+                    },
+                    label = { Text("Alarm") }
+                )
+
+                NavigationBarItem(
+                    selected = currentRoute == RemmiDestination.Settings.route,
+                    onClick = { navController.navigate(RemmiDestination.Settings.route)
                     },
                     icon = {
                         Icon(imageVector = Icons.Default.Settings,contentDescription = "Settings" )
@@ -79,22 +101,26 @@ fun AppNavigation(context: PluginContext) {
 
         NavHost(
             navController = navController,
-            startDestination = "home",
+            startDestination = RemmiDestination.Home.route,
             modifier = Modifier.padding(paddingValues)
         ) {
-            composable("home") {
+            composable(RemmiDestination.Home.route) {
                 HomeScreen(context.widgetManager)
             }
 
-            composable("calendar") {
+            composable(RemmiDestination.Calendar.route) {
                 context.pluginManager.plugins["calendar"]?.screen?.Content() ?: Text("Calendar Plugin not loaded")
             }
 
-            composable("tasks") {
+            composable(RemmiDestination.Tasks.route) {
                 context.pluginManager.plugins["tasks"]?.screen?.Content() ?: Text("Tasks Plugin not loaded")
             }
 
-            composable("settings") {
+            composable(RemmiDestination.Alarm.route) {
+                context.pluginManager.plugins["alarm"]?.screen?.Content() ?: Text("Alarm Plugin not loaded")
+            }
+
+            composable(RemmiDestination.Settings.route) {
                 Text("Settings")
             }
         }

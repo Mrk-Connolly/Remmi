@@ -1,12 +1,16 @@
 package com.remmi.app.plugins.alarm
 
 import kotlinx.serialization.Serializable
-import com.remmi.app.core.model.components.Metadata
-import com.remmi.app.core.model.components.RepeatRule
+import kotlinx.serialization.SerialName
+import com.remmi.app.core.model.components.Priority
 import com.remmi.app.core.model.models.RemmiModel
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.Instant
 
+/**
+ * Data model representing an alarm.
+ *
+ * Aligned with the database schema in Startup.sql.
+ */
 @Serializable
 data class AlarmItem(
 
@@ -16,16 +20,22 @@ data class AlarmItem(
 
     override var modified: Instant,
 
-    val metadata: Metadata,
+    val title: String = "",
 
-    val triggerTime: LocalDateTime,
+    val description: String = "",
 
-    val repeat: RepeatRule? = null,
+    val priority: Priority = Priority.Normal,
 
-    val enabled: Boolean = true,
+    @SerialName("linked_calendar_event")
+    val linkedCalendarEvent: String? = null,
 
-    val linkedCalendarItem: String? = null,
+    @SerialName("linked_task")
+    val linkedTask: String? = null,
 
-    val linkedTaskItem: String? = null
+    val time: Instant,
+
+    val repeatable: List<String> = emptyList(),
+
+    val custom: List<String> = emptyList()
 
 ) : RemmiModel

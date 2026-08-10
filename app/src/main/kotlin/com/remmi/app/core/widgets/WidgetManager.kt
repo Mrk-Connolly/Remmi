@@ -7,16 +7,31 @@ import com.remmi.app.core.plugins.RemmiPlugin
 
 class WidgetManager() {
 
-    // Stores all loaded plugins
+    /** Widget Manager class hold the operations to load, run and maintain all
+     * plugin widgets.
+     */
+
+
+
+
+    // ----------------------------------------------------------------------------
+    //                                 Variables
+    // ----------------------------------------------------------------------------
+
+
+    /** Mutable map of Remmi Widgets*/
     private val widgets = mutableMapOf<String, RemmiWidget>()
 
-    fun getWidgets(): List<RemmiWidget> {
-        Log.d("Remmi", "Function get widgets called")
 
-        return widgets.mapNotNull { it.value }
-    }
 
-    /**
+
+
+    // ----------------------------------------------------------------------------
+    //                                 Core operations
+    // ----------------------------------------------------------------------------
+
+
+    /**                                 REGISTER
      * Registers a plugin.
      * Returns true if successful, false if a plugin with the same ID already exists.
      */
@@ -38,7 +53,7 @@ class WidgetManager() {
         return true
     }
 
-    /**
+    /**                                UNREGISTER
      * Unregisters a plugin.
      */
     fun unregister(id: String): Boolean {
@@ -48,4 +63,20 @@ class WidgetManager() {
 
         return true
     }
+
+
+
+
+
+    // ----------------------------------------------------------------------------
+    //                                 Getters
+    // ----------------------------------------------------------------------------
+
+
+    fun getWidgets(): List<RemmiWidget> {
+        Log.d("Remmi", "Function get widgets called")
+
+        return widgets.mapNotNull { it.value }
+    }
+
 }

@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.service.DatabaseService
 import com.remmi.app.core.service.SupabaseService
 import com.remmi.app.plugins.calendar.CalendarRepository
 import com.remmi.app.core.widgets.RemmiWidget
@@ -51,21 +50,14 @@ class TasksPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
      */
     override fun onLoad() {
         Log.d("Remmi", "Loading Tasks Plugin...")
-        loadItems(SupabaseService)
+        CoroutineScope(Dispatchers.IO).launch {
+            actions.sync()
+        }
     }
 
     /**
      * Called when the plugin is unloaded.
      */
     override fun onUnload() {
-    }
-
-    /**
-     * Syncs task items from the cloud service.
-     */
-    override fun loadItems(service: DatabaseService) {
-        CoroutineScope(Dispatchers.IO).launch {
-            actions.sync()
-        }
     }
 }

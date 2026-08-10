@@ -8,13 +8,16 @@ import com.remmi.app.core.navigation.AppNavigation
 import com.remmi.app.core.runtime.RemmiRuntime
 
 
-/**
- * Remmi Host
- *
- * Executes Runtime and UI menu
- */
 @Composable
 fun RemmiHost() {
+
+
+    /**
+     * Remmi Host
+     *
+     * Executes Runtime and UI menu
+     */
+
 
     Log.d("Remmi", "Runtime generated")
 

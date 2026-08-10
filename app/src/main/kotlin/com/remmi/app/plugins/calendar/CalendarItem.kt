@@ -1,99 +1,55 @@
 package com.remmi.app.plugins.calendar
 
 import kotlinx.serialization.Serializable
-import com.remmi.app.core.model.components.Location
+import kotlinx.serialization.SerialName
 import com.remmi.app.core.model.components.Priority
-import com.remmi.app.core.model.components.Relationship
-import com.remmi.app.core.model.components.Reminder
-import com.remmi.app.core.model.components.RepeatRule
-import com.remmi.app.core.model.components.TimeRange
-import com.remmi.app.core.model.models.Person
 import com.remmi.app.core.model.models.RemmiModel
-import com.remmi.app.core.model.components.Metadata
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 
 /**
  * Data model representing a single event in the calendar.
  *
- * Implements [RemmiModel] to ensure compatibility with the system's
- * repository and synchronization infrastructure.
+ * Aligned with the database schema in Startup.sql.
  */
 @Serializable
 data class CalendarItem(
 
-    /**
-     * Unique identifier for the calendar event.
-     */
     override val id: String,
 
-    /**
-     * Timestamp of when the event was first created.
-     */
     override val created: Instant,
 
-    /**
-     * Timestamp of the last time the event was modified.
-     */
     override var modified: Instant,
 
-    /**
-     * The title of the event.
-     */
     val title: String = "",
 
-    /**
-     * A detailed description of the event.
-     */
     val description: String = "",
 
-    /**
-     * The start time of the event.
-     */
-    val startingTime: Instant? = null,
+    @SerialName("starting_date")
+    val startingDate: LocalDate,
 
-    /**
-     * The end time of the event.
-     */
-    val endingTime: Instant? = null,
+    @SerialName("starting_time")
+    val startingTime: LocalTime? = null,
 
-    /**
-     * The priority of the event (LOW, NORMAL, HIGH).
-     */
-    val priority: Priority = Priority.NORMAL,
+    @SerialName("ending_date")
+    val endingDate: LocalDate? = null,
 
-    /**
-     * A list of people participating in the event.
-     */
-    val participants: MutableList<Person> = mutableListOf(),
+    @SerialName("ending_time")
+    val endingTime: LocalTime? = null,
 
-    /**
-     * The rule defining if and how the event repeats.
-     */
-    val repeat: RepeatRule? = null,
+    val priority: Priority = Priority.Normal,
 
-    /**
-     * A list of reminders scheduled for this event.
-     */
-    val reminders: MutableList<Reminder> = mutableListOf(),
+    val participants: List<String> = emptyList(),
 
-    /**
-     * The physical or virtual location of the event.
-     */
-    val location: Location? = null,
+    val repeat: List<String> = emptyList(),
 
-    /**
-     * IDs of tasks linked to this calendar event.
-     */
-    val linkedTasks: MutableList<String> = mutableListOf(),
+    val location: List<String> = emptyList(),
 
-    /**
-     * ID of an alarm linked to this calendar event.
-     */
-    val linkedAlarm: String? = null,
+    @SerialName("linked_tasks")
+    val linkedTasks: List<String> = emptyList(),
 
-    /**
-     * Relationships with other models in the system.
-     */
-    val relationships: MutableList<Relationship> = mutableListOf()
+    @SerialName("linked_alarm")
+    val linkedAlarm: String? = null
 
 ) : RemmiModel

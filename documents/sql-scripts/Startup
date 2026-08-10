@@ -1,18 +1,22 @@
 -- ============================================================
 -- REMMI DATABASE BOOTSTRAP
+-- Calendar + Tasks + Alarms
 -- Development Version
 -- ============================================================
 
----------------------------------------------------------------
--- Remove old tables
----------------------------------------------------------------
 
-DROP TABLE IF EXISTS calendar CASCADE;
+-- ============================================================
+-- 1. REMOVE EXISTING TABLES
+-- ============================================================
+
+DROP TABLE IF EXISTS alarms CASCADE;
 DROP TABLE IF EXISTS tasks CASCADE;
+DROP TABLE IF EXISTS calendar CASCADE;
 
----------------------------------------------------------------
--- Calendar
----------------------------------------------------------------
+
+-- ============================================================
+-- 2. CALENDAR
+-- ============================================================
 
 CREATE TABLE calendar (
 
@@ -24,26 +28,28 @@ CREATE TABLE calendar (
     title           TEXT NOT NULL,
     description     TEXT,
 
-    starting_time   TIMESTAMPTZ,
-    ending_time     TIMESTAMPTZ,
+    starting_date   DATE NOT NULL,
+    starting_time   TIME,
 
-    priority        TEXT NOT NULL,
+    ending_date     DATE,
+    ending_time     TIME,
 
-    participants    JSONB,
-    repeat          JSONB,
-    reminders       JSONB,
-    location        JSONB,
+    priority        TEXT NOT NULL
+        CHECK (priority IN ('LOW', 'NORMAL', 'HIGH')),
 
-    linked_tasks    JSONB,
-    linked_alarm    TEXT,
+    participants    TEXT[] NOT NULL DEFAULT '{}',
+    repeat          TEXT[] NOT NULL DEFAULT '{}',
+    location        TEXT[] NOT NULL DEFAULT '{}',
 
-    relationships   JSONB
+    linked_tasks    TEXT[] NOT NULL DEFAULT '{}',
+    linked_alarm    TEXT
 
 );
 
----------------------------------------------------------------
--- Tasks
----------------------------------------------------------------
+
+-- ============================================================
+-- 3. TASKS
+-- ============================================================
 
 CREATE TABLE tasks (
 
@@ -59,21 +65,50 @@ CREATE TABLE tasks (
 
     due_date        TIMESTAMPTZ,
 
-    priority        TEXT NOT NULL,
+    priority        TEXT NOT NULL
+        CHECK (priority IN ('LOW', 'NORMAL', 'HIGH')),
 
     parent_task     TEXT,
 
     linked_calendar TEXT,
 
-    reminders       JSONB,
-
-    relationships   JSONB
+    reminders       TEXT[] NOT NULL DEFAULT '{}',
+    relationships   TEXT[] NOT NULL DEFAULT '{}'
 
 );
 
----------------------------------------------------------------
--- Permissions
----------------------------------------------------------------
+
+-- ============================================================
+-- 4. ALARMS
+-- ============================================================
+
+CREATE TABLE alarms (
+
+    id                    TEXT PRIMARY KEY,
+
+    title                 TEXT NOT NULL,
+
+    description           TEXT,
+
+    priority              TEXT NOT NULL
+        CHECK (priority IN ('LOW', 'NORMAL', 'HIGH')),
+
+    linked_calendar_event TEXT,
+
+    linked_task           TEXT,
+
+    time                  TIMESTAMPTZ NOT NULL,
+
+    repeatable            TEXT[] NOT NULL DEFAULT '{}',
+
+    custom                TEXT[] NOT NULL DEFAULT '{}'
+
+);
+
+
+-- ============================================================
+-- 5. PERMISSIONS
+-- ============================================================
 
 GRANT SELECT, INSERT, UPDATE, DELETE
 ON TABLE calendar
@@ -83,16 +118,23 @@ GRANT SELECT, INSERT, UPDATE, DELETE
 ON TABLE tasks
 TO anon;
 
----------------------------------------------------------------
--- Enable RLS
----------------------------------------------------------------
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE alarms
+TO anon;
+
+
+-- ============================================================
+-- 6. ENABLE ROW LEVEL SECURITY
+-- ============================================================
 
 ALTER TABLE calendar ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE alarms ENABLE ROW LEVEL SECURITY;
 
----------------------------------------------------------------
--- Calendar Policies
----------------------------------------------------------------
+
+-- ============================================================
+-- 7. CALENDAR POLICIES
+-- ============================================================
 
 CREATE POLICY "calendar_select"
 ON calendar
@@ -119,9 +161,10 @@ FOR DELETE
 TO anon
 USING (true);
 
----------------------------------------------------------------
--- Task Policies
----------------------------------------------------------------
+
+-- ============================================================
+-- 8. TASK POLICIES
+-- ============================================================
 
 CREATE POLICY "tasks_select"
 ON tasks
@@ -148,115 +191,314 @@ FOR DELETE
 TO anon
 USING (true);
 
----------------------------------------------------------------
--- Example Calendar Event
----------------------------------------------------------------
+
+-- ============================================================
+-- 9. ALARM POLICIES
+-- ============================================================
+
+CREATE POLICY "alarms_select"
+ON alarms
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "alarms_insert"
+ON alarms
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "alarms_update"
+ON alarms
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "alarms_delete"
+ON alarms
+FOR DELETE
+TO anon
+USING (true);
+
+
+-- ============================================================
+-- 10. CALENDAR EXAMPLES
+-- ============================================================
 
 INSERT INTO calendar (
-
     id,
     created,
     modified,
-
     title,
     description,
-
+    starting_date,
     starting_time,
+    ending_date,
     ending_time,
-
     priority,
-
     participants,
     repeat,
-    reminders,
     location,
-
     linked_tasks,
-    linked_alarm,
-
-    relationships
-
+    linked_alarm
 )
-
 VALUES (
-
-    'calendar_demo',
-
+    'calendar_001',
     now(),
     now(),
-
     'Doctor Appointment',
     'Annual checkup',
-
-    now() + interval '2 day',
-    now() + interval '2 day 1 hour',
-
+    CURRENT_DATE + 2,
+    '09:30:00',
+    CURRENT_DATE + 2,
+    '10:30:00',
     'HIGH',
-
-    '[]',
-    NULL,
-    '[]',
-    NULL,
-
-    '[]',
-    NULL,
-
-    '[]'
-
+    ARRAY['doctor'],
+    ARRAY[]::TEXT[],
+    ARRAY['Hospital'],
+    ARRAY['task_001'],
+    'alarm_001'
 );
 
----------------------------------------------------------------
--- Example Task
----------------------------------------------------------------
 
-INSERT INTO tasks (
-
+INSERT INTO calendar (
     id,
-
     created,
     modified,
-
     title,
     description,
-
-    completed,
-
-    due_date,
-
+    starting_date,
+    starting_time,
+    ending_date,
+    ending_time,
     priority,
-
-    parent_task,
-
-    linked_calendar,
-
-    reminders,
-
-    relationships
-
+    participants,
+    repeat,
+    location,
+    linked_tasks,
+    linked_alarm
 )
-
 VALUES (
-
-    'task_demo',
-
+    'calendar_002',
     now(),
     now(),
-
-    'Buy groceries',
-    'Milk, eggs, bread',
-
-    false,
-
-    now() + interval '1 day',
-
+    'Team Meeting',
+    'Weekly project meeting',
+    CURRENT_DATE + 3,
+    '14:00:00',
+    CURRENT_DATE + 3,
+    '15:00:00',
     'NORMAL',
+    ARRAY['alice', 'bob', 'charlie'],
+    ARRAY['w'],
+    ARRAY['Office'],
+    ARRAY['task_002'],
+    NULL
+);
 
+
+INSERT INTO calendar (
+    id,
+    created,
+    modified,
+    title,
+    description,
+    starting_date,
+    starting_time,
+    ending_date,
+    ending_time,
+    priority,
+    participants,
+    repeat,
+    location,
+    linked_tasks,
+    linked_alarm
+)
+VALUES (
+    'calendar_003',
+    now(),
+    now(),
+    'Dinner',
+    'Dinner with friends',
+    CURRENT_DATE + 5,
+    '19:00:00',
+    CURRENT_DATE + 5,
+    '21:00:00',
+    'LOW',
+    ARRAY['john', 'sarah'],
+    ARRAY[]::TEXT[],
+    ARRAY['Restaurant'],
+    ARRAY[]::TEXT[],
+    NULL
+);
+
+
+-- ============================================================
+-- 11. TASK EXAMPLES
+-- ============================================================
+
+INSERT INTO tasks (
+    id,
+    created,
+    modified,
+    title,
+    description,
+    completed,
+    due_date,
+    priority,
+    parent_task,
+    linked_calendar,
+    reminders,
+    relationships
+)
+VALUES (
+    'task_001',
+    now(),
+    now(),
+    'Buy groceries',
+    'Milk, eggs and bread',
+    false,
+    now() + interval '1 day',
+    'NORMAL',
     NULL,
-
     NULL,
+    ARRAY[]::TEXT[],
+    ARRAY[]::TEXT[]
+);
 
-    '[]',
 
-    '[]'
+INSERT INTO tasks (
+    id,
+    created,
+    modified,
+    title,
+    description,
+    completed,
+    due_date,
+    priority,
+    parent_task,
+    linked_calendar,
+    reminders,
+    relationships
+)
+VALUES (
+    'task_002',
+    now(),
+    now(),
+    'Prepare meeting notes',
+    'Prepare the notes for the weekly meeting',
+    false,
+    now() + interval '3 days',
+    'HIGH',
+    NULL,
+    'calendar_002',
+    ARRAY['alarm_002'],
+    ARRAY[]::TEXT[]
+);
 
+
+INSERT INTO tasks (
+    id,
+    created,
+    modified,
+    title,
+    description,
+    completed,
+    due_date,
+    priority,
+    parent_task,
+    linked_calendar,
+    reminders,
+    relationships
+)
+VALUES (
+    'task_003',
+    now(),
+    now(),
+    'Water plants',
+    'Water all indoor plants',
+    true,
+    now() - interval '1 day',
+    'LOW',
+    NULL,
+    NULL,
+    ARRAY[]::TEXT[],
+    ARRAY[]::TEXT[]
+);
+
+
+-- ============================================================
+-- 12. ALARM EXAMPLES
+-- ============================================================
+
+INSERT INTO alarms (
+    id,
+    title,
+    description,
+    priority,
+    linked_calendar_event,
+    linked_task,
+    time,
+    repeatable,
+    custom
+)
+VALUES (
+    'alarm_001',
+    'Doctor Reminder',
+    'Reminder for the doctor appointment',
+    'HIGH',
+    'calendar_001',
+    'task_001',
+    now() + interval '2 days' - interval '30 minutes',
+    ARRAY[]::TEXT[],
+    ARRAY[]::TEXT[]
+);
+
+
+INSERT INTO alarms (
+    id,
+    title,
+    description,
+    priority,
+    linked_calendar_event,
+    linked_task,
+    time,
+    repeatable,
+    custom
+)
+VALUES (
+    'alarm_002',
+    'Meeting Reminder',
+    'Reminder before the weekly meeting',
+    'NORMAL',
+    'calendar_002',
+    'task_002',
+    now() + interval '3 days' - interval '15 minutes',
+    ARRAY['w'],
+    ARRAY[]::TEXT[]
+);
+
+
+INSERT INTO alarms (
+    id,
+    title,
+    description,
+    priority,
+    linked_calendar_event,
+    linked_task,
+    time,
+    repeatable,
+    custom
+)
+VALUES (
+    'alarm_003',
+    'Water Plants',
+    'Remember to water the plants',
+    'LOW',
+    NULL,
+    'task_003',
+    now() + interval '1 day',
+    ARRAY['c'],
+    ARRAY['MONDAY', 'WEDNESDAY', 'FRIDAY']
 );
