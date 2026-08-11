@@ -12,6 +12,8 @@
 DROP TABLE IF EXISTS alarms CASCADE;
 DROP TABLE IF EXISTS tasks CASCADE;
 DROP TABLE IF EXISTS calendar CASCADE;
+DROP TABLE IF EXISTS gift_ideas CASCADE;
+DROP TABLE IF EXISTS contacts CASCADE;
 
 
 -- ============================================================
@@ -107,6 +109,56 @@ CREATE TABLE alarms (
 
 
 -- ============================================================
+-- 5. CONTACTS
+-- ============================================================
+
+CREATE TABLE contacts (
+
+    id              TEXT PRIMARY KEY,
+
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+
+    name            TEXT NOT NULL,
+    surname         TEXT NOT NULL,
+    nickname        TEXT,
+
+    mobile_phone    TEXT,
+    email           TEXT,
+    birthday        TEXT,
+
+    "group"         TEXT NOT NULL,
+
+    is_favorite     BOOLEAN NOT NULL DEFAULT FALSE,
+    in_gift_list    BOOLEAN NOT NULL DEFAULT FALSE
+
+);
+
+
+-- ============================================================
+-- 6. GIFT IDEAS
+-- ============================================================
+
+CREATE TABLE gift_ideas (
+
+    id              TEXT PRIMARY KEY,
+
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+
+    contact_id      TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+
+    name            TEXT NOT NULL,
+    description     TEXT,
+    link            TEXT,
+    price           DOUBLE PRECISION,
+    event           TEXT
+        CHECK (event IN ('Christmas', 'Birthday', 'FathersDay', 'ValentinesDay', 'MothersDay', 'Anniversary', 'Other'))
+
+);
+
+
+-- ============================================================
 -- 5. PERMISSIONS
 -- ============================================================
 
@@ -122,6 +174,14 @@ GRANT SELECT, INSERT, UPDATE, DELETE
 ON TABLE alarms
 TO anon;
 
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE contacts
+TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE gift_ideas
+TO anon;
+
 
 -- ============================================================
 -- 6. ENABLE ROW LEVEL SECURITY
@@ -130,6 +190,8 @@ TO anon;
 ALTER TABLE calendar ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE alarms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gift_ideas ENABLE ROW LEVEL SECURITY;
 
 
 -- ============================================================
@@ -217,6 +279,66 @@ WITH CHECK (true);
 
 CREATE POLICY "alarms_delete"
 ON alarms
+FOR DELETE
+TO anon
+USING (true);
+
+
+-- ============================================================
+-- 10. CONTACT POLICIES
+-- ============================================================
+
+CREATE POLICY "contacts_select"
+ON contacts
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "contacts_insert"
+ON contacts
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "contacts_update"
+ON contacts
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "contacts_delete"
+ON contacts
+FOR DELETE
+TO anon
+USING (true);
+
+
+-- ============================================================
+-- 11. GIFT IDEA POLICIES
+-- ============================================================
+
+CREATE POLICY "gift_ideas_select"
+ON gift_ideas
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "gift_ideas_insert"
+ON gift_ideas
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "gift_ideas_update"
+ON gift_ideas
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "gift_ideas_delete"
+ON gift_ideas
 FOR DELETE
 TO anon
 USING (true);
@@ -501,4 +623,118 @@ VALUES (
     now() + interval '1 day',
     ARRAY['c'],
     ARRAY['MONDAY', 'WEDNESDAY', 'FRIDAY']
+);
+
+
+-- ============================================================
+-- 15. CONTACT EXAMPLES
+-- ============================================================
+
+INSERT INTO contacts (
+    id,
+    created,
+    modified,
+    name,
+    surname,
+    nickname,
+    mobile_phone,
+    email,
+    birthday,
+    "group",
+    is_favorite,
+    in_gift_list
+)
+VALUES (
+    'contact_001',
+    now(),
+    now(),
+    'John',
+    'Doe',
+    'Johnny',
+    '+123456789',
+    'john.doe@example.com',
+    '1990-05-15',
+    'Friends',
+    true,
+    true
+);
+
+INSERT INTO contacts (
+    id,
+    created,
+    modified,
+    name,
+    surname,
+    nickname,
+    mobile_phone,
+    email,
+    birthday,
+    "group",
+    is_favorite,
+    in_gift_list
+)
+VALUES (
+    'contact_002',
+    now(),
+    now(),
+    'Jane',
+    'Smith',
+    NULL,
+    '+987654321',
+    'jane.smith@example.com',
+    '1992-11-20',
+    'Work',
+    false,
+    false
+);
+
+
+-- ============================================================
+-- 16. GIFT IDEA EXAMPLES
+-- ============================================================
+
+INSERT INTO gift_ideas (
+    id,
+    created,
+    modified,
+    contact_id,
+    name,
+    description,
+    link,
+    price,
+    event
+)
+VALUES (
+    'gift_001',
+    now(),
+    now(),
+    'contact_001',
+    'Wireless Headphones',
+    'Noise cancelling headphones',
+    'https://example.com/headphones',
+    199.99,
+    'Birthday'
+);
+
+INSERT INTO gift_ideas (
+    id,
+    created,
+    modified,
+    contact_id,
+    name,
+    description,
+    link,
+    price,
+    event
+)
+VALUES (
+    'gift_002',
+    now(),
+    now(),
+    'contact_001',
+    'Kindle E-reader',
+    'For reading books on the go',
+    NULL,
+    129.00,
+    'Christmas'
 );

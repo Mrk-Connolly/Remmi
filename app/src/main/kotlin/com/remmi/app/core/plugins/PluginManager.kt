@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.remmi.app.plugins.alarm.AlarmPlugin
 import com.remmi.app.plugins.calendar.CalendarPlugin
+import com.remmi.app.plugins.contacts.ContactPlugin
+import com.remmi.app.plugins.gift.GiftPlugin
 import com.remmi.app.plugins.tasks.TasksPlugin
 import kotlinx.serialization.json.Json
 
@@ -69,9 +71,11 @@ class PluginManager {
         pluginMetadata.forEach { metadata ->
 
             val plugin = when (metadata.id) {
-                "calendar" -> CalendarPlugin(metadata)
+                "calendar" -> CalendarPlugin(metadata, this)
                 "tasks" -> TasksPlugin(metadata)
                 "alarm" -> AlarmPlugin(metadata)
+                "contacts" -> ContactPlugin(metadata)
+                "gift" -> GiftPlugin(metadata, this)
                 else -> null
             }
 

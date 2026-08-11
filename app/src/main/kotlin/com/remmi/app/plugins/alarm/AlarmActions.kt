@@ -84,4 +84,11 @@ class AlarmActions(
     suspend fun sync() {
         repository.sync()
     }
+
+    suspend fun getTodayAlarms(): List<AlarmItem> {
+        val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return repository.getAll().filter { 
+            it.time.toLocalDateTime(TimeZone.currentSystemDefault()).date == today
+        }
+    }
 }

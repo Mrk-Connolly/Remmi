@@ -23,7 +23,7 @@ class TasksActions(
         private const val TAG = "TasksActions"
     }
 
-    suspend fun addTask(
+    suspend fun createTask(
         title: String,
         description: String,
         dueDate: Instant? = null,
@@ -67,10 +67,10 @@ class TasksActions(
             )
 
             repository.insert(task)
-            Log.d(TAG, "Task added successfully")
+            Log.d(TAG, "Task created successfully")
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to add task", e)
+            Log.e(TAG, "Failed to create task", e)
             false
         }
     }
@@ -135,6 +135,23 @@ class TasksActions(
             repository.sync()
         } catch (e: Exception) {
             Log.e(TAG, "Sync failed", e)
+        }
+    }
+
+    suspend fun getTodayTasks(): List<TaskItem> {
+        val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return repository.getAll().filter { 
+            (!it.completed) && (it.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date == today)
+        }
+    }
+
+    suspend fun getHighPriorityTasksOfMonth(): List<TaskItem> {
+        val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault())
+        return repository.getAll().filter { 
+            it.priority == Priority.High && 
+            it.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.let { date ->
+                date.monthNumber == now.monthNumber && date.year == now.year
+            } == true
         }
     }
 }

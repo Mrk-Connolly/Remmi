@@ -4,40 +4,67 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.plugins.PluginManager
 import com.remmi.app.core.widgets.RemmiWidget
+import com.remmi.app.plugins.tasks.TasksActions
+import com.remmi.app.plugins.tasks.TaskItem
 
 /**
- * Dashboard widget implementation for the Calendar plugin.
- *
- * Displays a quick summary of upcoming events on the main home screen.
+ * Dashboard widget for the Calendar plugin.
  */
-class CalendarWidget : RemmiWidget {
+class CalendarWidget(
+    private val calendarActions: CalendarActions,
+    private val pluginManager: PluginManager
+) : RemmiWidget {
 
-    /**
-     * Renders the widget's content as a themed Card.
-     */
     @Composable
     override fun Content() {
+        var todayEvents by remember { mutableStateOf(emptyList<CalendarItem>()) }
+        var priorityTasks by remember { mutableStateOf(emptyList<TaskItem>()) }
+
+        val tasksActions = remember { 
+            pluginManager.plugins["tasks"]?.actions as? TasksActions 
+        }
+
+        LaunchedEffect(Unit) {
+            todayEvents = calendarActions.getTodayEvents()
+            priorityTasks = tasksActions?.getHighPriorityTasksOfMonth() ?: emptyList()
+        }
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "📅 Calendar",
+                    text = "📅 Today's Events",
                     style = MaterialTheme.typography.titleMedium
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                if (todayEvents.isEmpty()) {
+                    Text("No events today", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    todayEvents.forEach { event ->
+                        Text("• ${event.title}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
                 Text(
-                    text = "Upcoming: No meetings",
-                    style = MaterialTheme.typography.bodyMedium
+                    text = "🔥 High Priority Tasks (Month)",
+                    style = MaterialTheme.typography.titleMedium
                 )
+                if (priorityTasks.isEmpty()) {
+                    Text("No high priority tasks", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    priorityTasks.forEach { task ->
+                        Text("• ${task.title}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         }
     }

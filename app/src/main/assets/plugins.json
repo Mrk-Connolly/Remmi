@@ -6,7 +6,8 @@
     "author": "mark.c.software",
     "enabled": true,
     "showInNavigation": true,
-    "showWidget": true
+    "showWidget": true,
+    "icon": "calendar_month"
   },
   {
     "id": "tasks",
@@ -15,7 +16,8 @@
     "author": "mark.c.software",
     "enabled": true,
     "showInNavigation": true,
-    "showWidget": true
+    "showWidget": true,
+    "icon": "check_circle"
   },
   {
     "id": "alarm",
@@ -24,6 +26,27 @@
     "author": "mark.c.software",
     "enabled": true,
     "showInNavigation": true,
-    "showWidget": true
+    "showWidget": true,
+    "icon": "alarm"
+  },
+  {
+    "id": "contacts",
+    "name": "Contacts",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "icon": "person"
+  },
+  {
+    "id": "gift",
+    "name": "Gift List",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "icon": "card_giftcard"
   }
 ]

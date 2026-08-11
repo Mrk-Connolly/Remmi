@@ -145,4 +145,9 @@ class CalendarActions(
             emptyList()
         }
     }
+
+    suspend fun getTodayEvents(): List<CalendarItem> {
+        val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return getEventsOn(today)
+    }
 }

@@ -18,7 +18,6 @@ import com.remmi.app.core.model.components.RepeatType
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -38,12 +37,14 @@ fun TasksEditorScreen(
     val initialDateTime = initialTask?.dueDate?.toLocalDateTime(timeZone) ?: 
         Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone)
 
-    var day by remember { mutableStateOf(initialDateTime.dayOfMonth.toString()) }
-    var month by remember { mutableStateOf(initialDateTime.monthNumber.toString()) }
-    var year by remember { mutableStateOf(initialDateTime.year.toString()) }
+    var day by remember { mutableStateOf(if (initialTask != null) initialDateTime.dayOfMonth.toString() else "") }
+    var month by remember { mutableStateOf(if (initialTask != null) initialDateTime.monthNumber.toString() else "") }
+    var year by remember { mutableStateOf(if (initialTask != null) initialDateTime.year.toString() else "") }
     
     var priority by remember { mutableStateOf(initialTask?.priority ?: Priority.Normal) }
     var isAdvancedExpanded by remember { mutableStateOf(false) }
+
+    var isDueDateEnabled by remember { mutableStateOf(initialTask?.dueDate != null) }
 
     var isRepeatable by remember { mutableStateOf(initialTask?.repeat != null) }
     var repeatType by remember { mutableStateOf(initialTask?.repeat?.type ?: RepeatType.NONE) }
@@ -65,10 +66,14 @@ fun TasksEditorScreen(
                 ) {
                     OutlinedButton(modifier = Modifier.weight(1f), onClick = onDismiss) { Text("Back") }
                     Button(modifier = Modifier.weight(1f), onClick = {
-                        val finalDueDate = try { 
-                            LocalDateTime(year.toInt(), month.toInt(), day.toInt(), startTime.hour, startTime.minute).toInstant(timeZone)
-                        } catch (e: Exception) { 
-                            initialTask?.dueDate 
+                        val finalDueDate = if (isDueDateEnabled) {
+                            try {
+                                LocalDateTime(year.toInt(), month.toInt(), day.toInt(), startTime.hour, startTime.minute).toInstant(timeZone)
+                            } catch (e: Exception) {
+                                initialTask?.dueDate
+                            }
+                        } else {
+                            null
                         }
                         val repeatRule = if (isRepeatable) RepeatRule(repeatType) else null
                         
@@ -83,7 +88,7 @@ fun TasksEditorScreen(
                                     repeat = repeatRule
                                 ))
                             } else {
-                                actions.addTask(
+                                actions.createTask(
                                     title = title,
                                     description = description,
                                     dueDate = finalDueDate,
@@ -108,10 +113,17 @@ fun TasksEditorScreen(
             OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth())
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = day, onValueChange = { day = it }, label = { Text("Day") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = month, onValueChange = { month = it }, label = { Text("Month") }, modifier = Modifier.weight(1f))
-                OutlinedTextField(value = year, onValueChange = { year = it }, label = { Text("Year") }, modifier = Modifier.weight(2f))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = isDueDateEnabled, onCheckedChange = { isDueDateEnabled = it })
+                Text("Set Due Date")
+            }
+
+            if (isDueDateEnabled) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = day, onValueChange = { day = it }, label = { Text("Day") }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = month, onValueChange = { month = it }, label = { Text("Month") }, modifier = Modifier.weight(1f))
+                    OutlinedTextField(value = year, onValueChange = { year = it }, label = { Text("Year") }, modifier = Modifier.weight(2f))
+                }
             }
 
             Text("Priority", style = MaterialTheme.typography.titleSmall)
@@ -151,12 +163,14 @@ fun TasksEditorScreen(
                         }
                     }
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Due Date", style = MaterialTheme.typography.labelMedium)
-                            TextButton(onClick = { showStartDatePicker = true }) { Text(startDate.toString()) }
-                            Text("Due Time", style = MaterialTheme.typography.labelMedium)
-                            TextButton(onClick = { showStartTimePicker = true }) { Text(startTime.toString().substring(0, 5)) }
+                    if (isDueDateEnabled) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Due Date", style = MaterialTheme.typography.labelMedium)
+                                TextButton(onClick = { showStartDatePicker = true }) { Text(startDate.toString()) }
+                                Text("Due Time", style = MaterialTheme.typography.labelMedium)
+                                TextButton(onClick = { showStartTimePicker = true }) { Text(startTime.toString().substring(0, 5)) }
+                            }
                         }
                     }
                     
@@ -228,6 +242,7 @@ fun TaskDialog(
     var repeatType by remember { mutableStateOf(task?.repeat?.type ?: RepeatType.NONE) }
     var addToCalendar by remember { mutableStateOf(task?.linkedCalendar != null) }
     
+    var isDueDateEnabled by remember { mutableStateOf(task?.dueDate != null) }
     var startStr by remember { mutableStateOf(task?.dueDate?.toString() ?: "") }
 
     AlertDialog(
@@ -241,7 +256,14 @@ fun TaskDialog(
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth())
                 
-                OutlinedTextField(value = startStr, onValueChange = { startStr = it }, label = { Text("Due Date (ISO 8601)") }, modifier = Modifier.fillMaxWidth())
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = isDueDateEnabled, onCheckedChange = { isDueDateEnabled = it })
+                    Text("Set Due Date")
+                }
+
+                if (isDueDateEnabled) {
+                    OutlinedTextField(value = startStr, onValueChange = { startStr = it }, label = { Text("Due Date (ISO 8601)") }, modifier = Modifier.fillMaxWidth())
+                }
 
                 Text("Priority", style = MaterialTheme.typography.labelLarge)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

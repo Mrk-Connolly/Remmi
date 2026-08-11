@@ -1,4 +1,4 @@
-package com.remmi.app.plugins.tasks
+package com.remmi.app.plugins.contacts
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Card
@@ -10,18 +10,16 @@ import androidx.compose.ui.unit.dp
 import com.remmi.app.core.widgets.RemmiWidget
 
 /**
- * Dashboard widget for the Tasks plugin.
+ * Dashboard widget for favorite contacts.
  */
-class TasksWidget(
-    private val tasksActions: TasksActions
-) : RemmiWidget {
+class ContactWidget(private val actions: ContactActions) : RemmiWidget {
 
     @Composable
     override fun Content() {
-        var todayTasks by remember { mutableStateOf(emptyList<TaskItem>()) }
+        var favorites by remember { mutableStateOf(emptyList<ContactItem>()) }
 
         LaunchedEffect(Unit) {
-            todayTasks = tasksActions.getTodayTasks()
+            favorites = actions.getAllContacts().filter { it.isFavorite }.take(5)
         }
 
         Card(
@@ -31,15 +29,17 @@ class TasksWidget(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "✅ Active Tasks (Today)",
+                    text = "⭐ Favorite Contacts",
                     style = MaterialTheme.typography.titleMedium
                 )
-                if (todayTasks.isEmpty()) {
-                    Text("No active tasks for today", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+
+                if (favorites.isEmpty()) {
+                    Text("No favorites yet", style = MaterialTheme.typography.bodySmall)
                 } else {
-                    todayTasks.forEach { task ->
+                    favorites.forEach { contact ->
                         Text(
-                            text = "• ${task.title}",
+                            text = "• ${contact.name} ${contact.surname}",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
