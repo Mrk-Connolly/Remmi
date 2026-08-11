@@ -1,0 +1,4 @@
+- `[x]` Update `PluginManager` to support batch updates and safe reloading
+- `[x]` Update `SettingsScreen` to handle pending state and confirmation button
+- `[x]` Update `AppNavigation` to pass `PluginContext` to `SettingsScreen`
+- `[x]` Verify changes by checking button visibility and navigation behavior

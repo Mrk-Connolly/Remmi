@@ -2,6 +2,7 @@ package com.remmi.app.plugins.alarm
 
 import com.remmi.app.core.actions.RemmiAction
 import com.remmi.app.core.model.components.Priority
+import com.remmi.app.core.plugins.PluginManager
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -14,6 +15,7 @@ import java.util.UUID
  */
 class AlarmActions(
     private val repository: AlarmRepository,
+    private val pluginManager: PluginManager,
     override val id: String = "alarm_actions",
     override val name: String = "Alarm Actions"
 ) : RemmiAction {

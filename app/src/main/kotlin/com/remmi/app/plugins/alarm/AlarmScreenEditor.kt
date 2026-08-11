@@ -44,6 +44,23 @@ fun AlarmScreenEditor(
     
     var showTimePicker by remember { mutableStateOf(false) }
 
+    var repeatMode by remember { 
+        mutableStateOf(
+            when {
+                initialAlarm?.repeatable?.contains("d") == true -> "Daily"
+                initialAlarm?.repeatable?.contains("w") == true -> "Weekly"
+                initialAlarm?.repeatable?.contains("c") == true -> "Custom"
+                else -> "None"
+            }
+        )
+    }
+    val customDays = remember { 
+        mutableStateListOf<String>().apply { 
+            addAll(initialAlarm?.custom ?: emptyList()) 
+        } 
+    }
+    var showDaysDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         bottomBar = {
             Surface(tonalElevation = 3.dp) {
@@ -57,17 +74,29 @@ fun AlarmScreenEditor(
                         val triggerTime = LocalDateTime(now.year, now.month, now.day, hour, minute).toInstant(timeZone)
                         
                         scope.launch {
+                            val repeatable = when (repeatMode) {
+                                "Daily" -> listOf("d")
+                                "Weekly" -> listOf("w")
+                                "Custom" -> listOf("c")
+                                else -> emptyList()
+                            }
+                            val custom = if (repeatMode == "Custom") customDays.toList() else emptyList()
+
                             if (initialAlarm != null) {
                                 actions.updateAlarm(initialAlarm.copy(
                                     title = title,
                                     description = description,
-                                    time = triggerTime
+                                    time = triggerTime,
+                                    repeatable = repeatable,
+                                    custom = custom
                                 ))
                             } else {
                                 actions.addAlarm(
                                     title = title,
                                     description = description,
-                                    time = triggerTime
+                                    time = triggerTime,
+                                    repeatable = repeatable,
+                                    custom = custom
                                 )
                             }
                             onSave()
@@ -113,7 +142,43 @@ fun AlarmScreenEditor(
                     Text("Change")
                 }
             }
+
+            Text("Repeat", style = MaterialTheme.typography.titleSmall)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("None", "Daily", "Weekly", "Custom").forEach { mode ->
+                    FilterChip(
+                        selected = repeatMode == mode,
+                        onClick = { 
+                            repeatMode = mode
+                            if (mode == "Custom") showDaysDialog = true
+                        },
+                        label = { Text(mode) }
+                    )
+                }
+            }
+
+            if (repeatMode == "Custom" && customDays.isNotEmpty()) {
+                Text(
+                    text = "Days: ${customDays.joinToString(", ") { it.lowercase().replaceFirstChar { c -> c.uppercase() } }}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
+    }
+
+    if (showDaysDialog) {
+        DaysSelectionDialog(
+            selectedDays = customDays,
+            onDismiss = { showDaysDialog = false },
+            onConfirm = { days ->
+                customDays.clear()
+                customDays.addAll(days)
+                showDaysDialog = false
+            }
+        )
     }
 
     if (showTimePicker) {
@@ -134,4 +199,50 @@ fun AlarmScreenEditor(
             }
         }
     }
+}
+
+@Composable
+fun DaysSelectionDialog(
+    selectedDays: List<String>,
+    onDismiss: () -> Unit,
+    onConfirm: (List<String>) -> Unit
+) {
+    val days = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
+    val currentSelected = remember { mutableStateListOf<String>().apply { addAll(selectedDays) } }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Select Days") },
+        text = {
+            Column {
+                days.forEach { day ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Checkbox(
+                            checked = currentSelected.contains(day),
+                            onCheckedChange = { checked ->
+                                if (checked) currentSelected.add(day)
+                                else currentSelected.remove(day)
+                            }
+                        )
+                        Text(day.lowercase().replaceFirstChar { it.uppercase() })
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(currentSelected.toList()) }) {
+                Text("Confirm")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

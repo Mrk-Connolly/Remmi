@@ -25,6 +25,7 @@ class CalendarPlugin(
     override val actions: CalendarActions = CalendarActions(
         repository,
         TasksRepository(SupabaseService),
+        pluginManager,
         id = "calendar_actions",
         name = "Calendar Actions"
     )

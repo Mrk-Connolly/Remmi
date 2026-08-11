@@ -1,7 +1,7 @@
 package com.remmi.app.plugins.tasks
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -56,6 +56,7 @@ fun TasksEditorScreen(
     var showStartTimePicker by remember { mutableStateOf(false) }
     
     var addToCalendar by remember { mutableStateOf(initialTask?.linkedCalendar != null) }
+    var addToAlarm by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
@@ -94,7 +95,8 @@ fun TasksEditorScreen(
                                     dueDate = finalDueDate,
                                     priority = priority,
                                     repeat = repeatRule,
-                                    addToCalendar = addToCalendar
+                                    addToCalendar = addToCalendar,
+                                    addToAlarm = addToAlarm
                                 )
                             }
                             onSave()
@@ -113,18 +115,25 @@ fun TasksEditorScreen(
             OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth())
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = isDueDateEnabled, onCheckedChange = { isDueDateEnabled = it })
-                Text("Set Due Date")
-            }
-
-            if (isDueDateEnabled) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = day, onValueChange = { day = it }, label = { Text("Day") }, modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = month, onValueChange = { month = it }, label = { Text("Month") }, modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = year, onValueChange = { year = it }, label = { Text("Year") }, modifier = Modifier.weight(2f))
+            OutlinedTextField(
+                value = if (isDueDateEnabled) "$startDate $startTime" else "Not set",
+                onValueChange = {},
+                label = { Text("Due Date") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isDueDateEnabled = true; showStartDatePicker = true },
+                readOnly = true,
+                leadingIcon = {
+                    Checkbox(checked = isDueDateEnabled, onCheckedChange = { isDueDateEnabled = it })
+                },
+                trailingIcon = {
+                    if (isDueDateEnabled) {
+                        IconButton(onClick = { showStartTimePicker = true }) {
+                            Icon(Icons.Default.AccessTime, contentDescription = "Set Time")
+                        }
+                    }
                 }
-            }
+            )
 
             Text("Priority", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -139,7 +148,7 @@ fun TasksEditorScreen(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { isAdvancedExpanded = !isAdvancedExpanded })
+                modifier = Modifier.fillMaxWidth().clickable { isAdvancedExpanded = !isAdvancedExpanded }
             ) {
                 Text("Advanced Options", style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.weight(1f))
@@ -154,10 +163,13 @@ fun TasksEditorScreen(
                     }
                     if (isRepeatable) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            listOf(RepeatType.DAILY, RepeatType.WEEKLY, RepeatType.MONTHLY).forEach { type ->
+                            listOf(RepeatType.DAILY, RepeatType.WEEKLY, RepeatType.MONTHLY, RepeatType.YEARLY).forEach { type ->
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     RadioButton(selected = repeatType == type, onClick = { repeatType = type })
-                                    Text(type.name.lowercase().replaceFirstChar { it.uppercase() })
+                                    Text(
+                                        text = type.name.lowercase().replaceFirstChar { it.uppercase() },
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
                                 }
                             }
                         }
@@ -175,9 +187,26 @@ fun TasksEditorScreen(
                     }
                     
                     if (initialTask == null) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = addToCalendar, onCheckedChange = { addToCalendar = it })
-                            Text("Add to Calendar")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = { addToCalendar = !addToCalendar }) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarMonth,
+                                    contentDescription = "Add to Calendar",
+                                    tint = if (addToCalendar) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                )
+                            }
+                            
+                            IconButton(onClick = { addToAlarm = !addToAlarm }) {
+                                Icon(
+                                    imageVector = Icons.Default.Alarm,
+                                    contentDescription = "Add Alarm",
+                                    tint = if (addToAlarm) androidx.compose.ui.graphics.Color.Red else MaterialTheme.colorScheme.outline
+                                )
+                            }
                         }
                     }
                 }

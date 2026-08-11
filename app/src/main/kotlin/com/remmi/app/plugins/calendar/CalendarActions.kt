@@ -3,6 +3,9 @@ package com.remmi.app.plugins.calendar
 import android.util.Log
 import com.remmi.app.core.actions.RemmiAction
 import com.remmi.app.core.model.components.Priority
+import com.remmi.app.core.plugins.PluginManager
+import com.remmi.app.plugins.alarm.AlarmActions
+import com.remmi.app.plugins.contacts.ContactActions
 import com.remmi.app.plugins.tasks.TaskItem
 import com.remmi.app.plugins.tasks.TasksRepository
 import kotlinx.datetime.*
@@ -14,6 +17,7 @@ import java.util.UUID
 class CalendarActions(
     private val repository: CalendarRepository,
     private val tasksRepository: TasksRepository,
+    private val pluginManager: PluginManager,
     override val id: String,
     override val name: String
 ) : RemmiAction {
@@ -21,6 +25,9 @@ class CalendarActions(
     companion object {
         private const val TAG = "CalendarActions"
     }
+    
+    fun getAlarmActions(): AlarmActions? = pluginManager.plugins["alarm"]?.actions as? AlarmActions
+    fun getContactActions(): ContactActions? = pluginManager.plugins["contacts"]?.actions as? ContactActions
 
     suspend fun addEvent(
         id: String = UUID.randomUUID().toString(),

@@ -1,28 +1,27 @@
 package com.remmi.app.core.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.plugins.PluginManager
 import com.remmi.app.core.widgets.WidgetManager
 
-
-/**                            CORE REMMI HOME SCREEN
- *
- * Doesn't belong to any plugin and will be the base screen of the application, will also
- * hold the widgets
- */
-
-
-// ----------------------------------------------------------------------------
-//                                 VARIABLES
-// ----------------------------------------------------------------------------
-
 @Composable
-fun HomeScreen(widgetManager: WidgetManager) {
+fun HomeScreen(
+    pluginManager: PluginManager,
+    widgetManager: WidgetManager,
+    onWidgetClick: (String) -> Unit
+) {
+    val metadata by pluginManager.pluginMetadata.collectAsState()
+    val activeWidgetIds = remember(metadata) {
+        metadata.filter { it.enabled && it.showWidget }.map { it.id }.toSet()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -42,6 +41,12 @@ fun HomeScreen(widgetManager: WidgetManager) {
         Spacer(modifier = Modifier.height(32.dp))
 
         // Widgets below the greeting
-        widgetManager.getWidgets().forEach { it.Content() }
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            widgetManager.getWidgets(activeWidgetIds).forEach { (id, widget) ->
+                Box(modifier = Modifier.clickable { onWidgetClick(id) }) {
+                    widget.Content()
+                }
+            }
+        }
     }
 }

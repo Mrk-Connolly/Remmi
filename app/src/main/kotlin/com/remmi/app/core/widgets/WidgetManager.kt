@@ -64,6 +64,10 @@ class WidgetManager() {
         return true
     }
 
+    fun clear() {
+        widgets.clear()
+    }
+
 
 
 
@@ -73,10 +77,10 @@ class WidgetManager() {
     // ----------------------------------------------------------------------------
 
 
-    fun getWidgets(): List<RemmiWidget> {
+    fun getWidgets(allowedIds: Set<String>): List<Pair<String, RemmiWidget>> {
         Log.d("Remmi", "Function get widgets called")
 
-        return widgets.mapNotNull { it.value }
+        return widgets.filter { it.key in allowedIds }.map { it.key to it.value }
     }
 
 }

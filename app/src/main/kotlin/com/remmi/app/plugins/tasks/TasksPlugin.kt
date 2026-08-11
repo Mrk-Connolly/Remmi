@@ -2,6 +2,7 @@ package com.remmi.app.plugins.tasks
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import com.remmi.app.core.plugins.PluginManager
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
@@ -16,13 +17,15 @@ import kotlinx.coroutines.launch
  * Entry point for the Tasks plugin.
  */
 class TasksPlugin(
-    override val metadata: PluginMetadata
+    override val metadata: PluginMetadata,
+    private val pluginManager: PluginManager
 ) : RemmiPlugin {
 
     override val repository: TasksRepository = TasksRepository(SupabaseService)
     override val actions: TasksActions = TasksActions(
         repository,
-        CalendarRepository(SupabaseService)
+        CalendarRepository(SupabaseService),
+        pluginManager
     )
     override val widget: RemmiWidget = TasksWidget(actions)
     override val screen: RemmiScreen = object : RemmiScreen {

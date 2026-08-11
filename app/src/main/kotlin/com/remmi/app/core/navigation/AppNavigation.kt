@@ -21,10 +21,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.HomeScreen
+import com.remmi.app.core.screens.SettingsScreen
 
 sealed class RemmiDestination(val route: String) {
     data object Home : RemmiDestination("home")
@@ -41,8 +43,13 @@ sealed class RemmiDestination(val route: String) {
 @Composable
 fun AppNavigation(context: PluginContext) {
     val navController = rememberNavController()
-    val currentRoute = navController.currentBackStackEntry?.destination?.route
-    val plugins = context.pluginManager.plugins.values.toList()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    
+    val metadata by context.pluginManager.pluginMetadata.collectAsState()
+    val activePlugins = remember(metadata) {
+        metadata.filter { it.enabled }.mapNotNull { context.pluginManager.plugins[it.id] }
+    }
     
     var showAllPluginsSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
@@ -80,20 +87,20 @@ fun AppNavigation(context: PluginContext) {
                         label = { Text("Home") }
                     )
 
-                    // Dynamic Plugin Items (those marked for navigation)
+                    // Dynamic Plugin Items (those marked for navigation and enabled)
                     // Limit to 3 items to avoid overcrowding
-                    plugins.filter { it.metadata.showInNavigation }.take(3).forEach { plugin ->
-                        val route = RemmiDestination.pluginRoute(plugin.metadata.id)
+                    metadata.filter { it.enabled && it.showInNavigation }.take(3).forEach { pluginMeta ->
+                        val route = RemmiDestination.pluginRoute(pluginMeta.id)
                         NavigationBarItem(
                             selected = currentRoute == route,
                             onClick = { navController.navigate(route) },
                             icon = {
                                 Icon(
-                                    imageVector = getIconForName(plugin.metadata.icon),
-                                    contentDescription = plugin.metadata.name
+                                    imageVector = getIconForName(pluginMeta.icon),
+                                    contentDescription = pluginMeta.name
                                 )
                             },
-                            label = { Text(plugin.metadata.name) }
+                            label = { Text(pluginMeta.name) }
                         )
                     }
 
@@ -115,20 +122,31 @@ fun AppNavigation(context: PluginContext) {
             modifier = Modifier.padding(paddingValues)
         ) {
             composable(RemmiDestination.HOME_ROUTE) {
-                HomeScreen(context.widgetManager)
+                HomeScreen(
+                    pluginManager = context.pluginManager,
+                    widgetManager = context.widgetManager,
+                    onWidgetClick = { pluginId ->
+                        navController.navigate(RemmiDestination.pluginRoute(pluginId))
+                    }
+                )
             }
 
-            // Dynamically register all plugin routes
-            plugins.forEach { plugin ->
+            // Dynamically register enabled plugin routes
+            activePlugins.forEach { plugin ->
                 composable(RemmiDestination.pluginRoute(plugin.metadata.id)) {
                     plugin.screen.Content()
                 }
             }
 
             composable(RemmiDestination.SETTINGS_ROUTE) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Settings")
-                }
+                SettingsScreen(
+                    context = context,
+                    onBack = {
+                        navController.navigate(RemmiDestination.HOME_ROUTE) {
+                            popUpTo(RemmiDestination.HOME_ROUTE) { inclusive = true }
+                        }
+                    }
+                )
             }
         }
 
@@ -138,7 +156,7 @@ fun AppNavigation(context: PluginContext) {
                 sheetState = sheetState
             ) {
                 PluginGrid(
-                    plugins = plugins,
+                    plugins = activePlugins,
                     onPluginClick = { pluginId ->
                         navController.navigate(RemmiDestination.pluginRoute(pluginId))
                         showAllPluginsSheet = false

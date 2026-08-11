@@ -4,6 +4,8 @@ import android.util.Log
 import com.remmi.app.core.actions.RemmiAction
 import com.remmi.app.core.model.components.Priority
 import com.remmi.app.core.model.components.RepeatRule
+import com.remmi.app.core.plugins.PluginManager
+import com.remmi.app.plugins.alarm.AlarmActions
 import com.remmi.app.plugins.calendar.CalendarItem
 import com.remmi.app.plugins.calendar.CalendarRepository
 import kotlinx.datetime.*
@@ -15,6 +17,7 @@ import java.util.UUID
 class TasksActions(
     private val repository: TasksRepository,
     private val calendarRepository: CalendarRepository,
+    private val pluginManager: PluginManager,
     override val id: String = "tasks_actions",
     override val name: String = "Tasks Actions"
 ) : RemmiAction {
@@ -23,13 +26,16 @@ class TasksActions(
         private const val TAG = "TasksActions"
     }
 
+    fun getAlarmActions(): AlarmActions? = pluginManager.plugins["alarm"]?.actions as? AlarmActions
+
     suspend fun createTask(
         title: String,
         description: String,
         dueDate: Instant? = null,
         priority: Priority = Priority.Normal,
         repeat: RepeatRule? = null,
-        addToCalendar: Boolean = false
+        addToCalendar: Boolean = false,
+        addToAlarm: Boolean = false
     ): Boolean {
         return try {
             val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
@@ -51,6 +57,15 @@ class TasksActions(
                 )
                 calendarRepository.insert(calendarItem)
                 calendarItemId = calendarItem.id
+            }
+            
+            if (addToAlarm && dueDate != null) {
+                getAlarmActions()?.addAlarm(
+                    title = title,
+                    description = description,
+                    time = dueDate,
+                    priority = priority
+                )
             }
 
             val task = TaskItem(

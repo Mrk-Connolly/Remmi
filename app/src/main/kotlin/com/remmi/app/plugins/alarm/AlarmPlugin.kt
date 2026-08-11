@@ -2,6 +2,7 @@ package com.remmi.app.plugins.alarm
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import com.remmi.app.core.plugins.PluginManager
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
@@ -16,7 +17,10 @@ import kotlinx.coroutines.launch
  *
  * Integrates alarm scheduling and management into the Remmi platform.
  */
-class AlarmPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
+class AlarmPlugin(
+    override val metadata: PluginMetadata,
+    private val pluginManager: PluginManager
+) : RemmiPlugin {
 
     /**
      * Repository for persistent alarm data.
@@ -26,7 +30,7 @@ class AlarmPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     /**
      * Action controller for alarm logic.
      */
-    override val actions: AlarmActions = AlarmActions(repository)
+    override val actions: AlarmActions = AlarmActions(repository, pluginManager)
 
     /**
      * Dashboard widget for alarms.
