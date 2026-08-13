@@ -21,6 +21,10 @@ class CalendarPlugin(
     private val pluginManager: PluginManager
 ) : RemmiPlugin {
 
+    init {
+        Log.d("Remmi", "[CalendarPlugin] - [constructor] executed")
+    }
+
     override val repository: CalendarRepository = CalendarRepository(SupabaseService)
     override val actions: CalendarActions = CalendarActions(
         repository,
@@ -32,10 +36,14 @@ class CalendarPlugin(
     override val widget: RemmiWidget = CalendarWidget(actions, pluginManager)
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable
-        override fun Content() = CalendarScreen(actions)
+        override fun Content() {
+            Log.d("Remmi", "[CalendarPlugin] - [Content] executed")
+            CalendarScreen(actions)
+        }
     }
 
     override fun onLoad() {
+        Log.d("Remmi", "[CalendarPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Calendar Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
             actions.sync()
@@ -44,6 +52,12 @@ class CalendarPlugin(
     }
 
     override fun onUnload() {
+        Log.d("Remmi", "[CalendarPlugin] - [onUnload] executed")
         Log.d("Remmi", "Unloading Calendar Plugin...")
+    }
+
+    override suspend fun reformat() {
+        Log.d("Remmi", "[CalendarPlugin] - [reformat] executed")
+        repository.clearAll()
     }
 }

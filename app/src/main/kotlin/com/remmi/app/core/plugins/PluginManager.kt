@@ -2,13 +2,13 @@ package com.remmi.app.core.plugins
 
 import android.content.Context
 import android.util.Log
+import com.remmi.app.core.widgets.RemmiWidget
 import com.remmi.app.plugins.alarm.AlarmPlugin
 import com.remmi.app.plugins.calendar.CalendarPlugin
 import com.remmi.app.plugins.contacts.ContactPlugin
 import com.remmi.app.plugins.gift.GiftPlugin
 import com.remmi.app.plugins.tasks.TasksPlugin
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
@@ -48,6 +48,7 @@ class PluginManager {
      * recieves android contextex from host -> runtime to access plugin.json file and
      * reads all available plugins to be installed and saves their information*/
     fun readPlugins(context: Context) {
+        Log.d("Remmi", "[PluginManager] - [readPlugins] executed")
         Log.d("Remmi", "Accessing plugin information")
         this.androidContext = context
 
@@ -62,6 +63,8 @@ class PluginManager {
             
             // Copy to local files for future writing
             localFile.writeText(fromAssets)
+
+            // return fromAssets
             fromAssets
         }
 
@@ -73,26 +76,14 @@ class PluginManager {
         }
     }
 
-    fun updatePluginSettings(id: String, enabled: Boolean, showInNavigation: Boolean, showWidget: Boolean) {
-        val currentList = _pluginMetadata.value.toMutableList()
-        val index = currentList.indexOfFirst { it.id == id }
-        if (index != -1) {
-            currentList[index] = currentList[index].copy(
-                enabled = enabled,
-                showInNavigation = showInNavigation,
-                showWidget = showWidget
-            )
-            _pluginMetadata.value = currentList
-            savePlugins(currentList)
-        }
-    }
-
     fun updateAllPluginSettings(newList: List<PluginMetadata>) {
+        Log.d("Remmi", "[PluginManager] - [updateAllPluginSettings] executed")
         _pluginMetadata.value = newList
         savePlugins(newList)
     }
 
     private fun savePlugins(metadata: List<PluginMetadata>) {
+        Log.d("Remmi", "[PluginManager] - [savePlugins] executed")
         androidContext?.let { context ->
             try {
                 val jsonString = jsonConfig.encodeToString(metadata)
@@ -105,18 +96,18 @@ class PluginManager {
 
 
 
-    /**                               READ PLUGINS
+    /**                               LOAD PLUGINS
      *
      * recieves android contextex from host -> runtime to access plugin.json file and
      * load all available plugins to be installed*/
 
-    fun loadPlugins(context: PluginContext) {
+    fun loadPlugins() {
+        Log.d("Remmi", "[PluginManager] - [loadPlugins] executed")
         Log.d("Remmi", "Loading plugins...")
 
+        // Remove any existing data
         plugins.values.forEach { it.onUnload() }
         plugins.clear()
-        context.widgetManager.clear()
-
 
         _pluginMetadata.value.forEach { metadata ->
 
@@ -132,18 +123,21 @@ class PluginManager {
             try {
                 plugin?.let {
                     plugins[metadata.id] = plugin
-
                     plugin.onLoad()
-
-                    if (metadata.showWidget) {
-                        context.widgetManager.register(plugin)
-                    }
-
                     Log.d("Remmi", "Loaded ${metadata.name}")
                 }
             } catch (e: Exception) {
                 println("Something went wrong loading plugin: ${e.message}, check plugin loader")
             }
+        }
+    }
+
+    fun getWidgets(allowedIds: Set<String>): List<Pair<String, RemmiWidget>> {
+        Log.d("Remmi", "[PluginManager] - [getWidgets] executed")
+        return plugins.filter { (id, plugin) -> 
+            id in allowedIds && plugin.metadata.showWidget 
+        }.map { (id, plugin) -> 
+            id to plugin.widget 
         }
     }
 
@@ -156,6 +150,7 @@ class PluginManager {
      * Still calls unload function on each plugin
      * */
     fun close() {
+        Log.d("Remmi", "[PluginManager] - [close] executed")
 
         try {
             plugins.values.forEach { it.onUnload() }

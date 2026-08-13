@@ -1,6 +1,6 @@
 package com.remmi.app.plugins.calendar
 
-import com.remmi.app.core.model.components.Priority
+import android.util.Log
 import com.remmi.app.core.repository.CloudRepository
 import com.remmi.app.core.service.DatabaseService
 import kotlinx.datetime.*
@@ -15,6 +15,7 @@ class CalendarRepository (databaseService: DatabaseService) : CloudRepository<Ca
 ) {
 
     init {
+        Log.d("Remmi", "[CalendarRepository] - [constructor] executed")
         val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
         val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
         // Add a default sample event to ensure the UI has something to display initially.
@@ -29,7 +30,8 @@ class CalendarRepository (databaseService: DatabaseService) : CloudRepository<Ca
                 startingTime = LocalTime(9, 0),
                 endingDate = today,
                 endingTime = LocalTime(10, 0),
-                priority = Priority.High,
+                isPriority = true,
+                group = "General",
                 participants = emptyList(),
                 repeat = emptyList(),
                 location = emptyList(),

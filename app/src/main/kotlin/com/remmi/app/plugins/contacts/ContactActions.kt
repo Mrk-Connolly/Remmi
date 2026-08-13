@@ -14,6 +14,10 @@ class ContactActions(
     override val name: String = "Contacts Actions"
 ) : RemmiAction {
 
+    init {
+        Log.d("Remmi", "[ContactActions] - [constructor] executed")
+    }
+
     suspend fun createContact(
         name: String,
         surname: String,
@@ -25,6 +29,7 @@ class ContactActions(
         inGiftList: Boolean = false,
         isFavorite: Boolean = false
     ): Boolean {
+        Log.d("Remmi", "[ContactActions] - [createContact] executed")
         return try {
             val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             val contact = ContactItem(
@@ -50,6 +55,7 @@ class ContactActions(
     }
 
     suspend fun updateContact(contact: ContactItem): Boolean {
+        Log.d("Remmi", "[ContactActions] - [updateContact] executed")
         return try {
             contact.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             repository.updateCloud(contact)
@@ -61,6 +67,7 @@ class ContactActions(
     }
 
     suspend fun deleteContact(id: String): Boolean {
+        Log.d("Remmi", "[ContactActions] - [deleteContact] executed")
         return try {
             repository.delete(id)
             true
@@ -70,20 +77,24 @@ class ContactActions(
     }
 
     suspend fun toggleFavorite(contact: ContactItem): Boolean {
+        Log.d("Remmi", "[ContactActions] - [toggleFavorite] executed")
         val updated = contact.copy(isFavorite = !contact.isFavorite)
         return updateContact(updated)
     }
 
     suspend fun toggleGiftList(contact: ContactItem): Boolean {
+        Log.d("Remmi", "[ContactActions] - [toggleGiftList] executed")
         val updated = contact.copy(inGiftList = !contact.inGiftList)
         return updateContact(updated)
     }
 
     suspend fun getAllContacts(): List<ContactItem> {
+        Log.d("Remmi", "[ContactActions] - [getAllContacts] executed")
         return repository.getAll().sortedBy { it.name }
     }
 
     suspend fun sync() {
+        Log.d("Remmi", "[ContactActions] - [sync] executed")
         repository.sync()
     }
 }

@@ -11,6 +11,10 @@ class GiftActions(
     override val name: String = "Gift Actions"
 ) : RemmiAction {
 
+    init {
+        Log.d("Remmi", "[GiftActions] - [constructor] executed")
+    }
+
     suspend fun addGiftIdea(
         contactId: String,
         name: String,
@@ -19,6 +23,7 @@ class GiftActions(
         price: Double?,
         event: GiftEvent?
     ): Boolean {
+        Log.d("Remmi", "[GiftActions] - [addGiftIdea] executed")
         return try {
             val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             val idea = GiftIdea(
@@ -41,6 +46,7 @@ class GiftActions(
     }
 
     suspend fun updateGiftIdea(idea: GiftIdea): Boolean {
+        Log.d("Remmi", "[GiftActions] - [updateGiftIdea] executed")
         return try {
             idea.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             repository.updateCloud(idea)
@@ -52,6 +58,7 @@ class GiftActions(
     }
 
     suspend fun deleteGiftIdea(id: String): Boolean {
+        Log.d("Remmi", "[GiftActions] - [deleteGiftIdea] executed")
         return try {
             repository.delete(id)
             true
@@ -61,10 +68,12 @@ class GiftActions(
     }
 
     fun getGiftIdeasForContact(contactId: String): List<GiftIdea> {
+        Log.d("Remmi", "[GiftActions] - [getGiftIdeasForContact] executed")
         return repository.getAll().filter { it.contactId == contactId }.sortedByDescending { it.created }
     }
 
     suspend fun sync() {
+        Log.d("Remmi", "[GiftActions] - [sync] executed")
         repository.sync()
     }
 }

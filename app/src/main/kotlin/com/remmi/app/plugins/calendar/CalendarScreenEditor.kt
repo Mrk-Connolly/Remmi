@@ -1,8 +1,8 @@
 package com.remmi.app.plugins.calendar
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,13 +14,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.remmi.app.core.model.components.Priority
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
 import kotlinx.coroutines.launch
 import java.util.UUID
 
 sealed class EditorMode {
+    init {
+        Log.d("Remmi", "[EditorMode] - [constructor] executed")
+    }
     data class Create(val initialDate: LocalDate? = null) : EditorMode()
     data class Edit(val event: CalendarItem) : EditorMode()
 }
@@ -33,6 +35,7 @@ fun CalendarEditorScreen(
     onDismiss: () -> Unit,
     onSave: () -> Unit
 ) {
+    Log.d("Remmi", "[CalendarScreenEditor] - [CalendarEditorScreen] executed")
     val scope = rememberCoroutineScope()
     val initialEvent = (mode as? EditorMode.Edit)?.event
 
@@ -47,8 +50,18 @@ fun CalendarEditorScreen(
     var month by remember { mutableStateOf(initialDate.monthNumber.toString()) }
     var year by remember { mutableStateOf(initialDate.year.toString()) }
     
-    var priority by remember { mutableStateOf(initialEvent?.priority ?: Priority.Normal) }
+    var isPriority by remember { mutableStateOf(initialEvent?.isPriority ?: false) }
+    var group by remember { mutableStateOf(initialEvent?.group) }
     var isAdvancedExpanded by remember { mutableStateOf(false) }
+
+    var existingGroups by remember { mutableStateOf(emptyList<String>()) }
+    var isGroupExpanded by remember { mutableStateOf(false) }
+    var showAddGroupDialog by remember { mutableStateOf(false) }
+    var newGroupName by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        existingGroups = actions.getAllGroups()
+    }
 
     var isRepeatable by remember { mutableStateOf(initialEvent?.repeat?.isNotEmpty() == true) }
     var repeatList by remember { mutableStateOf(initialEvent?.repeat ?: emptyList<String>()) }
@@ -79,51 +92,56 @@ fun CalendarEditorScreen(
 
     Scaffold(
         bottomBar = {
-            Surface(tonalElevation = 3.dp) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    OutlinedButton(modifier = Modifier.weight(1f), onClick = onDismiss) { Text("Back") }
-                    Button(modifier = Modifier.weight(1f), onClick = {
-                        val finalStartDate = try { LocalDate(year.toInt(), month.toInt(), day.toInt()) } catch (e: Exception) { startDate }
-                        
-                        scope.launch {
-                            if (initialEvent != null) {
-                                actions.updateEvent(initialEvent.copy(
-                                    modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
-                                    title = title,
-                                    description = description,
-                                    startingDate = finalStartDate,
-                                    startingTime = startTime,
-                                    endingDate = endDate,
-                                    endingTime = endTime,
-                                    priority = priority,
-                                    repeat = repeatList,
-                                    linkedTasks = linkedTaskIds,
-                                    location = locations,
-                                    participants = participants
-                                ))
-                            } else {
-                                actions.addEvent(
-                                    id = currentEventId,
-                                    title = title,
-                                    description = description,
-                                    startingDate = finalStartDate,
-                                    startingTime = startTime,
-                                    endingDate = endDate,
-                                    endingTime = endTime,
-                                    priority = priority,
-                                    repeat = repeatList,
-                                    linkedTasks = linkedTaskIds,
-                                    location = locations,
-                                    participants = participants
-                                )
+            Column {
+                Surface(tonalElevation = 3.dp) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        OutlinedButton(modifier = Modifier.weight(1f), onClick = onDismiss) { Text("Back") }
+                        Button(modifier = Modifier.weight(1f), onClick = {
+                            val finalStartDate = try { LocalDate(year.toInt(), month.toInt(), day.toInt()) } catch (e: Exception) { startDate }
+                            
+                            scope.launch {
+                                if (initialEvent != null) {
+                                    actions.updateEvent(initialEvent.copy(
+                                        modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
+                                        title = title,
+                                        description = description,
+                                        startingDate = finalStartDate,
+                                        startingTime = startTime,
+                                        endingDate = endDate,
+                                        endingTime = endTime,
+                                        isPriority = isPriority,
+                                        group = group,
+                                        repeat = repeatList,
+                                        linkedTasks = linkedTaskIds,
+                                        location = locations,
+                                        participants = participants
+                                    ))
+                                } else {
+                                    actions.addEvent(
+                                        id = currentEventId,
+                                        title = title,
+                                        description = description,
+                                        startingDate = finalStartDate,
+                                        startingTime = startTime,
+                                        endingDate = endDate,
+                                        endingTime = endTime,
+                                        isPriority = isPriority,
+                                        group = group,
+                                        repeat = repeatList,
+                                        linkedTasks = linkedTaskIds,
+                                        location = locations,
+                                        participants = participants
+                                    )
+                                }
+                                onSave()
                             }
-                            onSave()
-                        }
-                    }) { Text("Save") }
+                        }) { Text("Save") }
+                    }
                 }
+                Spacer(Modifier.height(96.dp))
             }
         }
     ) { padding ->
@@ -142,15 +160,59 @@ fun CalendarEditorScreen(
                 OutlinedTextField(value = year, onValueChange = { year = it }, label = { Text("Year") }, modifier = Modifier.weight(2f))
             }
 
-            Text("Priority", style = MaterialTheme.typography.titleSmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Priority.entries.forEach { p ->
-                    FilterChip(
-                        selected = priority == p,
-                        onClick = { priority = p },
-                        label = { Text(p.name) }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Priority Event", style = MaterialTheme.typography.titleMedium)
+                Switch(checked = isPriority, onCheckedChange = { isPriority = it })
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ExposedDropdownMenuBox(
+                    expanded = isGroupExpanded,
+                    onExpandedChange = { isGroupExpanded = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = group ?: "No Group",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Group") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
+                    ExposedDropdownMenu(
+                        expanded = isGroupExpanded,
+                        onDismissRequest = { isGroupExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("No Group") },
+                            onClick = { group = null; isGroupExpanded = false }
+                        )
+                        existingGroups.forEach { g ->
+                            DropdownMenuItem(
+                                text = { Text(g) },
+                                onClick = { group = g; isGroupExpanded = false }
+                            )
+                        }
+                    }
                 }
+                IconButton(onClick = { showAddGroupDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "New Group")
+                }
+            }
+
+            Text("Quick Add", style = MaterialTheme.typography.titleSmall)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                IconButton(onClick = { showTaskDialog = true }) { Icon(Icons.Default.CheckCircle, "Task") }
+                IconButton(onClick = { showAlarmConfirmation = true }) { Icon(Icons.Default.Alarm, "Alarm") }
+                IconButton(onClick = { showParticipantsDialog = true }) { Icon(Icons.Default.Person, "Participants") }
+                IconButton(onClick = { showLocationDialog = true }) { Icon(Icons.Default.LocationOn, "Location") }
             }
 
             Row(
@@ -204,16 +266,31 @@ fun CalendarEditorScreen(
                             TextButton(onClick = { showEndTimePicker = true }) { Text(endTime.toString().substring(0, 5)) }
                         }
                     }
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        IconButton(onClick = { showTaskDialog = true }) { Icon(Icons.Default.CheckCircle, "Task") }
-                        IconButton(onClick = { showAlarmConfirmation = true }) { Icon(Icons.Default.Alarm, "Alarm") }
-                        IconButton(onClick = { showParticipantsDialog = true }) { Icon(Icons.Default.Person, "Participants") }
-                        IconButton(onClick = { showLocationDialog = true }) { Icon(Icons.Default.LocationOn, "Location") }
-                    }
                 }
             }
         }
+    }
+
+    if (showAddGroupDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddGroupDialog = false },
+            title = { Text("Add New Group") },
+            text = {
+                OutlinedTextField(value = newGroupName, onValueChange = { newGroupName = it }, label = { Text("Group Name") })
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (newGroupName.isNotBlank()) {
+                        group = newGroupName
+                        showAddGroupDialog = false
+                        newGroupName = ""
+                    }
+                }) { Text("Add") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddGroupDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 
     if (showRepeatDaysDialog) {
@@ -314,7 +391,8 @@ fun CalendarEditorScreen(
                         title = t,
                         description = d,
                         dueDate = s,
-                        priority = p,
+                        isPriority = p,
+                        group = group,
                         completed = false,
                         repeat = r,
                         linkedCalendar = currentEventId
@@ -328,29 +406,26 @@ fun CalendarEditorScreen(
     }
 
     if (showAlarmConfirmation) {
-        AlertDialog(
-            onDismissRequest = { showAlarmConfirmation = false },
-            title = { Text("Create Alarm") },
-            text = { Text("Do you want to create an alarm for this event?") },
-            confirmButton = {
-                Button(onClick = {
-                    scope.launch {
-                        val alarmActions = actions.getAlarmActions()
-                        if (alarmActions != null) {
-                            val eventTime = startDate.atTime(startTime).toInstant(timeZone)
-                            alarmActions.addAlarm(
-                                title = title,
-                                description = description,
-                                time = eventTime,
-                                priority = priority
-                            )
-                        }
-                        showAlarmConfirmation = false
+        AlarmDialog(
+            initialTitle = title,
+            initialDescription = description,
+            initialDate = startDate,
+            initialIsPriority = isPriority,
+            onDismiss = { showAlarmConfirmation = false },
+            onSave = { t, d, time, p ->
+                scope.launch {
+                    val alarmActions = actions.getAlarmActions()
+                    if (alarmActions != null) {
+                        val alarmTime = startDate.atTime(time).toInstant(timeZone)
+                        alarmActions.addAlarm(
+                            title = t,
+                            description = d,
+                            time = alarmTime,
+                            isPriority = p
+                        )
                     }
-                }) { Text("Yes") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAlarmConfirmation = false }) { Text("No") }
+                    showAlarmConfirmation = false
+                }
             }
         )
     }
@@ -379,302 +454,4 @@ fun CalendarEditorScreen(
             }
         )
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TaskDialog(
-    initialTitle: String = "",
-    initialDescription: String = "",
-    initialDate: LocalDate? = null,
-    onDismiss: () -> Unit,
-    onSave: (String, String, Instant?, Priority, com.remmi.app.core.model.components.RepeatRule?) -> Unit
-) {
-    var title by remember { mutableStateOf(initialTitle) }
-    var desc by remember { mutableStateOf(initialDescription) }
-    var priority by remember { mutableStateOf(Priority.Normal) }
-    
-    val timeZone = TimeZone.currentSystemDefault()
-    var dueDate by remember { mutableStateOf(initialDate ?: Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone).date) }
-    var showDatePicker by remember { mutableStateOf(false) }
-
-    var isRepeatable by remember { mutableStateOf(false) }
-    var repeatType by remember { mutableStateOf(com.remmi.app.core.model.components.RepeatType.DAILY) }
-    
-    var addToCalendar by remember { mutableStateOf(true) }
-    var addToAlarm by remember { mutableStateOf(false) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("New Task") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.verticalScroll(rememberScrollState())
-            ) {
-                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth())
-                
-                OutlinedTextField(
-                    value = dueDate.toString(),
-                    onValueChange = {},
-                    label = { Text("Due Date") },
-                    modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
-                    readOnly = true
-                )
-
-                Text("Priority", style = MaterialTheme.typography.labelLarge)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Priority.entries.forEach { p ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(selected = priority == p, onClick = { priority = p })
-                            Text(p.name, style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = isRepeatable, onCheckedChange = { isRepeatable = it })
-                    Text("Repeat")
-                }
-
-                if (isRepeatable) {
-                    Column {
-                        listOf(
-                            com.remmi.app.core.model.components.RepeatType.DAILY,
-                            com.remmi.app.core.model.components.RepeatType.WEEKLY,
-                            com.remmi.app.core.model.components.RepeatType.MONTHLY,
-                            com.remmi.app.core.model.components.RepeatType.YEARLY
-                        ).forEach { type ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(selected = repeatType == type, onClick = { repeatType = type })
-                                Text(type.name.lowercase().replaceFirstChar { it.uppercase() })
-                            }
-                        }
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = { addToCalendar = !addToCalendar }) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = "Add to Calendar",
-                            tint = if (addToCalendar) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                        )
-                    }
-
-                    IconButton(onClick = { addToAlarm = !addToAlarm }) {
-                        Icon(
-                            imageVector = Icons.Default.Alarm,
-                            contentDescription = "Add Alarm",
-                            tint = if (addToAlarm) androidx.compose.ui.graphics.Color.Red else MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { 
-                    val dueInstant = dueDate.atTime(0, 0).toInstant(timeZone)
-                    val repeatRule = if (isRepeatable) com.remmi.app.core.model.components.RepeatRule(repeatType) else null
-                    onSave(title, desc, dueInstant, priority, repeatRule) 
-                }, 
-                enabled = title.isNotBlank()
-            ) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
-
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = dueDate.atTime(0, 0).toInstant(timeZone).toEpochMilliseconds())
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        dueDate = Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date
-                    }
-                    showDatePicker = false
-                }) { Text("OK") }
-            }
-        ) { DatePicker(state = datePickerState) }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ContactsSelectionDialog(
-    actions: CalendarActions,
-    selectedParticipants: List<String>,
-    onDismiss: () -> Unit,
-    onConfirm: (List<String>) -> Unit
-) {
-    val scope = rememberCoroutineScope()
-    var contacts by remember { mutableStateOf(emptyList<com.remmi.app.plugins.contacts.ContactItem>()) }
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedGroup by remember { mutableStateOf("All") }
-    var isGroupDropdownExpanded by remember { mutableStateOf(false) }
-    
-    val currentSelected = remember { mutableStateListOf<String>().apply { addAll(selectedParticipants) } }
-
-    LaunchedEffect(Unit) {
-        scope.launch {
-            contacts = actions.getContactActions()?.getAllContacts() ?: emptyList()
-        }
-    }
-
-    val groups = listOf("All") + contacts.map { it.group }.distinct()
-    val filteredContacts = contacts.filter { 
-        (selectedGroup == "All" || it.group == selectedGroup) &&
-        (it.name.contains(searchQuery, ignoreCase = true) || it.surname.contains(searchQuery, ignoreCase = true))
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Select Participants") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    label = { Text("Search") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
-                )
-                
-                ExposedDropdownMenuBox(
-                    expanded = isGroupDropdownExpanded,
-                    onExpandedChange = { isGroupDropdownExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = selectedGroup,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Group") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupDropdownExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = isGroupDropdownExpanded,
-                        onDismissRequest = { isGroupDropdownExpanded = false }
-                    ) {
-                        groups.forEach { group ->
-                            DropdownMenuItem(
-                                text = { Text(group) },
-                                onClick = {
-                                    selectedGroup = group
-                                    isGroupDropdownExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
-                    items(filteredContacts) { contact ->
-                        val fullName = "${contact.name} ${contact.surname}"
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth().clickable {
-                                if (currentSelected.contains(fullName)) currentSelected.remove(fullName)
-                                else currentSelected.add(fullName)
-                            }
-                        ) {
-                            Checkbox(
-                                checked = currentSelected.contains(fullName),
-                                onCheckedChange = {
-                                    if (it) currentSelected.add(fullName)
-                                    else currentSelected.remove(fullName)
-                                }
-                            )
-                            Text("${contact.name} ${contact.surname} (${contact.group})")
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = { onConfirm(currentSelected.toList()) }) { Text("Confirm") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
-}
-
-@Composable
-fun LocationDialog(
-    initialLocations: List<String>,
-    onDismiss: () -> Unit,
-    onConfirm: (List<String>) -> Unit
-) {
-    var name by remember { mutableStateOf("") }
-    val currentLocations = remember { mutableStateListOf<String>().apply { addAll(initialLocations) } }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add Location") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Location Name") }, modifier = Modifier.fillMaxWidth())
-                currentLocations.forEach { loc ->
-                    Text(text = loc, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-        },
-        confirmButton = {
-            Row {
-                TextButton(onClick = { if (name.isNotBlank()) currentLocations.add(name); name = "" }) { Text("Add") }
-                Button(onClick = { onConfirm(currentLocations.toList()) }) { Text("Confirm") }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
-}
-
-@Composable
-fun RepeatDaysDialog(
-    selectedDays: List<String>,
-    onDismiss: () -> Unit,
-    onConfirm: (List<String>) -> Unit
-) {
-    val days = DayOfWeek.entries
-    val currentSelected = remember { mutableStateListOf<String>().apply { addAll(selectedDays) } }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Select Days") },
-        text = {
-            Column {
-                days.forEach { day ->
-                    val dayStr = day.name
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable {
-                        if (currentSelected.contains(dayStr)) currentSelected.remove(dayStr) else currentSelected.add(dayStr)
-                    }) {
-                        Checkbox(checked = currentSelected.contains(dayStr), onCheckedChange = {
-                            if (it) currentSelected.add(dayStr) else currentSelected.remove(dayStr)
-                        })
-                        Text(day.name.lowercase().replaceFirstChar { it.uppercase() })
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = { onConfirm(currentSelected.toList()) }) { Text("Confirm") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
 }

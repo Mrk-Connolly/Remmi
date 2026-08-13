@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.tasks
 
+import android.util.Log
 import com.remmi.app.core.repository.CloudRepository
 import com.remmi.app.core.service.DatabaseService
 
@@ -13,4 +14,8 @@ class TasksRepository(databaseService: DatabaseService) : CloudRepository<TaskIt
     databaseService = databaseService,
     tableName = "tasks",
     serializer = TaskItem.serializer()
-)
+) {
+    init {
+        Log.d("Remmi", "[TasksRepository] - [constructor] executed")
+    }
+}

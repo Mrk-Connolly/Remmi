@@ -2,7 +2,6 @@ package com.remmi.app.plugins.tasks
 
 import android.util.Log
 import com.remmi.app.core.actions.RemmiAction
-import com.remmi.app.core.model.components.Priority
 import com.remmi.app.core.model.components.RepeatRule
 import com.remmi.app.core.plugins.PluginManager
 import com.remmi.app.plugins.alarm.AlarmActions
@@ -22,21 +21,32 @@ class TasksActions(
     override val name: String = "Tasks Actions"
 ) : RemmiAction {
 
+    init {
+        Log.d("Remmi", "[TasksActions] - [constructor] executed")
+    }
+
     companion object {
         private const val TAG = "TasksActions"
     }
 
-    fun getAlarmActions(): AlarmActions? = pluginManager.plugins["alarm"]?.actions as? AlarmActions
+    
+    fun getAlarmActions(): AlarmActions? {
+        Log.d("Remmi", "[TasksActions] - [getAlarmActions] executed")
+        return pluginManager.plugins["alarm"]?.actions as? AlarmActions
+    }
 
     suspend fun createTask(
         title: String,
         description: String,
         dueDate: Instant? = null,
-        priority: Priority = Priority.Normal,
+        isPriority: Boolean = false,
+        group: String? = null,
         repeat: RepeatRule? = null,
         addToCalendar: Boolean = false,
-        addToAlarm: Boolean = false
+        addToAlarm: Boolean = false,
+        alarmTime: Instant? = null
     ): Boolean {
+        Log.d("Remmi", "[TasksActions] - [createTask] executed")
         return try {
             val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             val taskId = UUID.randomUUID().toString()
@@ -52,20 +62,24 @@ class TasksActions(
                     description = description,
                     startingDate = startDateTime.date,
                     startingTime = startDateTime.time,
-                    priority = priority,
+                    isPriority = isPriority,
+                    group = group,
                     linkedTasks = listOf(taskId)
                 )
                 calendarRepository.insert(calendarItem)
                 calendarItemId = calendarItem.id
             }
             
-            if (addToAlarm && dueDate != null) {
-                getAlarmActions()?.addAlarm(
-                    title = title,
-                    description = description,
-                    time = dueDate,
-                    priority = priority
-                )
+            if (addToAlarm) {
+                val finalAlarmTime = alarmTime ?: dueDate
+                if (finalAlarmTime != null) {
+                    getAlarmActions()?.addAlarm(
+                        title = title,
+                        description = description,
+                        time = finalAlarmTime,
+                        isPriority = isPriority
+                    )
+                }
             }
 
             val task = TaskItem(
@@ -75,7 +89,8 @@ class TasksActions(
                 title = title,
                 description = description,
                 dueDate = dueDate,
-                priority = priority,
+                isPriority = isPriority,
+                group = group,
                 completed = false,
                 repeat = repeat,
                 linkedCalendar = calendarItemId
@@ -91,6 +106,7 @@ class TasksActions(
     }
 
     suspend fun updateTask(task: TaskItem): Boolean {
+        Log.d("Remmi", "[TasksActions] - [updateTask] executed")
         return try {
             task.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             repository.updateCloud(task)
@@ -105,7 +121,8 @@ class TasksActions(
                         description = task.description,
                         startingDate = startDateTime?.date ?: calendarItem.startingDate,
                         startingTime = startDateTime?.time ?: calendarItem.startingTime,
-                        priority = task.priority
+                        isPriority = task.isPriority,
+                        group = task.group
                     )
                     calendarRepository.updateCloud(updatedCalendarItem)
                 }
@@ -118,6 +135,7 @@ class TasksActions(
     }
 
     suspend fun deleteTask(id: String): Boolean {
+        Log.d("Remmi", "[TasksActions] - [deleteTask] executed")
         return try {
             val task = repository.get(id)
             task?.linkedCalendar?.let { calendarId ->
@@ -132,11 +150,13 @@ class TasksActions(
     }
 
     suspend fun toggleTask(task: TaskItem): Boolean {
+        Log.d("Remmi", "[TasksActions] - [toggleTask] executed")
         val updatedTask = task.copy(completed = !task.completed)
         return updateTask(updatedTask)
     }
 
     suspend fun getAllTasks(): List<TaskItem> {
+        Log.d("Remmi", "[TasksActions] - [getAllTasks] executed")
         return try {
             repository.getAll().sortedByDescending { it.created }
         } catch (e: Exception) {
@@ -146,6 +166,7 @@ class TasksActions(
     }
 
     suspend fun sync() {
+        Log.d("Remmi", "[TasksActions] - [sync] executed")
         try {
             repository.sync()
         } catch (e: Exception) {
@@ -154,6 +175,7 @@ class TasksActions(
     }
 
     suspend fun getTodayTasks(): List<TaskItem> {
+        Log.d("Remmi", "[TasksActions] - [getTodayTasks] executed")
         val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
         return repository.getAll().filter { 
             (!it.completed) && (it.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date == today)
@@ -161,12 +183,20 @@ class TasksActions(
     }
 
     suspend fun getHighPriorityTasksOfMonth(): List<TaskItem> {
+        Log.d("Remmi", "[TasksActions] - [getHighPriorityTasksOfMonth] executed")
         val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault())
         return repository.getAll().filter { 
-            it.priority == Priority.High && 
+            it.isPriority && 
             it.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.let { date ->
                 date.monthNumber == now.monthNumber && date.year == now.year
             } == true
         }
+    }
+
+    suspend fun getAllGroups(): List<String> {
+        Log.d("Remmi", "[TasksActions] - [getAllGroups] executed")
+        val taskGroups = repository.getAll().mapNotNull { it.group }
+        val eventGroups = calendarRepository.getAll().mapNotNull { it.group }
+        return (taskGroups + eventGroups).distinct().sorted()
     }
 }

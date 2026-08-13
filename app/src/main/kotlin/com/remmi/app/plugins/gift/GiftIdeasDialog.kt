@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.gift
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +23,7 @@ fun GiftIdeasDialog(
     actions: GiftActions,
     onDismiss: () -> Unit
 ) {
+    Log.d("Remmi", "[GiftIdeasDialog] - [GiftIdeasDialog] executed")
     val scope = rememberCoroutineScope()
     var ideas by remember { mutableStateOf(emptyList<GiftIdea>()) }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -87,6 +89,7 @@ fun GiftIdeasDialog(
 
 @Composable
 fun GiftIdeaRow(idea: GiftIdea, onDelete: () -> Unit) {
+    Log.d("Remmi", "[GiftIdeasDialog] - [GiftIdeaRow] executed")
     Card(
         modifier = Modifier
             .fillMaxWidth()

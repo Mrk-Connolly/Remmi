@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.contacts
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -14,8 +15,13 @@ import com.remmi.app.core.widgets.RemmiWidget
  */
 class ContactWidget(private val actions: ContactActions) : RemmiWidget {
 
+    init {
+        Log.d("Remmi", "[ContactWidget] - [constructor] executed")
+    }
+
     @Composable
     override fun Content() {
+        Log.d("Remmi", "[ContactWidget] - [Content] executed")
         var favorites by remember { mutableStateOf(emptyList<ContactItem>()) }
 
         LaunchedEffect(Unit) {

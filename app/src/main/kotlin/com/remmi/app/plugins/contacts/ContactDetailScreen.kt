@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.contacts
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,6 +24,7 @@ fun ContactDetailScreen(
     onToggleGiftList: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    Log.d("Remmi", "[ContactDetailScreen] - [ContactDetailScreen] executed")
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -70,6 +72,7 @@ fun ContactDetailScreen(
 
 @Composable
 fun DetailItem(icon: ImageVector, label: String, value: String?) {
+    Log.d("Remmi", "[ContactDetailScreen] - [DetailItem] executed")
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()

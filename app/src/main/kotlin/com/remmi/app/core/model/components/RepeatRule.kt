@@ -1,5 +1,6 @@
 package com.remmi.app.core.model.components
 
+import android.util.Log
 import kotlinx.datetime.DayOfWeek
 import kotlinx.serialization.Serializable
 
@@ -14,6 +15,7 @@ enum class RepeatType {
     CUSTOM;
 
     fun toDatabaseChar(): String {
+        Log.d("Remmi", "[RepeatType] - [toDatabaseChar] executed")
         return when (this) {
             NONE -> "n"
             DAILY -> "d"
@@ -27,6 +29,7 @@ enum class RepeatType {
     companion object {
 
         fun fromDatabaseChar(value: String): RepeatType {
+            Log.d("Remmi", "[RepeatType] - [fromDatabaseChar] executed")
             return when (value.lowercase()) {
                 "n" -> NONE
                 "d" -> DAILY
@@ -47,4 +50,8 @@ enum class RepeatType {
 data class RepeatRule(
     val type: RepeatType,
     val days: List<DayOfWeek> = emptyList()
-)
+) {
+    init {
+        Log.d("Remmi", "[RepeatRule] - [constructor] executed")
+    }
+}

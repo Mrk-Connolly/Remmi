@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.contacts
 
+import android.util.Log
 import com.remmi.app.core.repository.CloudRepository
 import com.remmi.app.core.service.DatabaseService
 
@@ -10,4 +11,8 @@ class ContactRepository(databaseService: DatabaseService) : CloudRepository<Cont
     databaseService = databaseService,
     tableName = "contacts",
     serializer = ContactItem.serializer()
-)
+) {
+    init {
+        Log.d("Remmi", "[ContactRepository] - [constructor] executed")
+    }
+}

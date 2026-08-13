@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.alarm
 
+import android.util.Log
 import com.remmi.app.core.repository.CloudRepository
 import com.remmi.app.core.service.DatabaseService
 
@@ -12,4 +13,8 @@ class AlarmRepository(databaseService: DatabaseService) : CloudRepository<AlarmI
     databaseService = databaseService,
     tableName = "alarms",
     serializer = AlarmItem.serializer()
-)
+) {
+    init {
+        Log.d("Remmi", "[AlarmRepository] - [constructor] executed")
+    }
+}

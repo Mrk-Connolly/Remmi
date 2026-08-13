@@ -14,4 +14,6 @@ interface DatabaseService {
     suspend fun <T : RemmiModel> getAll(tableName: String, serializer: KSerializer<T>): List<T>
 
     suspend fun <T : RemmiModel> getById(tableName: String, id: String, serializer: KSerializer<T>): T?
+
+    suspend fun clearTable(tableName: String)
 }

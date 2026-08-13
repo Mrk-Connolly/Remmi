@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.alarm
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -10,13 +11,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.remmi.app.core.model.components.Priority
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
 import java.util.UUID
 
 sealed class AlarmEditorMode {
+    init {
+        Log.d("Remmi", "[AlarmEditorMode] - [constructor] executed")
+    }
     data object Create : AlarmEditorMode()
     data class Edit(val alarm: AlarmItem) : AlarmEditorMode()
 }
@@ -29,11 +32,13 @@ fun AlarmScreenEditor(
     onDismiss: () -> Unit,
     onSave: () -> Unit
 ) {
+    Log.d("Remmi", "[AlarmScreenEditor] - [AlarmScreenEditor] executed")
     val scope = rememberCoroutineScope()
     val initialAlarm = (mode as? AlarmEditorMode.Edit)?.alarm
 
     var title by remember { mutableStateOf(initialAlarm?.title ?: "") }
     var description by remember { mutableStateOf(initialAlarm?.description ?: "") }
+    var isPriority by remember { mutableStateOf(initialAlarm?.isPriority ?: false) }
     
     val timeZone = TimeZone.currentSystemDefault()
     val initialDateTime = initialAlarm?.time?.toLocalDateTime(timeZone) ?: 
@@ -63,46 +68,53 @@ fun AlarmScreenEditor(
 
     Scaffold(
         bottomBar = {
-            Surface(tonalElevation = 3.dp) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    OutlinedButton(modifier = Modifier.weight(1f), onClick = onDismiss) { Text("Back") }
-                    Button(modifier = Modifier.weight(1f), onClick = {
-                        val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone)
-                        val triggerTime = LocalDateTime(now.year, now.month, now.day, hour, minute).toInstant(timeZone)
-                        
-                        scope.launch {
-                            val repeatable = when (repeatMode) {
-                                "Daily" -> listOf("d")
-                                "Weekly" -> listOf("w")
-                                "Custom" -> listOf("c")
-                                else -> emptyList()
-                            }
-                            val custom = if (repeatMode == "Custom") customDays.toList() else emptyList()
+            Column {
+                Surface(tonalElevation = 3.dp) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        OutlinedButton(modifier = Modifier.weight(1f), onClick = onDismiss) { Text("Back") }
+                        Button(modifier = Modifier.weight(1f), onClick = {
+                            val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone)
+                            val triggerTime = LocalDateTime(now.year, now.month, now.day, hour, minute).toInstant(timeZone)
+                            
+                            scope.launch {
+                                val repeatable = when (repeatMode) {
+                                    "Daily" -> listOf("d")
+                                    "Weekly" -> listOf("w")
+                                    "Custom" -> listOf("c")
+                                    else -> emptyList()
+                                }
+                                val custom = if (repeatMode == "Custom") customDays.toList() else emptyList()
 
-                            if (initialAlarm != null) {
-                                actions.updateAlarm(initialAlarm.copy(
-                                    title = title,
-                                    description = description,
-                                    time = triggerTime,
-                                    repeatable = repeatable,
-                                    custom = custom
-                                ))
+                                if (initialAlarm != null) {
+                                actions.updateAlarm(
+                                    initialAlarm.copy(
+                                        title = title,
+                                        description = description,
+                                        time = triggerTime,
+                                        isPriority = isPriority,
+                                        repeatable = repeatable,
+                                        custom = custom
+                                    )
+                                )
                             } else {
                                 actions.addAlarm(
                                     title = title,
                                     description = description,
                                     time = triggerTime,
+                                    isPriority = isPriority,
                                     repeatable = repeatable,
                                     custom = custom
                                 )
                             }
-                            onSave()
-                        }
-                    }) { Text("Save") }
+                                onSave()
+                            }
+                        }) { Text("Save") }
+                    }
                 }
+                Spacer(Modifier.height(96.dp))
             }
         }
     ) { padding ->
@@ -125,6 +137,15 @@ fun AlarmScreenEditor(
                 label = { Text("Description") },
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Priority Alarm", style = MaterialTheme.typography.titleMedium)
+                Switch(checked = isPriority, onCheckedChange = { isPriority = it })
+            }
 
             Card(
                 onClick = { showTimePicker = true },
@@ -207,6 +228,7 @@ fun DaysSelectionDialog(
     onDismiss: () -> Unit,
     onConfirm: (List<String>) -> Unit
 ) {
+    Log.d("Remmi", "[AlarmScreenEditor] - [DaysSelectionDialog] executed")
     val days = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
     val currentSelected = remember { mutableStateListOf<String>().apply { addAll(selectedDays) } }
 

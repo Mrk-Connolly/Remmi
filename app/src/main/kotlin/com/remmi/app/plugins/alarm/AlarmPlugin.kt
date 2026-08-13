@@ -22,6 +22,10 @@ class AlarmPlugin(
     private val pluginManager: PluginManager
 ) : RemmiPlugin {
 
+    init {
+        Log.d("Remmi", "[AlarmPlugin] - [constructor] executed")
+    }
+
     /**
      * Repository for persistent alarm data.
      */
@@ -41,13 +45,17 @@ class AlarmPlugin(
      * UI screen for detailed alarm management.
      */
     override val screen: RemmiScreen = object : RemmiScreen {
-        @Composable override fun Content() = AlarmScreen(actions)
+        @Composable override fun Content() {
+            Log.d("Remmi", "[AlarmPlugin] - [Content] executed")
+            AlarmScreen(actions)
+        }
     }
 
     /**
      * Called when the plugin is loaded.
      */
     override fun onLoad() {
+        Log.d("Remmi", "[AlarmPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Alarm Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -62,5 +70,11 @@ class AlarmPlugin(
      * Called when the plugin is unloaded.
      */
     override fun onUnload() {
+        Log.d("Remmi", "[AlarmPlugin] - [onUnload] executed")
+    }
+
+    override suspend fun reformat() {
+        Log.d("Remmi", "[AlarmPlugin] - [reformat] executed")
+        repository.clearAll()
     }
 }

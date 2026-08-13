@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.contacts
 
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,17 +26,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactScreen(actions: ContactActions) {
+    Log.d("Remmi", "[ContactScreen] - [ContactScreen] executed")
     val scope = rememberCoroutineScope()
     var contacts by remember { mutableStateOf(emptyList<ContactItem>()) }
     var searchQuery by remember { mutableStateOf("") }
     
     var selectedContact by remember { mutableStateOf<ContactItem?>(null) }
     var editorMode by remember { mutableStateOf<ContactEditorMode?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    val onRefresh: () -> Unit = {
+        scope.launch {
+            isRefreshing = true
+            contacts = actions.getAllContacts()
+            delay(500)
+            isRefreshing = false
+        }
+    }
 
     LaunchedEffect(Unit) {
         contacts = actions.getAllContacts()
@@ -52,45 +66,57 @@ fun ContactScreen(actions: ContactActions) {
             }
         },
         bottomBar = {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                placeholder = { Text("Search by name...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                shape = CircleShape,
-                singleLine = true
-            )
+            Column {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    placeholder = { Text("Search by name...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    shape = CircleShape,
+                    singleLine = true
+                )
+                Spacer(Modifier.height(96.dp))
+            }
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            Text(
-                text = "My Contacts",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .statusBarsPadding()
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Text(
+                    text = "My Contacts",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
 
-            if (filteredContacts.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No contacts found.")
-                }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(filteredContacts, key = { it.id }) { contact ->
-                        ContactRow(
-                            contact = contact,
-                            onToggleFavorite = {
-                                scope.launch {
-                                    actions.toggleFavorite(contact)
-                                    contacts = actions.getAllContacts()
-                                }
-                            },
-                            onClick = { selectedContact = contact },
-                            onEdit = { editorMode = ContactEditorMode.Edit(contact) }
-                        )
+                if (filteredContacts.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No contacts found.")
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(filteredContacts, key = { it.id }) { contact ->
+                            ContactRow(
+                                contact = contact,
+                                onToggleFavorite = {
+                                    scope.launch {
+                                        actions.toggleFavorite(contact)
+                                        contacts = actions.getAllContacts()
+                                    }
+                                },
+                                onClick = { selectedContact = contact },
+                                onEdit = { editorMode = ContactEditorMode.Edit(contact) }
+                            )
+                        }
                     }
                 }
             }
@@ -135,6 +161,7 @@ fun ContactRow(
     onClick: () -> Unit,
     onEdit: () -> Unit
 ) {
+    Log.d("Remmi", "[ContactScreen] - [ContactRow] executed")
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -203,6 +230,9 @@ fun ContactRow(
 }
 
 sealed class ContactEditorMode {
+    init {
+        Log.d("Remmi", "[ContactEditorMode] - [constructor] executed")
+    }
     data object Create : ContactEditorMode()
     data class Edit(val contact: ContactItem) : ContactEditorMode()
 }

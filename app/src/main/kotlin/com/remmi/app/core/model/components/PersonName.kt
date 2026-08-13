@@ -1,5 +1,6 @@
 package com.remmi.app.core.model.components
 
+import android.util.Log
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -10,4 +11,8 @@ data class PersonName(
     val nickname: String? = "",
     val group: String? = ""
 
-)
+) {
+    init {
+        Log.d("Remmi", "[PersonName] - [constructor] executed")
+    }
+}

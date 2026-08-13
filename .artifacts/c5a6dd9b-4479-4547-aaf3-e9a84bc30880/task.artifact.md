@@ -1,4 +1,6 @@
-- `[x]` Update `PluginManager` to support batch updates and safe reloading
-- `[x]` Update `SettingsScreen` to handle pending state and confirmation button
-- `[x]` Update `AppNavigation` to pass `PluginContext` to `SettingsScreen`
-- `[x]` Verify changes by checking button visibility and navigation behavior
+- `[ ]` Reorganize SQL scripts to plugin directories
+- `[ ]` Update `DatabaseService` interface and `SupabaseService` implementation
+- `[ ]` Update `RemmiRepository` and `CloudRepository` for clearing data
+- `[ ]` Update `RemmiPlugin` interface and implement `reformat` in all plugins
+- `[ ]` Update `SettingsScreen` UI with "Reformat Database" button and confirmation
+- `[ ]` Verify functionality by reformatting a plugin

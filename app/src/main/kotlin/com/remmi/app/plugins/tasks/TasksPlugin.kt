@@ -21,6 +21,10 @@ class TasksPlugin(
     private val pluginManager: PluginManager
 ) : RemmiPlugin {
 
+    init {
+        Log.d("Remmi", "[TasksPlugin] - [constructor] executed")
+    }
+
     override val repository: TasksRepository = TasksRepository(SupabaseService)
     override val actions: TasksActions = TasksActions(
         repository,
@@ -29,10 +33,14 @@ class TasksPlugin(
     )
     override val widget: RemmiWidget = TasksWidget(actions)
     override val screen: RemmiScreen = object : RemmiScreen {
-        @Composable override fun Content() = TasksScreen(actions)
+        @Composable override fun Content() {
+            Log.d("Remmi", "[TasksPlugin] - [Content] executed")
+            TasksScreen(actions)
+        }
     }
 
     override fun onLoad() {
+        Log.d("Remmi", "[TasksPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Tasks Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
             actions.sync()
@@ -40,5 +48,11 @@ class TasksPlugin(
     }
 
     override fun onUnload() {
+        Log.d("Remmi", "[TasksPlugin] - [onUnload] executed")
+    }
+
+    override suspend fun reformat() {
+        Log.d("Remmi", "[TasksPlugin] - [reformat] executed")
+        repository.clearAll()
     }
 }

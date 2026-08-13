@@ -16,14 +16,22 @@ import kotlinx.coroutines.launch
  */
 class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
 
+    init {
+        Log.d("Remmi", "[ContactPlugin] - [constructor] executed")
+    }
+
     override val repository: ContactRepository = ContactRepository(SupabaseService)
     override val actions: ContactActions = ContactActions(repository)
     override val widget: RemmiWidget = ContactWidget(actions)
     override val screen: RemmiScreen = object : RemmiScreen {
-        @Composable override fun Content() = ContactScreen(actions)
+        @Composable override fun Content() {
+            Log.d("Remmi", "[ContactPlugin] - [Content] executed")
+            ContactScreen(actions)
+        }
     }
 
     override fun onLoad() {
+        Log.d("Remmi", "[ContactPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Contacts Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -34,5 +42,12 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
         }
     }
 
-    override fun onUnload() {}
+    override fun onUnload() {
+        Log.d("Remmi", "[ContactPlugin] - [onUnload] executed")
+    }
+
+    override suspend fun reformat() {
+        Log.d("Remmi", "[ContactPlugin] - [reformat] executed")
+        repository.clearAll()
+    }
 }

@@ -19,6 +19,10 @@ class GiftPlugin(
     private val pluginManager: PluginManager
 ) : RemmiPlugin {
 
+    init {
+        Log.d("Remmi", "[GiftPlugin] - [constructor] executed")
+    }
+
     override val repository: GiftRepository = GiftRepository(SupabaseService)
     override val actions: GiftActions = GiftActions(repository)
     
@@ -28,12 +32,14 @@ class GiftPlugin(
 
     override val widget: RemmiWidget = object : RemmiWidget {
         @Composable override fun Content() {
+            Log.d("Remmi", "[GiftPlugin] - [Content] (widget) executed")
             // Placeholder for gift widget if needed later
         }
     }
 
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content() {
+            Log.d("Remmi", "[GiftPlugin] - [Content] (screen) executed")
             contactActions?.let {
                 GiftListScreen(giftActions = actions, contactActions = it)
             }
@@ -41,6 +47,7 @@ class GiftPlugin(
     }
 
     override fun onLoad() {
+        Log.d("Remmi", "[GiftPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Gift Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -51,5 +58,12 @@ class GiftPlugin(
         }
     }
 
-    override fun onUnload() {}
+    override fun onUnload() {
+        Log.d("Remmi", "[GiftPlugin] - [onUnload] executed")
+    }
+
+    override suspend fun reformat() {
+        Log.d("Remmi", "[GiftPlugin] - [reformat] executed")
+        repository.clearAll()
+    }
 }

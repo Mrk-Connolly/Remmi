@@ -1,13 +1,15 @@
 package com.remmi.app.core.runtime
 
-import android.content.Context
+import android.util.Log
 import com.remmi.app.core.automation.AutomationEngine
-import com.remmi.app.core.events.EventManager
-import com.remmi.app.core.plugins.PluginContext
+import com.remmi.app.core.host.HostContext
 import com.remmi.app.core.plugins.PluginManager
-import com.remmi.app.core.widgets.WidgetManager
 
-class RemmiRuntime (private val androidContext: Context) {
+class RemmiRuntime (val hostContext: HostContext) {
+
+    init {
+        Log.d("Remmi", "[RemmiRuntime] - [constructor] executed")
+    }
 
     /**
      *                               REMMI RUNTIME
@@ -19,32 +21,15 @@ class RemmiRuntime (private val androidContext: Context) {
      * */
 
     // ----------------------------------------------------------------------------
-    //                                 VARIABLES
-    // ----------------------------------------------------------------------------
-
-    private val automationEngine = AutomationEngine()
-    private val pluginManager = PluginManager()
-    private val widgetManager = WidgetManager()
-
-    val controller = PluginContext(
-        automationEngine = automationEngine,
-        pluginManager = pluginManager,
-        widgetManager = widgetManager
-    )
-
-
-    // ----------------------------------------------------------------------------
     //                                CORE FUNCTIONS
     // ----------------------------------------------------------------------------
 
     /**                                   START
      * */
     fun start() {
-        // 1. Read plugin list
-        pluginManager.readPlugins(androidContext)
-
-        // 2. Load plugins
-        pluginManager.loadPlugins(controller)
+        Log.d("Remmi", "[RemmiRuntime] - [start] executed")
+        hostContext.pluginManager.readPlugins(hostContext.androidContext)
+        hostContext.pluginManager.loadPlugins()
     }
 
 
@@ -52,17 +37,8 @@ class RemmiRuntime (private val androidContext: Context) {
      * */
 
     fun stop() {
-        pluginManager.close()
+        Log.d("Remmi", "[RemmiRuntime] - [stop] executed")
+        hostContext.pluginManager.close()
     }
-
-
-
-    /**                                    RUN
-     * */
-    fun run(){
-        // Automation engine with event listeners
-    }
-
-
 
 }

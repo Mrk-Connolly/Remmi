@@ -1,14 +1,12 @@
 package com.remmi.app.plugins.contacts
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cake
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Redeem
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +25,7 @@ fun ContactEditorScreen(
     onDismiss: () -> Unit,
     onSave: () -> Unit
 ) {
+    Log.d("Remmi", "[ContactEditorScreen] - [ContactEditorScreen] executed")
     val scope = rememberCoroutineScope()
     val initialContact = (mode as? ContactEditorMode.Edit)?.contact
 
@@ -36,12 +35,25 @@ fun ContactEditorScreen(
     var phone by remember { mutableStateOf(initialContact?.mobilePhone ?: "") }
     var email by remember { mutableStateOf(initialContact?.email ?: "") }
     var birthday by remember { mutableStateOf<String?>(initialContact?.birthday) }
-    var group by remember { mutableStateOf(initialContact?.group ?: "") }
+    var group by remember { mutableStateOf(initialContact?.group ?: "General") }
     var inGiftList by remember { mutableStateOf(initialContact?.inGiftList ?: false) }
     var isFavorite by remember { mutableStateOf(initialContact?.isFavorite ?: false) }
 
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
+
+    var contacts by remember { mutableStateOf(emptyList<ContactItem>()) }
+    LaunchedEffect(Unit) {
+        contacts = actions.getAllContacts()
+    }
+
+    val existingGroups = remember(contacts) {
+        (listOf("General", "Family", "Friends", "Work") + contacts.map { it.group }).distinct().sorted()
+    }
+    
+    var isGroupExpanded by remember { mutableStateOf(false) }
+    var showAddGroupDialog by remember { mutableStateOf(false) }
+    var newGroupName by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -105,8 +117,22 @@ fun ContactEditorScreen(
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name*") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = surname, onValueChange = { surname = it }, label = { Text("Surname") }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = nickname, onValueChange = { nickname = it }, label = { Text("Nickname") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Phone") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+                
+                OutlinedTextField(
+                    value = phone, 
+                    onValueChange = { phone = it }, 
+                    label = { Text("Phone") }, 
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(Icons.Default.Phone, contentDescription = null) }
+                )
+                
+                OutlinedTextField(
+                    value = email, 
+                    onValueChange = { email = it }, 
+                    label = { Text("Email") }, 
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { Icon(Icons.Default.Email, contentDescription = null) }
+                )
                 
                 // Birthday Picker
                 OutlinedTextField(
@@ -131,7 +157,46 @@ fun ContactEditorScreen(
                     )
                 )
 
-                OutlinedTextField(value = group, onValueChange = { group = it }, label = { Text("Group") }, modifier = Modifier.fillMaxWidth())
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ExposedDropdownMenuBox(
+                        expanded = isGroupExpanded,
+                        onExpandedChange = { isGroupExpanded = it },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = group,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Group") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupExpanded) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = isGroupExpanded,
+                            onDismissRequest = { isGroupExpanded = false }
+                        ) {
+                            existingGroups.forEach { g ->
+                                DropdownMenuItem(
+                                    text = { Text(g) },
+                                    onClick = {
+                                        group = g
+                                        isGroupExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    
+                    IconButton(
+                        onClick = { showAddGroupDialog = true },
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Group")
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -161,6 +226,34 @@ fun ContactEditorScreen(
             }
         }
     )
+
+    if (showAddGroupDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddGroupDialog = false },
+            title = { Text("Add New Group") },
+            text = {
+                OutlinedTextField(
+                    value = newGroupName,
+                    onValueChange = { newGroupName = it },
+                    label = { Text("Group Name") }
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (newGroupName.isNotBlank()) {
+                        group = newGroupName
+                        showAddGroupDialog = false
+                        newGroupName = ""
+                    }
+                }) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddGroupDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
 
     if (showDatePicker) {
         DatePickerDialog(

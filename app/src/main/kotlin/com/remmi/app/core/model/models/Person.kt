@@ -1,5 +1,6 @@
 package com.remmi.app.core.model.models
 
+import android.util.Log
 import kotlinx.serialization.Serializable
 import com.remmi.app.core.model.components.ContactInfo
 import com.remmi.app.core.model.components.Location
@@ -29,4 +30,8 @@ data class Person(
 
     val notes: String = ""
 
-) : RemmiModel
+) : RemmiModel {
+    init {
+        Log.d("Remmi", "[Person] - [constructor] executed")
+    }
+}

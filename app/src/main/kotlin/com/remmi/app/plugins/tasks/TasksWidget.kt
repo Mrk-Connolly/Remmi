@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.tasks
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -16,8 +17,13 @@ class TasksWidget(
     private val tasksActions: TasksActions
 ) : RemmiWidget {
 
+    init {
+        Log.d("Remmi", "[TasksWidget] - [constructor] executed")
+    }
+
     @Composable
     override fun Content() {
+        Log.d("Remmi", "[TasksWidget] - [Content] executed")
         var todayTasks by remember { mutableStateOf(emptyList<TaskItem>()) }
 
         LaunchedEffect(Unit) {

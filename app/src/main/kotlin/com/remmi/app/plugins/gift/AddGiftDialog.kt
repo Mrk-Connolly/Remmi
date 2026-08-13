@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.gift
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -19,6 +20,7 @@ fun AddGiftDialog(
     onDismiss: () -> Unit,
     onSave: () -> Unit
 ) {
+    Log.d("Remmi", "[AddGiftDialog] - [AddGiftDialog] executed")
     val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }

@@ -14,6 +14,7 @@ class AutomationEngine : EventListener {
      * */
 
     override fun onEvent(event: RemmiEvent) {
+        Log.d("Remmi", "[AutomationEngine] - [onEvent] executed")
         Log.d("Remmi", "Automation received: ${event::class.simpleName}")
     }
 

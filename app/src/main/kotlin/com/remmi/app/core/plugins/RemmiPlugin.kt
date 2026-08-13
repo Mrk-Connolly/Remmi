@@ -50,4 +50,9 @@ interface RemmiPlugin {
      */
     fun onUnload()
 
+    /**
+     * Reformat plugin database (clear all data).
+     */
+    suspend fun reformat()
+
 }

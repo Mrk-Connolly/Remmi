@@ -1,5 +1,6 @@
 package com.remmi.app.core.widgets
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 
 /**
@@ -14,10 +15,14 @@ interface RemmiWidget {
     fun Content()
 
     // To Do
-    fun Refresh() {}
+    fun Refresh() {
+        Log.d("Remmi", "[RemmiWidget] - [Refresh] executed")
+    }
 
     // To Do
-    fun Disable() {}
+    fun Disable() {
+        Log.d("Remmi", "[RemmiWidget] - [Disable] executed")
+    }
 
 
 }

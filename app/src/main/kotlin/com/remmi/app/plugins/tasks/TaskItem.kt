@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.tasks
 
+import android.util.Log
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import com.remmi.app.core.model.components.Priority
@@ -30,7 +31,11 @@ data class TaskItem(
     @SerialName("due_date")
     val dueDate: Instant? = null,
 
-    val priority: Priority = Priority.Normal,
+    @SerialName("is_priority")
+    val isPriority: Boolean = false,
+
+    @SerialName("group_name")
+    val group: String? = null,
 
     val repeat: RepeatRule? = null,
 
@@ -44,4 +49,8 @@ data class TaskItem(
 
     val relationships: List<String> = emptyList()
 
-) : RemmiModel
+) : RemmiModel {
+    init {
+        Log.d("Remmi", "[TaskItem] - [constructor] executed")
+    }
+}

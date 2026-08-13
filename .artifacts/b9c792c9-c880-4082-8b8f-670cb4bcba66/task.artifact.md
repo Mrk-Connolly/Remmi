@@ -1,0 +1,4 @@
+- [x] Create target directory structure
+- [x] Move Kotlin source files to `app/src/main/kotlin/com/remmi/app`
+- [/] Clean up `app/src/main/res/images`
+- [x] Verify build and project structure

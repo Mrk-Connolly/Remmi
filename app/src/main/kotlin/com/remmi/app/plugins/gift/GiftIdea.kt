@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.gift
 
+import android.util.Log
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import com.remmi.app.core.model.models.RemmiModel
@@ -22,4 +23,8 @@ data class GiftIdea(
     val link: String? = null,
     val price: Double? = null,
     val event: GiftEvent? = null
-) : RemmiModel
+) : RemmiModel {
+    init {
+        Log.d("Remmi", "[GiftIdea] - [constructor] executed")
+    }
+}

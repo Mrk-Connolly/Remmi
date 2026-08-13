@@ -1,5 +1,6 @@
 package com.remmi.app.core.model.components
 
+import android.util.Log
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -10,4 +11,8 @@ data class Location(
     val latitude: Double? = null,
     val longitude: Double? = null
 
-)
+) {
+    init {
+        Log.d("Remmi", "[Location] - [constructor] executed")
+    }
+}

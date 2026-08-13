@@ -22,12 +22,22 @@ class CalendarActions(
     override val name: String
 ) : RemmiAction {
 
+    init {
+        Log.d("Remmi", "[CalendarActions] - [constructor] executed")
+    }
+
     companion object {
         private const val TAG = "CalendarActions"
     }
     
-    fun getAlarmActions(): AlarmActions? = pluginManager.plugins["alarm"]?.actions as? AlarmActions
-    fun getContactActions(): ContactActions? = pluginManager.plugins["contacts"]?.actions as? ContactActions
+    fun getAlarmActions(): AlarmActions? {
+        Log.d("Remmi", "[CalendarActions] - [getAlarmActions] executed")
+        return pluginManager.plugins["alarm"]?.actions as? AlarmActions
+    }
+    fun getContactActions(): ContactActions? {
+        Log.d("Remmi", "[CalendarActions] - [getContactActions] executed")
+        return pluginManager.plugins["contacts"]?.actions as? ContactActions
+    }
 
     suspend fun addEvent(
         id: String = UUID.randomUUID().toString(),
@@ -37,13 +47,15 @@ class CalendarActions(
         startingTime: LocalTime? = null,
         endingDate: LocalDate? = null,
         endingTime: LocalTime? = null,
-        priority: Priority = Priority.Normal,
+        isPriority: Boolean = false,
+        group: String? = null,
         participants: List<String> = emptyList(),
         repeat: List<String> = emptyList(),
         location: List<String> = emptyList(),
         linkedTasks: List<String> = emptyList(),
         linkedAlarm: String? = null
     ): String? {
+        Log.d("Remmi", "[CalendarActions] - [addEvent] executed")
         return try {
             val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             val item = CalendarItem(
@@ -56,7 +68,8 @@ class CalendarActions(
                 startingTime = startingTime,
                 endingDate = endingDate,
                 endingTime = endingTime,
-                priority = priority,
+                isPriority = isPriority,
+                group = group,
                 participants = participants,
                 repeat = repeat,
                 location = location,
@@ -73,6 +86,7 @@ class CalendarActions(
     }
 
     suspend fun removeEvent(id: String): Boolean {
+        Log.d("Remmi", "[CalendarActions] - [removeEvent] executed")
         return try {
             val event = repository.get(id)
             event?.linkedTasks?.forEach { taskId ->
@@ -87,6 +101,7 @@ class CalendarActions(
     }
 
     suspend fun updateEvent(event: CalendarItem): Boolean {
+        Log.d("Remmi", "[CalendarActions] - [updateEvent] executed")
         return try {
             event.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             repository.updateCloud(event)
@@ -99,7 +114,8 @@ class CalendarActions(
                         title = event.title,
                         description = event.description,
                         dueDate = event.startingDate.atTime(event.startingTime ?: LocalTime(0, 0)).toInstant(TimeZone.currentSystemDefault()),
-                        priority = event.priority
+                        isPriority = event.isPriority,
+                        group = event.group
                     )
                     tasksRepository.updateCloud(updatedTask)
                 }
@@ -112,6 +128,7 @@ class CalendarActions(
     }
 
     suspend fun getAllEvents(): List<CalendarItem> {
+        Log.d("Remmi", "[CalendarActions] - [getAllEvents] executed")
         return try {
             repository.getAll()
         } catch (e: Exception) {
@@ -121,6 +138,7 @@ class CalendarActions(
     }
 
     suspend fun sync(): Boolean {
+        Log.d("Remmi", "[CalendarActions] - [sync] executed")
         return try {
             repository.sync()
             true
@@ -131,10 +149,12 @@ class CalendarActions(
     }
 
     suspend fun addTask(task: TaskItem) {
+        Log.d("Remmi", "[CalendarActions] - [addTask] executed")
         tasksRepository.insert(task)
     }
 
     suspend fun getEventsOn(date: LocalDate): List<CalendarItem> {
+        Log.d("Remmi", "[CalendarActions] - [getEventsOn] executed")
         return try {
             repository.getAll().filter { it.startingDate == date }
         } catch (e: Exception) {
@@ -144,6 +164,7 @@ class CalendarActions(
     }
 
     suspend fun getUpcomingEvents(): List<CalendarItem> {
+        Log.d("Remmi", "[CalendarActions] - [getUpcomingEvents] executed")
         return try {
             repository.getAll()
                 .sortedBy { it.startingDate }
@@ -154,7 +175,15 @@ class CalendarActions(
     }
 
     suspend fun getTodayEvents(): List<CalendarItem> {
+        Log.d("Remmi", "[CalendarActions] - [getTodayEvents] executed")
         val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
         return getEventsOn(today)
+    }
+
+    suspend fun getAllGroups(): List<String> {
+        Log.d("Remmi", "[CalendarActions] - [getAllGroups] executed")
+        val eventGroups = repository.getAll().mapNotNull { it.group }
+        val taskGroups = tasksRepository.getAll().mapNotNull { it.group }
+        return (eventGroups + taskGroups).distinct().sorted()
     }
 }

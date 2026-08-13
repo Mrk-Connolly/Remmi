@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.calendar
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -20,8 +21,13 @@ class CalendarWidget(
     private val pluginManager: PluginManager
 ) : RemmiWidget {
 
+    init {
+        Log.d("Remmi", "[CalendarWidget] - [constructor] executed")
+    }
+
     @Composable
     override fun Content() {
+        Log.d("Remmi", "[CalendarWidget] - [Content] executed")
         var todayEvents by remember { mutableStateOf(emptyList<CalendarItem>()) }
         var priorityTasks by remember { mutableStateOf(emptyList<TaskItem>()) }
 

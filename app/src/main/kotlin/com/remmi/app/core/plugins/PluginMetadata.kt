@@ -1,5 +1,6 @@
 package com.remmi.app.core.plugins
 
+import android.util.Log
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -12,4 +13,8 @@ data class PluginMetadata(
     val showInNavigation: Boolean,
     val showWidget: Boolean,
     val icon: String? = null
-)
+) {
+    init {
+        Log.d("Remmi", "[PluginMetadata] - [constructor] executed")
+    }
+}

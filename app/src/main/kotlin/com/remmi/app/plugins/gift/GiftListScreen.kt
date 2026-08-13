@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.gift
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.remmi.app.plugins.contacts.ContactActions
 import com.remmi.app.plugins.contacts.ContactItem
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,62 +32,93 @@ fun GiftListScreen(
     giftActions: GiftActions,
     contactActions: ContactActions
 ) {
+    Log.d("Remmi", "[GiftListScreen] - [GiftListScreen] executed")
     val scope = rememberCoroutineScope()
     var contactsInGiftList by remember { mutableStateOf(emptyList<ContactItem>()) }
     var searchQuery by remember { mutableStateOf("") }
     var showContactPicker by remember { mutableStateOf(false) }
     var selectedContactForGifts by remember { mutableStateOf<ContactItem?>(null) }
     var contactToRemove by remember { mutableStateOf<ContactItem?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    val onRefresh: () -> Unit = {
+        scope.launch {
+            isRefreshing = true
+            contactsInGiftList = contactActions.getAllContacts().filter { it.inGiftList }
+            delay(500)
+            isRefreshing = false
+        }
+    }
 
     LaunchedEffect(Unit) {
         contactsInGiftList = contactActions.getAllContacts().filter { it.inGiftList }
     }
 
-    val filteredContacts = contactsInGiftList.filter {
-        it.name.contains(searchQuery, ignoreCase = true) || 
-        it.surname.contains(searchQuery, ignoreCase = true)
-    }
-
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showContactPicker = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Contact")
-            }
-        },
-        bottomBar = {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                placeholder = { Text("Search gift list...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                shape = CircleShape,
-                singleLine = true
-            )
+    if (selectedContactForGifts != null) {
+        UserGiftListScreen(
+            contact = selectedContactForGifts!!,
+            actions = giftActions,
+            onBack = { selectedContactForGifts = null }
+        )
+    } else {
+        val filteredContacts = contactsInGiftList.filter {
+            it.name.contains(searchQuery, ignoreCase = true) || 
+            it.surname.contains(searchQuery, ignoreCase = true)
         }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            Text(
-                text = "Gift List",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
 
-            if (filteredContacts.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No one in your gift list yet.")
+        Scaffold(
+            floatingActionButton = {
+                FloatingActionButton(onClick = { showContactPicker = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Contact")
                 }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(filteredContacts, key = { it.id }) { contact ->
-                        GiftContactRow(
-                            contact = contact,
-                            onClick = { selectedContactForGifts = contact },
-                            onHold = { contactToRemove = contact }
-                        )
+            },
+            bottomBar = {
+                Column {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        placeholder = { Text("Search gift list...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        shape = CircleShape,
+                        singleLine = true
+                    )
+                    Spacer(Modifier.height(96.dp))
+                }
+            }
+        ) { padding ->
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = onRefresh,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .statusBarsPadding()
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Text(
+                        text = "Gift List",
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+
+                    if (filteredContacts.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("No one in your gift list yet.")
+                        }
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(filteredContacts, key = { it.id }) { contact ->
+                                GiftContactRow(
+                                    contact = contact,
+                                    onClick = { selectedContactForGifts = contact },
+                                    onHold = { contactToRemove = contact }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -102,14 +136,6 @@ fun GiftListScreen(
                     showContactPicker = false
                 }
             }
-        )
-    }
-
-    if (selectedContactForGifts != null) {
-        GiftIdeasDialog(
-            contact = selectedContactForGifts!!,
-            actions = giftActions,
-            onDismiss = { selectedContactForGifts = null }
         )
     }
 
@@ -145,6 +171,7 @@ fun GiftContactRow(
     onClick: () -> Unit,
     onHold: () -> Unit
 ) {
+    Log.d("Remmi", "[GiftListScreen] - [GiftContactRow] executed")
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -163,10 +190,6 @@ fun GiftContactRow(
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onLongPress = {
-                                // Implementing the 2s hold logic requested
-                                // Since standard long press is shorter, we could use a custom timer
-                                // but for UX standard long press is often enough. 
-                                // I'll use a 2s timer for exactness as requested in previous turns for edit.
                                 onHold()
                             }
                         )
@@ -193,6 +216,7 @@ fun ContactPickerList(
     onDismiss: () -> Unit,
     onContactSelected: (ContactItem) -> Unit
 ) {
+    Log.d("Remmi", "[GiftListScreen] - [ContactPickerList] executed")
     var allContacts by remember { mutableStateOf(emptyList<ContactItem>()) }
     
     LaunchedEffect(Unit) {
