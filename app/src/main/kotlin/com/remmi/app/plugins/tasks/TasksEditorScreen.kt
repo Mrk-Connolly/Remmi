@@ -319,22 +319,42 @@ fun TasksEditorScreen(
                     if (initialTask == null) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Quick Actions", style = MaterialTheme.typography.titleSmall)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(checked = addToCalendar, onCheckedChange = { addToCalendar = it })
-                                Text("Create Calendar Event")
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(checked = addToAlarm, onCheckedChange = { 
-                                    addToAlarm = it
-                                    if (it) showAlarmTimePicker = true
-                                })
-                                Text("Create Alarm")
-                                if (addToAlarm && alarmTime != null) {
-                                    Text(
-                                        " at ${alarmTime.toString().substring(0, 5)}",
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.clickable { showAlarmTimePicker = true }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Start,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = { addToCalendar = !addToCalendar },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        contentColor = if (addToCalendar) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                                     )
+                                ) {
+                                    Icon(Icons.Default.CalendarMonth, contentDescription = "Create Calendar Event")
+                                }
+                                
+                                Spacer(Modifier.width(16.dp))
+
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    IconButton(
+                                        onClick = { 
+                                            addToAlarm = !addToAlarm
+                                            if (addToAlarm) showAlarmTimePicker = true
+                                        },
+                                        colors = IconButtonDefaults.iconButtonColors(
+                                            contentColor = if (addToAlarm) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                        )
+                                    ) {
+                                        Icon(Icons.Default.Alarm, contentDescription = "Create Alarm")
+                                    }
+                                    if (addToAlarm && alarmTime != null) {
+                                        Text(
+                                            text = alarmTime.toString().substring(0, 5),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.clickable { showAlarmTimePicker = true }
+                                        )
+                                    }
                                 }
                             }
                         }

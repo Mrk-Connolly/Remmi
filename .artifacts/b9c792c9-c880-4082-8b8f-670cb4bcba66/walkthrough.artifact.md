@@ -1,16 +1,13 @@
-# File System Restoration Walkthrough
+# Application Icon Update Walkthrough
 
-I have restored the project structure by moving the Kotlin source files back to their correct directory.
+I have updated the Remmi application icon using the `img.png` image.
 
 ## Changes Made
 
-### Project Structure
+### Resources
 
-- **Source Code Restoration**:
-    - Moved all Kotlin files and packages from `app/src/main/res/images/app` back to `app/src/main/kotlin/com/remmi/app`.
-    - Restored `MainActivity.kt`, `RemmiApp.kt`, and the `core` and `plugins` packages to the standard Android project structure.
-- **Cleanup**:
-    - The `app/src/main/res/images` directory was verified to be empty of source files.
+- **Launcher Icons Updated**:
+    - Replaced `ic_launcher.png` and `ic_launcher_round.png` in `app/src/main/res/mipmap-nodpi` with the content of `img.png`.
 
 ## Verification Results
 
@@ -18,5 +15,4 @@ I have restored the project structure by moving the Kotlin source files back to 
 - Ran `gradlew app:assembleDebug`: **SUCCESS**
 
 ### Manual Verification
-- The project structure now correctly displays the `com.remmi.app` package under `src/main/kotlin`.
-- The application builds successfully, indicating that the source code is correctly located by the compiler.
+- The application icon resources have been updated to use the latest image. The Remmi butler logo from `img.png` will now be displayed on the device home screen.

@@ -21,6 +21,8 @@
 
     <application
         android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.Remmi">
 
         <receiver android:name="com.remmi.app.plugins.alarm.AlarmReceiver" android:exported="false" />

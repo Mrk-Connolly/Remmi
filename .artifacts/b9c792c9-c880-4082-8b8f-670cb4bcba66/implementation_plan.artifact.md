@@ -1,32 +1,25 @@
-# Implementation Plan - Fix Exploded File System
+# Implementation Plan - Set Application Icon
 
-The Kotlin source code was accidentally moved into the `app/src/main/res/images` directory. I will restore the project structure by moving the files back to their intended locations and cleaning up the resource directory.
-
-## User Review Required
-
-> [!IMPORTANT]
-> I will move all Kotlin files from `app/src/main/res/images/app` back to `app/src/main/kotlin/com/remmi/app`. I will also remove the `app/src/main/res/images` directory as it is not a standard Android resource folder and currently contains misplaced source code.
+I will set the provided `Remmi.png` image as the official application icon for the Remmi app.
 
 ## Proposed Changes
 
-### [Component] Project Structure Restoration
+### [Component] Resources
 
-#### [MOVE] Restore Kotlin Source Files
-- Move all content from `app/src/main/res/images/app/` to `app/src/main/kotlin/com/remmi/app/`.
-- This includes:
-    - `MainActivity.kt`
-    - `RemmiApp.kt`
-    - `core/` directory
-    - `plugins/` directory
+#### [NEW] ic_launcher.png
+- Create the `app/src/main/res/mipmap-nodpi` directory.
+- Copy `app/src/main/res/images/Remmi.png` to `app/src/main/res/mipmap-nodpi/ic_launcher.png`.
+- Copy `app/src/main/res/images/Remmi.png` to `app/src/main/res/mipmap-nodpi/ic_launcher_round.png`.
 
-#### [CLEANUP] Remove Misplaced Directories
-- Remove `app/src/main/res/images` after the move is complete.
+### [Component] Manifest
+
+#### [MODIFY] [AndroidManifest.xml](file:///home/mark/StudioProjects/Remmi/app/src/main/AndroidManifest.xml)
+- Update the `<application>` tag to include the `android:icon` and `android:roundIcon` attributes.
 
 ## Verification Plan
 
 ### Automated Tests
-- Run `gradlew assembleDebug` to verify that the build system can locate the source files again.
+- Run `./gradlew assembleDebug` to verify that the build succeeds and resources are properly merged.
 
 ### Manual Verification
-- Verify that the `com.remmi.app` package structure is visible in the project view.
-- Ensure no source files are left in the `res` directory.
+- Deploy the application to an Android device or emulator and confirm the new icon is visible on the home screen.

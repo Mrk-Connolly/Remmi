@@ -1,4 +1,4 @@
-- [x] Create target directory structure
-- [x] Move Kotlin source files to `app/src/main/kotlin/com/remmi/app`
-- [/] Clean up `app/src/main/res/images`
-- [x] Verify build and project structure
+- [x] Create `app/src/main/res/mipmap-nodpi` directory
+- [x] Copy `img.png` to `ic_launcher.png` and `ic_launcher_round.png`
+- [x] Update `AndroidManifest.xml` with icon attributes
+- [x] Verify build
