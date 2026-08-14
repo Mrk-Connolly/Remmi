@@ -7,9 +7,10 @@ import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.service.SupabaseService
-import com.remmi.app.core.widgets.RemmiWidget
+import com.remmi.app.core.plugins.widgets.RemmiWidget
 import com.remmi.app.plugins.contacts.ContactActions
 import com.remmi.app.plugins.contacts.ContactPlugin
+import com.remmi.app.plugins.gift.ui.screens.GiftListScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

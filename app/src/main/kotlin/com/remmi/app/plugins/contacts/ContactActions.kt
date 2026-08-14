@@ -1,7 +1,7 @@
 package com.remmi.app.plugins.contacts
 
 import android.util.Log
-import com.remmi.app.core.actions.RemmiAction
+import com.remmi.app.core.plugins.actions.RemmiAction
 import kotlinx.datetime.Instant
 import java.util.UUID
 

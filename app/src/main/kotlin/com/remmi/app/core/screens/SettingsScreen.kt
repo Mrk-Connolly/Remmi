@@ -17,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
-import com.remmi.app.core.host.HostContext
+import com.remmi.app.core.runtime.RemmiRuntime
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.navigation.getIconForName
 import kotlinx.coroutines.delay
@@ -26,11 +26,11 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    context: HostContext,
+    runtime: RemmiRuntime,
     onBack: () -> Unit
 ) {
     Log.d("Remmi", "[SettingsScreen] - [SettingsScreen] executed")
-    val pluginManager = context.pluginManager
+    val pluginManager = runtime.pluginManager
     val metadata by pluginManager.pluginMetadata.collectAsState()
     val scope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }

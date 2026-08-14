@@ -1,8 +1,8 @@
 package com.remmi.app.plugins.tasks
 
 import android.util.Log
-import com.remmi.app.core.actions.RemmiAction
-import com.remmi.app.core.model.components.RepeatRule
+import com.remmi.app.core.plugins.actions.RemmiAction
+import com.remmi.app.core.plugins.model.components.RepeatRule
 import com.remmi.app.core.plugins.PluginManager
 import com.remmi.app.plugins.alarm.AlarmActions
 import com.remmi.app.plugins.calendar.CalendarItem

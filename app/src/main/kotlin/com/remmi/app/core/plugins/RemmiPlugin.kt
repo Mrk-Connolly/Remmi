@@ -1,11 +1,10 @@
 package com.remmi.app.core.plugins
 
-import com.remmi.app.core.actions.RemmiAction
-import com.remmi.app.core.model.models.RemmiModel
-import com.remmi.app.core.repository.RemmiRepository
+import com.remmi.app.core.plugins.actions.RemmiAction
+import com.remmi.app.core.plugins.model.models.RemmiModel
+import com.remmi.app.core.plugins.repository.RemmiRepository
 import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.service.DatabaseService
-import com.remmi.app.core.widgets.RemmiWidget
+import com.remmi.app.core.plugins.widgets.RemmiWidget
 
 /**
  * Interface defining the structure and lifecycle of a Remmi Plugin.

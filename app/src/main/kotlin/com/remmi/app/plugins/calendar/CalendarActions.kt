@@ -1,8 +1,7 @@
 package com.remmi.app.plugins.calendar
 
 import android.util.Log
-import com.remmi.app.core.actions.RemmiAction
-import com.remmi.app.core.model.components.Priority
+import com.remmi.app.core.plugins.actions.RemmiAction
 import com.remmi.app.core.plugins.PluginManager
 import com.remmi.app.plugins.alarm.AlarmActions
 import com.remmi.app.plugins.contacts.ContactActions

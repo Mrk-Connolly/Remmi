@@ -1,7 +1,7 @@
 package com.remmi.app.plugins.alarm
 
 import android.util.Log
-import com.remmi.app.core.repository.CloudRepository
+import com.remmi.app.core.plugins.repository.CloudRepository
 import com.remmi.app.core.service.DatabaseService
 
 /**

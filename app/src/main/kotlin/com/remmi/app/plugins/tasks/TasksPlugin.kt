@@ -8,7 +8,8 @@ import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.service.SupabaseService
 import com.remmi.app.plugins.calendar.CalendarRepository
-import com.remmi.app.core.widgets.RemmiWidget
+import com.remmi.app.core.plugins.widgets.RemmiWidget
+import com.remmi.app.plugins.tasks.ui.screens.TasksScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

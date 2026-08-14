@@ -9,7 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.plugins.PluginManager
-import com.remmi.app.core.widgets.RemmiWidget
+import com.remmi.app.core.plugins.widgets.RemmiWidget
 import com.remmi.app.plugins.tasks.TasksActions
 import com.remmi.app.plugins.tasks.TaskItem
 

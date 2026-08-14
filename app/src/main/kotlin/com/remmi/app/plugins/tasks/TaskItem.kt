@@ -3,9 +3,8 @@ package com.remmi.app.plugins.tasks
 import android.util.Log
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
-import com.remmi.app.core.model.components.Priority
-import com.remmi.app.core.model.components.RepeatRule
-import com.remmi.app.core.model.models.RemmiModel
+import com.remmi.app.core.plugins.model.components.RepeatRule
+import com.remmi.app.core.plugins.model.models.RemmiModel
 import kotlinx.datetime.Instant
 
 /**

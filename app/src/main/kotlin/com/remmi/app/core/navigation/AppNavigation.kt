@@ -20,8 +20,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.remmi.app.core.host.HostContext
 import com.remmi.app.core.plugins.RemmiPlugin
+import com.remmi.app.core.runtime.RemmiRuntime
 import com.remmi.app.core.screens.HomeScreen
 import com.remmi.app.core.screens.SettingsScreen
 import kotlinx.coroutines.launch
@@ -45,15 +45,15 @@ sealed class RemmiDestination(val route: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(context: HostContext) {
+fun AppNavigation(runtime: RemmiRuntime) {
     Log.d("Remmi", "[AppNavigation] - [AppNavigation] executed")
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
-    val metadata by context.pluginManager.pluginMetadata.collectAsState()
+    val metadata by runtime.pluginManager.pluginMetadata.collectAsState()
     val activePlugins = remember(metadata) {
-        metadata.filter { it.enabled }.mapNotNull { context.pluginManager.plugins[it.id] }
+        metadata.filter { it.enabled }.mapNotNull { runtime.pluginManager.plugins[it.id] }
     }
     
     val scaffoldState = rememberBottomSheetScaffoldState(
@@ -136,11 +136,11 @@ fun AppNavigation(context: HostContext) {
         NavHost(
             navController = navController,
             startDestination = RemmiDestination.HOME_ROUTE,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().padding(paddingValues)
         ) {
             composable(RemmiDestination.HOME_ROUTE) {
                 HomeScreen(
-                    pluginManager = context.pluginManager,
+                    pluginManager = runtime.pluginManager,
                     onWidgetClick = { pluginId ->
                         navController.navigate(RemmiDestination.pluginRoute(pluginId))
                     }
@@ -156,7 +156,7 @@ fun AppNavigation(context: HostContext) {
 
             composable(RemmiDestination.SETTINGS_ROUTE) {
                 SettingsScreen(
-                    context = context,
+                    runtime = runtime,
                     onBack = {
                         navController.navigate(RemmiDestination.HOME_ROUTE) {
                             popUpTo(RemmiDestination.HOME_ROUTE) { inclusive = true }
