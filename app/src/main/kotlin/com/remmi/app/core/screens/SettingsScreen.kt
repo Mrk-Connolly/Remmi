@@ -17,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
-import com.remmi.app.core.runtime.RemmiRuntime
+import com.remmi.app.core.runtime.RemmiCore
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.navigation.getIconForName
 import kotlinx.coroutines.delay
@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    runtime: RemmiRuntime,
+    runtime: RemmiCore,
     onBack: () -> Unit
 ) {
     Log.d("Remmi", "[SettingsScreen] - [SettingsScreen] executed")

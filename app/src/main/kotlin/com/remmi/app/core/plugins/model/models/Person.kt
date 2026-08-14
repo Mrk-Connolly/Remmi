@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import com.remmi.app.core.plugins.model.components.ContactInfo
 import com.remmi.app.core.plugins.model.components.Location
 import com.remmi.app.core.plugins.model.components.PersonName
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 
 /**

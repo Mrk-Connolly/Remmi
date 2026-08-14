@@ -2,6 +2,7 @@ package com.remmi.app.core.runtime
 
 import android.content.Context
 import android.util.Log
+import com.remmi.app.core.automation.AutomationEngine
 import com.remmi.app.core.events.EventBus
 import com.remmi.app.core.events.EventManager
 import com.remmi.app.core.plugins.PluginManager
@@ -10,11 +11,12 @@ import com.remmi.app.core.service.ServiceManager
 /**
  * REMMI RUNTIME
  *
- * Class called by host to manage the core runtime, has the ability to load, run and unload
- * all plugins.
+ * Its only use is to load and unload core information during open and close
+ *
  */
-class RemmiRuntime(val androidContext: Context) {
+class RemmiCore(val androidContext: Context) {
 
+    val automationEngine = AutomationEngine()
     val pluginManager = PluginManager()
     val serviceManager = ServiceManager(androidContext)
     val eventManager = EventManager()

@@ -11,6 +11,7 @@ class AutomationEngine : EventListener {
      * scanning and creation of events without user interaction.
      *
      * Will be implemented once the core is sturdy needs access to phone services
+     *
      * */
 
     override fun onEvent(event: RemmiEvent) {
@@ -18,5 +19,8 @@ class AutomationEngine : EventListener {
         Log.d("Remmi", "Automation received: ${event::class.simpleName}")
     }
 
+    fun start(){
+
+    }
 
 }

@@ -21,7 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.remmi.app.core.plugins.RemmiPlugin
-import com.remmi.app.core.runtime.RemmiRuntime
+import com.remmi.app.core.runtime.RemmiCore
 import com.remmi.app.core.screens.HomeScreen
 import com.remmi.app.core.screens.SettingsScreen
 import kotlinx.coroutines.launch
@@ -45,7 +45,7 @@ sealed class RemmiDestination(val route: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(runtime: RemmiRuntime) {
+fun AppNavigation(runtime: RemmiCore) {
     Log.d("Remmi", "[AppNavigation] - [AppNavigation] executed")
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()

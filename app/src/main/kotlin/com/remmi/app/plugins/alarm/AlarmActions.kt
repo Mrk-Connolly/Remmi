@@ -3,7 +3,7 @@ package com.remmi.app.plugins.alarm
 import android.util.Log
 import com.remmi.app.core.plugins.actions.RemmiAction
 import com.remmi.app.core.plugins.PluginManager
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.util.UUID

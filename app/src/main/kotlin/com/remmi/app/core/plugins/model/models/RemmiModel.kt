@@ -1,6 +1,6 @@
 package com.remmi.app.core.plugins.model.models
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 /**
  * Base interface for all data models that can be managed by a [RemmiRepository].
