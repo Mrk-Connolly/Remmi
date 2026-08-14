@@ -78,6 +78,8 @@ fun TasksEditorScreen(
     var addToCalendar by remember { mutableStateOf(initialTask?.linkedCalendar != null) }
     var addToAlarm by remember { mutableStateOf(false) }
     var alarmTime by remember { mutableStateOf<LocalTime?>(null) }
+    var alarmDate by remember { mutableStateOf<LocalDate?>(null) }
+    var showAlarmDatePicker by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
@@ -107,7 +109,8 @@ fun TasksEditorScreen(
 
                             val finalAlarmInstant = if (addToAlarm && alarmTime != null) {
                                 try {
-                                    LocalDateTime(startDate.year, startDate.monthNumber, startDate.dayOfMonth, alarmTime!!.hour, alarmTime!!.minute).toInstant(timeZone)
+                                    val dateToUse = alarmDate ?: startDate
+                                    LocalDateTime(dateToUse.year, dateToUse.monthNumber, dateToUse.dayOfMonth, alarmTime!!.hour, alarmTime!!.minute).toInstant(timeZone)
                                 } catch (e: Exception) {
                                     null
                                 }
@@ -335,27 +338,50 @@ fun TasksEditorScreen(
                                 
                                 Spacer(Modifier.width(16.dp))
 
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    IconButton(
-                                        onClick = { 
-                                            addToAlarm = !addToAlarm
-                                            if (addToAlarm) showAlarmTimePicker = true
-                                        },
-                                        colors = IconButtonDefaults.iconButtonColors(
-                                            contentColor = if (addToAlarm) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                                        )
-                                    ) {
-                                        Icon(Icons.Default.Alarm, contentDescription = "Create Alarm")
-                                    }
-                                    if (addToAlarm && alarmTime != null) {
-                                        Text(
-                                            text = alarmTime.toString().substring(0, 5),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.clickable { showAlarmTimePicker = true }
-                                        )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = { 
+                                        addToAlarm = !addToAlarm
+                                        if (addToAlarm) {
+                                            if (isDueDateEnabled) alarmDate = startDate
+                                            showAlarmTimePicker = true
+                                        }
+                                    },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        contentColor = if (addToAlarm) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Alarm, contentDescription = "Create Alarm")
+                                }
+                                if (addToAlarm) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (isDueDateEnabled && alarmDate != null) {
+                                            Text(
+                                                text = alarmDate.toString(),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.clickable { showAlarmDatePicker = true }
+                                            )
+                                            Text(" at ", style = MaterialTheme.typography.labelMedium)
+                                        }
+                                        if (alarmTime != null) {
+                                            Text(
+                                                text = alarmTime.toString().substring(0, 5),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.clickable { showAlarmTimePicker = true }
+                                            )
+                                        } else {
+                                            Text(
+                                                text = "Set Time",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.clickable { showAlarmTimePicker = true }
+                                            )
+                                        }
                                     }
                                 }
+                            }
                             }
                         }
                     }
@@ -411,6 +437,21 @@ fun TasksEditorScreen(
                 showRepeatDaysDialog = false
             }
         )
+    }
+
+    if (showAlarmDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = (alarmDate ?: startDate).atTime(0, 0).toInstant(timeZone).toEpochMilliseconds())
+        DatePickerDialog(
+            onDismissRequest = { showAlarmDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        alarmDate = Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date
+                    }
+                    showAlarmDatePicker = false
+                }) { Text("OK") }
+            }
+        ) { DatePicker(state = datePickerState) }
     }
 
     if (showAlarmTimePicker) {

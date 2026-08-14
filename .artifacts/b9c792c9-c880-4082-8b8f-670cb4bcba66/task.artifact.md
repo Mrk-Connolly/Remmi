@@ -1,4 +1,6 @@
-- [x] Create `app/src/main/res/mipmap-nodpi` directory
-- [x] Copy `img.png` to `ic_launcher.png` and `ic_launcher_round.png`
-- [x] Update `AndroidManifest.xml` with icon attributes
-- [x] Verify build
+- [x] Update state in `TasksEditorScreen.kt` (`alarmDate`, `showAlarmDatePicker`)
+- [x] Implement Alarm Date Picker Dialog
+- [x] Update Quick Actions UI for Alarm date/time selection
+- [x] Refine Save logic to incorporate `alarmDate`
+- [x] Verify build and functionality
+- [x] Create walkthrough
