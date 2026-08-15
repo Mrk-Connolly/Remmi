@@ -8,12 +8,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.widgets.RemmiWidget
 
 /**
  * Dashboard widget for the Tasks plugin.
  */
 class TasksWidget(
+    override val metadata: PluginMetadata,
     private val tasksActions: TasksActions
 ) : RemmiWidget {
 

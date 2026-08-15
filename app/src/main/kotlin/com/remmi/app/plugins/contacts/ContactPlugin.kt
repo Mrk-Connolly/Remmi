@@ -23,7 +23,7 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
 
     override val repository: ContactRepository = ContactRepository(SupabaseService)
     override val actions: ContactActions = ContactActions(repository)
-    override val widget: RemmiWidget = ContactWidget(actions)
+    override val widget: RemmiWidget = ContactWidget(metadata, actions)
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content() {
             Log.d("Remmi", "[ContactPlugin] - [Content] executed")

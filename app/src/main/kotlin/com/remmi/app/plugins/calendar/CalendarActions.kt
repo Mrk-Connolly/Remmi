@@ -6,6 +6,7 @@ import com.remmi.app.core.plugins.PluginManager
 import com.remmi.app.plugins.alarm.AlarmActions
 import com.remmi.app.plugins.contacts.ContactActions
 import com.remmi.app.plugins.tasks.TaskItem
+import com.remmi.app.plugins.tasks.TasksActions
 import com.remmi.app.plugins.tasks.TasksRepository
 import kotlinx.datetime.*
 import java.util.UUID
@@ -36,6 +37,10 @@ class CalendarActions(
     fun getContactActions(): ContactActions? {
         Log.d("Remmi", "[CalendarActions] - [getContactActions] executed")
         return pluginManager.plugins["contacts"]?.actions as? ContactActions
+    }
+    fun getTasksActions(): TasksActions? {
+        Log.d("Remmi", "[CalendarActions] - [getTasksActions] executed")
+        return pluginManager.plugins["tasks"]?.actions as? TasksActions
     }
 
     suspend fun addEvent(

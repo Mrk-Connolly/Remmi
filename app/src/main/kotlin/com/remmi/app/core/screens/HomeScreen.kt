@@ -24,19 +24,21 @@ fun HomeScreen(
     onWidgetClick: (String) -> Unit
 ) {
     Log.d("Remmi", "[HomeScreen] - [HomeScreen] executed")
-    val metadata by pluginManager.pluginMetadata.collectAsState()
     val scope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }
 
-    val activeWidgetIds = remember(metadata) {
-        metadata.filter { it.enabled && it.showWidget }.map { it.id }.toSet()
+    // We observe metadata change to trigger recomposition when settings change
+    val metadata by pluginManager.pluginMetadata.collectAsState()
+
+    // Calculate visible widgets when metadata or plugins change
+    val visiblePlugins = remember(metadata, pluginManager.plugins) {
+        pluginManager.plugins.values.filter { it.widget.isEnabled() }
     }
 
     val onRefresh: () -> Unit = {
         scope.launch {
             isRefreshing = true
-            // Reload metadata or sync widgets if needed
-            // For now, just a delay to show it works
+            // In the future, this could trigger a global sync
             delay(500)
             isRefreshing = false
         }
@@ -68,11 +70,11 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Widgets below the greeting
+            // Render all enabled widgets
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                pluginManager.getWidgets(activeWidgetIds).forEach { (id, widget) ->
-                    Box(modifier = Modifier.clickable { onWidgetClick(id) }) {
-                        widget.Content()
+                visiblePlugins.forEach { plugin ->
+                    Box(modifier = Modifier.clickable { onWidgetClick(plugin.metadata.id) }) {
+                        plugin.widget.Content()
                     }
                 }
             }

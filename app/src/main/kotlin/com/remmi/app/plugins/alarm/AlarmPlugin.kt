@@ -40,7 +40,7 @@ class AlarmPlugin(
     /**
      * Dashboard widget for alarms.
      */
-    override val widget: RemmiWidget = AlarmWidget(actions)
+    override val widget: RemmiWidget = AlarmWidget(metadata, actions)
 
     /**
      * UI screen for detailed alarm management.

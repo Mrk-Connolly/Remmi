@@ -32,6 +32,7 @@ class GiftPlugin(
         get() = (pluginManager.plugins["contacts"] as? ContactPlugin)?.actions
 
     override val widget: RemmiWidget = object : RemmiWidget {
+        override val metadata: PluginMetadata = this@GiftPlugin.metadata
         @Composable override fun Content() {
             Log.d("Remmi", "[GiftPlugin] - [Content] (widget) executed")
             // Placeholder for gift widget if needed later

@@ -2,7 +2,6 @@ package com.remmi.app.core.plugins
 
 import android.content.Context
 import android.util.Log
-import com.remmi.app.core.plugins.widgets.RemmiWidget
 import com.remmi.app.plugins.alarm.AlarmPlugin
 import com.remmi.app.plugins.calendar.CalendarPlugin
 import com.remmi.app.plugins.contacts.ContactPlugin
@@ -49,7 +48,6 @@ class PluginManager {
      * reads all available plugins to be installed and saves their information*/
     fun readPlugins(context: Context) {
         Log.d("Remmi", "[PluginManager] - [readPlugins] executed")
-        Log.d("Remmi", "Accessing plugin information")
         this.androidContext = context
 
         val localFile = File(context.filesDir, "plugins.json")
@@ -103,7 +101,6 @@ class PluginManager {
 
     fun loadPlugins() {
         Log.d("Remmi", "[PluginManager] - [loadPlugins] executed")
-        Log.d("Remmi", "Loading plugins...")
 
         // Remove any existing data
         plugins.values.forEach { it.onUnload() }
@@ -129,15 +126,6 @@ class PluginManager {
             } catch (e: Exception) {
                 println("Something went wrong loading plugin: ${e.message}, check plugin loader")
             }
-        }
-    }
-
-    fun getWidgets(allowedIds: Set<String>): List<Pair<String, RemmiWidget>> {
-        Log.d("Remmi", "[PluginManager] - [getWidgets] executed")
-        return plugins.filter { (id, plugin) -> 
-            id in allowedIds && plugin.metadata.showWidget 
-        }.map { (id, plugin) -> 
-            id to plugin.widget 
         }
     }
 

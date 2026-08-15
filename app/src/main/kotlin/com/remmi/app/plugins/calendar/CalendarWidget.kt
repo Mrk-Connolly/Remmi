@@ -8,17 +8,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.remmi.app.core.plugins.PluginManager
+import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.widgets.RemmiWidget
-import com.remmi.app.plugins.tasks.TasksActions
 import com.remmi.app.plugins.tasks.TaskItem
 
 /**
  * Dashboard widget for the Calendar plugin.
  */
 class CalendarWidget(
-    private val calendarActions: CalendarActions,
-    private val pluginManager: PluginManager
+    override val metadata: PluginMetadata,
+    private val calendarActions: CalendarActions
 ) : RemmiWidget {
 
     init {
@@ -31,9 +30,7 @@ class CalendarWidget(
         var todayEvents by remember { mutableStateOf(emptyList<CalendarItem>()) }
         var priorityTasks by remember { mutableStateOf(emptyList<TaskItem>()) }
 
-        val tasksActions = remember { 
-            pluginManager.plugins["tasks"]?.actions as? TasksActions 
-        }
+        val tasksActions = remember { calendarActions.getTasksActions() }
 
         LaunchedEffect(Unit) {
             todayEvents = calendarActions.getTodayEvents()

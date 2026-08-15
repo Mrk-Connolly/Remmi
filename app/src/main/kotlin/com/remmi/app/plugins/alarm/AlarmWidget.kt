@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.widgets.RemmiWidget
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -15,7 +16,10 @@ import kotlinx.datetime.toLocalDateTime
 /**
  * Dashboard widget for the Alarms plugin.
  */
-class AlarmWidget(private val actions: AlarmActions) : RemmiWidget {
+class AlarmWidget(
+    override val metadata: PluginMetadata,
+    private val actions: AlarmActions
+) : RemmiWidget {
 
     init {
         Log.d("Remmi", "[AlarmWidget] - [constructor] executed")

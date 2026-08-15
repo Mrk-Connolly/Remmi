@@ -8,12 +8,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.widgets.RemmiWidget
 
 /**
  * Dashboard widget for favorite contacts.
  */
-class ContactWidget(private val actions: ContactActions) : RemmiWidget {
+class ContactWidget(
+    override val metadata: PluginMetadata,
+    private val actions: ContactActions
+) : RemmiWidget {
 
     init {
         Log.d("Remmi", "[ContactWidget] - [constructor] executed")

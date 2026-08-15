@@ -34,7 +34,7 @@ class CalendarPlugin(
         id = "calendar_actions",
         name = "Calendar Actions"
     )
-    override val widget: RemmiWidget = CalendarWidget(actions, pluginManager)
+    override val widget: RemmiWidget = CalendarWidget(metadata, actions)
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable
         override fun Content() {

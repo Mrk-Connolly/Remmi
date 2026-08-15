@@ -32,7 +32,7 @@ class TasksPlugin(
         CalendarRepository(SupabaseService),
         pluginManager
     )
-    override val widget: RemmiWidget = TasksWidget(actions)
+    override val widget: RemmiWidget = TasksWidget(metadata, actions)
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content() {
             Log.d("Remmi", "[TasksPlugin] - [Content] executed")
