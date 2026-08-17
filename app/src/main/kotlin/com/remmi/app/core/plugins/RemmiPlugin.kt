@@ -39,8 +39,14 @@ interface RemmiPlugin {
     //                             INTERFACE FUNCTIONS
     // ----------------------------------------------------------------------------
 
+    /**                                   Initialize
+     * Configure the plugin with the shared system context.
+     * Must be called before any other operation.
+     */
+    suspend fun initialize(context: PluginContext)
+
     /**                                   Load
-     * Load plugin and items.
+     * Load plugin items and prepare for execution.
      */
     fun onLoad()
 

@@ -1,12 +1,11 @@
 package com.remmi.app.plugins.tasks
 
 import android.util.Log
+import com.remmi.app.core.events.EventBus
+import com.remmi.app.core.events.EventType
+import com.remmi.app.core.events.PluginEvent
 import com.remmi.app.core.plugins.actions.RemmiAction
 import com.remmi.app.core.plugins.model.components.RepeatRule
-import com.remmi.app.core.plugins.PluginManager
-import com.remmi.app.plugins.alarm.AlarmActions
-import com.remmi.app.plugins.calendar.CalendarItem
-import com.remmi.app.plugins.calendar.CalendarRepository
 import kotlinx.datetime.*
 import java.util.UUID
 
@@ -15,11 +14,21 @@ import java.util.UUID
  */
 class TasksActions(
     private val repository: TasksRepository,
-    private val calendarRepository: CalendarRepository,
-    private val pluginManager: PluginManager,
     override val id: String = "tasks_actions",
     override val name: String = "Tasks Actions"
 ) : RemmiAction {
+
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Shared system event bus */
+    override var eventBus: EventBus? = null
+
+    companion object {
+        private const val TAG = "TasksActions"
+    }
 
 
     // ----------------------------------------------------------------------------
@@ -33,25 +42,13 @@ class TasksActions(
         Log.d("Remmi", "[TasksActions] - Constructor initialized")
     }
 
-    companion object {
-        private const val TAG = "TasksActions"
-    }
-
 
     // ----------------------------------------------------------------------------
     //                                ACTION FUNCTIONS
     // ----------------------------------------------------------------------------
 
-    /**                                 Get Alarm Actions
-     * Retrieve actions from the Alarm plugin via PluginManager
-     * */
-    fun getAlarmActions(): AlarmActions? {
-        Log.d("Remmi", "[TasksActions] - [getAlarmActions] executed")
-        return pluginManager.plugins["alarm"]?.actions as? AlarmActions
-    }
-
     /**                                 Create Task
-     * Create a new task and optionally link it to Calendar and Alarms
+     * Create a new task and publish a Fact event
      * */
     suspend fun createTask(
         title: String,
@@ -59,46 +56,12 @@ class TasksActions(
         dueDate: Instant? = null,
         isPriority: Boolean = false,
         group: String? = null,
-        repeat: RepeatRule? = null,
-        addToCalendar: Boolean = false,
-        addToAlarm: Boolean = false,
-        alarmTime: Instant? = null
+        repeat: RepeatRule? = null
     ): Boolean {
         Log.d("Remmi", "[TasksActions] - [createTask] executed")
         return try {
             val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             val taskId = UUID.randomUUID().toString()
-            var calendarItemId: String? = null
-
-            if (addToCalendar) {
-                val startDateTime = dueDate?.toLocalDateTime(TimeZone.currentSystemDefault()) ?: now.toLocalDateTime(TimeZone.currentSystemDefault())
-                val calendarItem = CalendarItem(
-                    id = UUID.randomUUID().toString(),
-                    created = now,
-                    modified = now,
-                    title = title,
-                    description = description,
-                    startingDate = startDateTime.date,
-                    startingTime = startDateTime.time,
-                    isPriority = isPriority,
-                    group = group,
-                    linkedTasks = listOf(taskId)
-                )
-                calendarRepository.insert(calendarItem)
-                calendarItemId = calendarItem.id
-            }
-            
-            if (addToAlarm) {
-                val finalAlarmTime = alarmTime ?: dueDate
-                if (finalAlarmTime != null) {
-                    getAlarmActions()?.addAlarm(
-                        title = title,
-                        description = description,
-                        time = finalAlarmTime,
-                        isPriority = isPriority
-                    )
-                }
-            }
 
             val task = TaskItem(
                 id = taskId,
@@ -111,11 +74,21 @@ class TasksActions(
                 group = group,
                 completed = false,
                 repeat = repeat,
-                linkedCalendar = calendarItemId
+                linkedCalendar = null // Will be linked via AutomationEngine if needed
             )
 
             repository.insert(task)
             Log.d(TAG, "Task created successfully")
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "tasks",
+                    type = EventType.CREATED,
+                    itemId = task.id
+                )
+            )
+
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create task", e)
@@ -124,30 +97,23 @@ class TasksActions(
     }
 
     /**                                 Update Task
-     * Update task details and synchronize with linked calendar events
-     * */
+     * Update task details and publish a Fact event
+     */
     suspend fun updateTask(task: TaskItem): Boolean {
         Log.d("Remmi", "[TasksActions] - [updateTask] executed")
         return try {
             task.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             repository.updateCloud(task)
 
-            // Sync with linked calendar item
-            task.linkedCalendar?.let { calendarId ->
-                calendarRepository.get(calendarId)?.let { calendarItem ->
-                    val startDateTime = task.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())
-                    val updatedCalendarItem = calendarItem.copy(
-                        modified = task.modified,
-                        title = task.title,
-                        description = task.description,
-                        startingDate = startDateTime?.date ?: calendarItem.startingDate,
-                        startingTime = startDateTime?.time ?: calendarItem.startingTime,
-                        isPriority = task.isPriority,
-                        group = task.group
-                    )
-                    calendarRepository.updateCloud(updatedCalendarItem)
-                }
-            }
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "tasks",
+                    type = EventType.UPDATED,
+                    itemId = task.id
+                )
+            )
+
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to update task", e)
@@ -156,16 +122,22 @@ class TasksActions(
     }
 
     /**                                 Delete Task
-     * Delete a task and its linked calendar item
+     * Delete a task by ID and publish a Fact event
      * */
     suspend fun deleteTask(id: String): Boolean {
         Log.d("Remmi", "[TasksActions] - [deleteTask] executed")
         return try {
-            val task = repository.get(id)
-            task?.linkedCalendar?.let { calendarId ->
-                calendarRepository.delete(calendarId)
-            }
             repository.delete(id)
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "tasks",
+                    type = EventType.DELETED,
+                    itemId = id
+                )
+            )
+
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete task", e)
@@ -203,7 +175,7 @@ class TasksActions(
         try {
             repository.sync()
         } catch (e: Exception) {
-            Log.e(TAG, "Sync failed", e)
+            Log.e(TAG, "Sync failed")
         }
     }
 
@@ -233,12 +205,10 @@ class TasksActions(
     }
 
     /**                                 Get All Groups
-     * Retrieve all unique group names from tasks and calendar events
+     * Retrieve all unique group names from tasks
      * */
     suspend fun getAllGroups(): List<String> {
         Log.d("Remmi", "[TasksActions] - [getAllGroups] executed")
-        val taskGroups = repository.getAll().mapNotNull { it.group }
-        val eventGroups = calendarRepository.getAll().mapNotNull { it.group }
-        return (taskGroups + eventGroups).distinct().sorted()
+        return repository.getAll().mapNotNull { it.group }.distinct().sorted()
     }
 }

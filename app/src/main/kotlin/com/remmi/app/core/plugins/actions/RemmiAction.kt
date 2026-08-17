@@ -1,5 +1,7 @@
 package com.remmi.app.core.plugins.actions
 
+import com.remmi.app.core.events.EventBus
+
 /**
  * Base interface for all actions within the Remmi ecosystem.
  *
@@ -17,6 +19,9 @@ interface RemmiAction {
 
     /** Human-readable name for the actions */
     val name: String
+
+    /** Shared system event bus for publishing completed facts */
+    var eventBus: EventBus?
 
 
     // ----------------------------------------------------------------------------

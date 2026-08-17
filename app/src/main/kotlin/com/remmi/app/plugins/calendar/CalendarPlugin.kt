@@ -2,14 +2,12 @@ package com.remmi.app.plugins.calendar
 
 import android.util.Log
 import androidx.compose.runtime.Composable
-import com.remmi.app.core.plugins.PluginManager
+import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.service.SupabaseService
 import com.remmi.app.core.plugins.widgets.RemmiWidget
-import com.remmi.app.plugins.calendar.ui.screens.CalendarScreen
-import com.remmi.app.plugins.tasks.TasksRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -18,8 +16,7 @@ import kotlinx.coroutines.launch
  * The main entry point for the Calendar plugin.
  */
 class CalendarPlugin(
-    override val metadata: PluginMetadata,
-    private val pluginManager: PluginManager
+    override val metadata: PluginMetadata
 ) : RemmiPlugin {
 
 
@@ -27,14 +24,15 @@ class CalendarPlugin(
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
+    /** Shared system context */
+    private lateinit var context: PluginContext
+
     /** Repository for managing Calendar data */
     override val repository: CalendarRepository = CalendarRepository(SupabaseService)
 
     /** Action controller for calendar logic. */
     override val actions: CalendarActions = CalendarActions(
         repository,
-        TasksRepository(SupabaseService),
-        pluginManager,
         id = "calendar_actions",
         name = "Calendar Actions"
     )
@@ -47,7 +45,8 @@ class CalendarPlugin(
         @Composable
         override fun Content() {
             Log.d("Remmi", "[CalendarPlugin] - [Content] executed")
-            CalendarScreen(actions)
+            // This is a default Content call.
+            // Screen dependencies should be handled via standard navigation.
         }
     }
 
@@ -67,6 +66,15 @@ class CalendarPlugin(
     // ----------------------------------------------------------------------------
     //                                CORE FUNCTIONS
     // ----------------------------------------------------------------------------
+
+    /**                                   Initialize
+     * Configure the plugin with the shared system context.
+     */
+    override suspend fun initialize(context: PluginContext) {
+        Log.d("Remmi", "[CalendarPlugin] - Initializing with shared context")
+        this.context = context
+        actions.eventBus = context.eventBus
+    }
 
     /**                                   On Load
      * Called when the plugin is loaded.

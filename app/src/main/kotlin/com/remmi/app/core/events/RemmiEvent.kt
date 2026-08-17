@@ -3,13 +3,16 @@ package com.remmi.app.core.events
 /**
  * Interface representing a system-wide or plugin-specific event.
  *
- * REMMI EVENT is the base of all remmi runtime events and errors created
- * by any plugin.
+ * Events are notifications of completed facts (facts).
  */
 interface RemmiEvent {
 
-    // ----------------------------------------------------------------------------
-    //                             INTERFACE FUNCTIONS
-    // ----------------------------------------------------------------------------
+    /** Unique identifier for the event instance */
+    val eventId: String
 
+    /** The system or plugin that originated the event (e.g., "calendar", "automation") */
+    val source: String
+
+    /** Standard type of the event */
+    val type: EventType
 }

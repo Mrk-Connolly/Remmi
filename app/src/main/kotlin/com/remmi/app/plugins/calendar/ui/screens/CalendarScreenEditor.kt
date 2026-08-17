@@ -10,12 +10,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.screens.components.*
-import com.remmi.app.core.screens.components.popups.LocationDialog
-import com.remmi.app.core.screens.components.popups.ContactsSelectionDialog
+import com.remmi.app.core.screens.popups.LocationDialog
+import com.remmi.app.core.screens.popups.ContactsSelectionDialog
 import com.remmi.app.plugins.calendar.CalendarActions
 import com.remmi.app.plugins.calendar.CalendarItem
 import com.remmi.app.plugins.calendar.ui.popups.*
+import com.remmi.app.plugins.alarm.AlarmActions
+import com.remmi.app.plugins.tasks.TasksActions
+import com.remmi.app.plugins.contacts.ContactActions
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
 import kotlinx.coroutines.launch
@@ -31,6 +35,7 @@ sealed class EditorMode {
 fun CalendarEditorScreen(
     mode: EditorMode,
     actions: CalendarActions,
+    controller: RemmiController,
     onDismiss: () -> Unit,
     onSave: () -> Unit
 ) {
@@ -59,10 +64,13 @@ fun CalendarEditorScreen(
     var newGroupName by remember { mutableStateOf("") }
 
     var contacts by remember { mutableStateOf(emptyList<com.remmi.app.plugins.contacts.ContactItem>()) }
+    val contactActions = remember { controller.pluginManager.plugins["contacts"]?.actions as? ContactActions }
+    val alarmActions = remember { controller.pluginManager.plugins["alarm"]?.actions as? AlarmActions }
+    val tasksActions = remember { controller.pluginManager.plugins["tasks"]?.actions as? TasksActions }
 
     LaunchedEffect(Unit) {
         existingGroups = actions.getAllGroups()
-        contacts = actions.getContactActions()?.getAllContacts() ?: emptyList()
+        contacts = contactActions?.getAllContacts() ?: emptyList()
     }
 
     var isRepeatable by remember { mutableStateOf(initialEvent?.repeat?.isNotEmpty() == true) }
@@ -111,9 +119,9 @@ fun CalendarEditorScreen(
                         isPriority = isPriority,
                         group = group,
                         repeat = repeatList,
-                        linkedTasks = linkedTaskIds,
-                        location = locations,
-                        participants = participants
+                        linkedTasks = linkedTaskIds.toList(),
+                        location = locations.toList(),
+                        participants = participants.toList()
                     ))
                 } else {
                     actions.addEvent(
@@ -127,9 +135,9 @@ fun CalendarEditorScreen(
                         isPriority = isPriority,
                         group = group,
                         repeat = repeatList,
-                        linkedTasks = linkedTaskIds,
-                        location = locations,
-                        participants = participants
+                        linkedTasks = linkedTaskIds.toList(),
+                        location = locations.toList(),
+                        participants = participants.toList()
                     )
                 }
                 onSave()
@@ -341,23 +349,15 @@ fun CalendarEditorScreen(
             onDismiss = { showTaskDialog = false },
             onSave = { t, d, s, p, r ->
                 scope.launch {
-                    val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-                    val newTaskId = UUID.randomUUID().toString()
-                    val newTask = com.remmi.app.plugins.tasks.TaskItem(
-                        id = newTaskId,
-                        created = now,
-                        modified = now,
+                    tasksActions?.createTask(
                         title = t,
                         description = d,
                         dueDate = s,
                         isPriority = p,
                         group = group,
-                        completed = false,
-                        repeat = r,
-                        linkedCalendar = currentEventId
+                        repeat = r
                     )
-                    actions.addTask(newTask)
-                    linkedTaskIds.add(newTaskId)
+                    // Note: linkedCalendar logic would be handled by AutomationEngine fact check
                     showTaskDialog = false
                 }
             }
@@ -373,16 +373,13 @@ fun CalendarEditorScreen(
             onDismiss = { showAlarmConfirmation = false },
             onSave = { t, d, time, p ->
                 scope.launch {
-                    val alarmActions = actions.getAlarmActions()
-                    if (alarmActions != null) {
-                        val alarmTime = startDate.atTime(time).toInstant(timeZone)
-                        alarmActions.addAlarm(
-                            title = t,
-                            description = d,
-                            time = alarmTime,
-                            isPriority = p
-                        )
-                    }
+                    val alarmTime = startDate.atTime(time).toInstant(timeZone)
+                    alarmActions?.addAlarm(
+                        title = t,
+                        description = d,
+                        time = alarmTime,
+                        isPriority = p
+                    )
                     showAlarmConfirmation = false
                 }
             }

@@ -1,4 +1,4 @@
-package com.remmi.app.core.screens.components.popups
+package com.remmi.app.core.screens.popups
 
 import android.util.Log
 import androidx.compose.foundation.clickable

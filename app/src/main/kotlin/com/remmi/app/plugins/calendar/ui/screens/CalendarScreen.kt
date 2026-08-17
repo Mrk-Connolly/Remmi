@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.plugins.calendar.CalendarActions
 import com.remmi.app.plugins.calendar.CalendarItem
 import io.github.boguszpawlowski.composecalendar.SelectableCalendar
@@ -35,7 +36,10 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(actions: CalendarActions) {
+fun CalendarScreen(
+    actions: CalendarActions,
+    controller: RemmiController
+) {
     Log.d("Remmi", "[CalendarScreen] - [CalendarScreen] executed")
     var editorMode by remember { mutableStateOf<EditorMode?>(null) }
     var selectedEvent by remember { mutableStateOf<CalendarItem?>(null) }
@@ -86,6 +90,7 @@ fun CalendarScreen(actions: CalendarActions) {
         CalendarEditorScreen(
             mode = editorMode!!,
             actions = actions,
+            controller = controller,
             onDismiss = { editorMode = null },
             onSave = {
                 scope.launch {

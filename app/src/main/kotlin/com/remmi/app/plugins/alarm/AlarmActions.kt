@@ -1,8 +1,10 @@
 package com.remmi.app.plugins.alarm
 
 import android.util.Log
+import com.remmi.app.core.events.EventBus
+import com.remmi.app.core.events.EventType
+import com.remmi.app.core.events.PluginEvent
 import com.remmi.app.core.plugins.actions.RemmiAction
-import com.remmi.app.core.plugins.PluginManager
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -15,7 +17,6 @@ import java.util.UUID
  */
 class AlarmActions(
     private val repository: AlarmRepository,
-    private val pluginManager: PluginManager,
     override val id: String = "alarm_actions",
     override val name: String = "Alarm Actions"
 ) : RemmiAction {
@@ -27,6 +28,9 @@ class AlarmActions(
 
     /** Internal handler for Android AlarmManager */
     private val androidHandler = AndroidAlarmHandler()
+
+    /** Shared system event bus */
+    override var eventBus: EventBus? = null
 
 
     // ----------------------------------------------------------------------------
@@ -105,6 +109,15 @@ class AlarmActions(
             }
             
             Log.d("AlarmActions", "System alarm scheduled for: ${alarm.time}")
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "alarm",
+                    type = EventType.CREATED,
+                    itemId = alarm.id
+                )
+            )
             
             true
         } catch (e: Exception) {
@@ -131,6 +144,15 @@ class AlarmActions(
             if (syncToSystem) {
                 androidHandler.syncToSystemClock(alarm.title, alarm.time.toEpochMilliseconds())
             }
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "alarm",
+                    type = EventType.UPDATED,
+                    itemId = alarm.id
+                )
+            )
             
             true
         } catch (e: Exception) {
@@ -151,6 +173,15 @@ class AlarmActions(
             // Cancel system alarm
             Log.d("AlarmActions", "Canceling system alarm for: $id")
             androidHandler.cancelAlarm(id)
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "alarm",
+                    type = EventType.DELETED,
+                    itemId = id
+                )
+            )
             
             true
         } catch (e: Exception) {

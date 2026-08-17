@@ -24,6 +24,8 @@ import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.screens.HomeScreen
 import com.remmi.app.core.screens.SettingsScreen
+import com.remmi.app.plugins.calendar.CalendarActions
+import com.remmi.app.plugins.calendar.ui.screens.CalendarScreen
 import kotlinx.coroutines.launch
 
 /**
@@ -183,7 +185,15 @@ fun AppNavigation(runtime: RemmiController) {
             // Dynamically register enabled plugin routes
             activePlugins.forEach { plugin ->
                 composable(RemmiDestination.pluginRoute(plugin.metadata.id)) {
-                    plugin.screen.Content()
+                    // Inject controller specifically for Calendar as it has cross-plugin needs
+                    if (plugin.metadata.id == "calendar") {
+                        CalendarScreen(
+                            actions = plugin.actions as CalendarActions,
+                            controller = runtime
+                        )
+                    } else {
+                        plugin.screen.Content()
+                    }
                 }
             }
 

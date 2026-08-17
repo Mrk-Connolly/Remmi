@@ -2,6 +2,7 @@ package com.remmi.app.plugins.contacts
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
@@ -21,6 +22,9 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     // ----------------------------------------------------------------------------
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
+
+    /** Shared system context */
+    private lateinit var context: PluginContext
 
     /** Repository for managing Contacts data */
     override val repository: ContactRepository = ContactRepository(SupabaseService)
@@ -55,6 +59,15 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     // ----------------------------------------------------------------------------
     //                                CORE FUNCTIONS
     // ----------------------------------------------------------------------------
+
+    /**                                   Initialize
+     * Configure the plugin with the shared system context.
+     */
+    override suspend fun initialize(context: PluginContext) {
+        Log.d("Remmi", "[ContactPlugin] - Initializing with shared context")
+        this.context = context
+        actions.eventBus = context.eventBus
+    }
 
     /**                                   On Load
      * Called when the plugin is loaded.

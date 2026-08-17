@@ -1,15 +1,29 @@
 package com.remmi.app.plugins.gift
 
 import android.util.Log
+import com.remmi.app.core.events.EventBus
+import com.remmi.app.core.events.EventType
+import com.remmi.app.core.events.PluginEvent
 import com.remmi.app.core.plugins.actions.RemmiAction
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import java.util.UUID
 
+/**
+ * Action controller for the Gift plugin.
+ */
 class GiftActions(
     private val repository: GiftRepository,
     override val id: String = "gift_actions",
     override val name: String = "Gift Actions"
 ) : RemmiAction {
+
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Shared system event bus */
+    override var eventBus: EventBus? = null
 
 
     // ----------------------------------------------------------------------------
@@ -54,6 +68,16 @@ class GiftActions(
                 event = event
             )
             repository.insert(idea)
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "gift",
+                    type = EventType.CREATED,
+                    itemId = idea.id
+                )
+            )
+
             true
         } catch (e: Exception) {
             Log.e("GiftActions", "Failed to add gift idea", e)
@@ -69,6 +93,16 @@ class GiftActions(
         return try {
             idea.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             repository.updateCloud(idea)
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "gift",
+                    type = EventType.UPDATED,
+                    itemId = idea.id
+                )
+            )
+
             true
         } catch (e: Exception) {
             Log.e("GiftActions", "Failed to update gift idea", e)
@@ -83,6 +117,16 @@ class GiftActions(
         Log.d("Remmi", "[GiftActions] - [deleteGiftIdea] executed")
         return try {
             repository.delete(id)
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "gift",
+                    type = EventType.DELETED,
+                    itemId = id
+                )
+            )
+
             true
         } catch (e: Exception) {
             false

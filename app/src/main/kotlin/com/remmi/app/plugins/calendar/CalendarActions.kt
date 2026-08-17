@@ -1,13 +1,10 @@
 package com.remmi.app.plugins.calendar
 
 import android.util.Log
+import com.remmi.app.core.events.EventBus
+import com.remmi.app.core.events.EventType
+import com.remmi.app.core.events.PluginEvent
 import com.remmi.app.core.plugins.actions.RemmiAction
-import com.remmi.app.core.plugins.PluginManager
-import com.remmi.app.plugins.alarm.AlarmActions
-import com.remmi.app.plugins.contacts.ContactActions
-import com.remmi.app.plugins.tasks.TaskItem
-import com.remmi.app.plugins.tasks.TasksActions
-import com.remmi.app.plugins.tasks.TasksRepository
 import kotlinx.datetime.*
 import java.util.UUID
 
@@ -16,11 +13,21 @@ import java.util.UUID
  */
 class CalendarActions(
     private val repository: CalendarRepository,
-    private val tasksRepository: TasksRepository,
-    private val pluginManager: PluginManager,
-    override val id: String,
-    override val name: String
+    override val id: String = "calendar_actions",
+    override val name: String = "Calendar Actions"
 ) : RemmiAction {
+
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Shared system event bus */
+    override var eventBus: EventBus? = null
+
+    companion object {
+        private const val TAG = "CalendarActions"
+    }
 
 
     // ----------------------------------------------------------------------------
@@ -34,38 +41,10 @@ class CalendarActions(
         Log.d("Remmi", "[CalendarActions] - Constructor initialized")
     }
 
-    companion object {
-        private const val TAG = "CalendarActions"
-    }
-
 
     // ----------------------------------------------------------------------------
     //                                ACTION FUNCTIONS
     // ----------------------------------------------------------------------------
-
-    /**                                 Get Alarm Actions
-     * Retrieve actions from the Alarm plugin
-     * */
-    fun getAlarmActions(): AlarmActions? {
-        Log.d("Remmi", "[CalendarActions] - [getAlarmActions] executed")
-        return pluginManager.plugins["alarm"]?.actions as? AlarmActions
-    }
-
-    /**                                 Get Contact Actions
-     * Retrieve actions from the Contacts plugin
-     * */
-    fun getContactActions(): ContactActions? {
-        Log.d("Remmi", "[CalendarActions] - [getContactActions] executed")
-        return pluginManager.plugins["contacts"]?.actions as? ContactActions
-    }
-
-    /**                                 Get Tasks Actions
-     * Retrieve actions from the Tasks plugin
-     * */
-    fun getTasksActions(): TasksActions? {
-        Log.d("Remmi", "[CalendarActions] - [getTasksActions] executed")
-        return pluginManager.plugins["tasks"]?.actions as? TasksActions
-    }
 
     /**                                 Add Event
      * Create and insert a new calendar event
@@ -109,6 +88,16 @@ class CalendarActions(
             )
             repository.insert(item)
             Log.d(TAG, "Event inserted successfully")
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "calendar",
+                    type = EventType.CREATED,
+                    itemId = item.id
+                )
+            )
+
             item.id
         } catch (e: Exception) {
             Log.e(TAG, "Failed to insert event", e)
@@ -117,16 +106,22 @@ class CalendarActions(
     }
 
     /**                                 Remove Event
-     * Delete an event and its linked tasks
+     * Delete an event by ID
      * */
     suspend fun removeEvent(id: String): Boolean {
         Log.d("Remmi", "[CalendarActions] - [removeEvent] executed")
         return try {
-            val event = repository.get(id)
-            event?.linkedTasks?.forEach { taskId ->
-                tasksRepository.delete(taskId)
-            }
             repository.delete(id)
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "calendar",
+                    type = EventType.DELETED,
+                    itemId = id
+                )
+            )
+
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete event", e)
@@ -135,7 +130,7 @@ class CalendarActions(
     }
 
     /**                                 Update Event
-     * Update event details and synchronize linked tasks
+     * Update event details
      * */
     suspend fun updateEvent(event: CalendarItem): Boolean {
         Log.d("Remmi", "[CalendarActions] - [updateEvent] executed")
@@ -143,20 +138,15 @@ class CalendarActions(
             event.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             repository.updateCloud(event)
 
-            // Sync with linked tasks
-            event.linkedTasks.forEach { taskId ->
-                tasksRepository.get(taskId)?.let { task ->
-                    val updatedTask = task.copy(
-                        modified = event.modified,
-                        title = event.title,
-                        description = event.description,
-                        dueDate = event.startingDate.atTime(event.startingTime ?: LocalTime(0, 0)).toInstant(TimeZone.currentSystemDefault()),
-                        isPriority = event.isPriority,
-                        group = event.group
-                    )
-                    tasksRepository.updateCloud(updatedTask)
-                }
-            }
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "calendar",
+                    type = EventType.UPDATED,
+                    itemId = event.id
+                )
+            )
+
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to update event", e)
@@ -177,6 +167,14 @@ class CalendarActions(
         }
     }
 
+    /**                                 Get Event
+     * Retrieve a specific event by ID
+     * */
+    suspend fun getEvent(id: String): CalendarItem? {
+        Log.d("Remmi", "[CalendarActions] - [getEvent] executed")
+        return repository.get(id)
+    }
+
     /**                                 Sync
      * Synchronize events with the cloud
      * */
@@ -189,14 +187,6 @@ class CalendarActions(
             Log.e(TAG, "Failed to synchronize calendar", e)
             false
         }
-    }
-
-    /**                                 Add Task
-     * Create and insert a new task associated with the calendar
-     * */
-    suspend fun addTask(task: TaskItem) {
-        Log.d("Remmi", "[CalendarActions] - [addTask] executed")
-        tasksRepository.insert(task)
     }
 
     /**                                 Get Events On
@@ -236,12 +226,10 @@ class CalendarActions(
     }
 
     /**                                 Get All Groups
-     * Retrieve all unique group names used in events and tasks
+     * Retrieve all unique group names used in events
      * */
     suspend fun getAllGroups(): List<String> {
         Log.d("Remmi", "[CalendarActions] - [getAllGroups] executed")
-        val eventGroups = repository.getAll().mapNotNull { it.group }
-        val taskGroups = tasksRepository.getAll().mapNotNull { it.group }
-        return (eventGroups + taskGroups).distinct().sorted()
+        return repository.getAll().mapNotNull { it.group }.distinct().sorted()
     }
 }

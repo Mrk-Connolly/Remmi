@@ -24,6 +24,7 @@ class RemmiHost(val androidContext: Context) {
     // ----------------------------------------------------------------------------
 
     /**
+     * Constructor for RemmiHost
      * */
     init {
         Log.d("Remmi", "[RemmiHost] - Constructor initialized")
@@ -36,16 +37,17 @@ class RemmiHost(val androidContext: Context) {
     // ----------------------------------------------------------------------------
 
     /**                                 Start
-     * Calls runtime start function
+     * Orchestrates the system startup sequence.
+     * Must be called from a coroutine scope as it initializes plugins.
      * */
-    fun start() {
+    suspend fun start() {
         Log.d("Remmi", "[RemmiHost] - Starting system")
         // Start core functions and load plugins
         runtime.start()
     }
 
     /**                                 Stop
-     * Calls runtime stop function
+     * Orchestrates the system teardown sequence.
      * */
     fun stop() {
         Log.d("Remmi", "[RemmiHost] - Stopping system")

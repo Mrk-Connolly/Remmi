@@ -1,8 +1,11 @@
 package com.remmi.app.plugins.contacts
 
 import android.util.Log
+import com.remmi.app.core.events.EventBus
+import com.remmi.app.core.events.EventType
+import com.remmi.app.core.events.PluginEvent
 import com.remmi.app.core.plugins.actions.RemmiAction
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import java.util.UUID
 
 /**
@@ -13,6 +16,14 @@ class ContactActions(
     override val id: String = "contacts_actions",
     override val name: String = "Contacts Actions"
 ) : RemmiAction {
+
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Shared system event bus */
+    override var eventBus: EventBus? = null
 
 
     // ----------------------------------------------------------------------------
@@ -63,6 +74,16 @@ class ContactActions(
                 inGiftList = inGiftList
             )
             repository.insert(contact)
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "contacts",
+                    type = EventType.CREATED,
+                    itemId = contact.id
+                )
+            )
+
             true
         } catch (e: Exception) {
             Log.e("ContactActions", "Failed to create contact", e)
@@ -78,6 +99,16 @@ class ContactActions(
         return try {
             contact.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             repository.updateCloud(contact)
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "contacts",
+                    type = EventType.UPDATED,
+                    itemId = contact.id
+                )
+            )
+
             true
         } catch (e: Exception) {
             Log.e("ContactActions", "Failed to update contact", e)
@@ -92,6 +123,16 @@ class ContactActions(
         Log.d("Remmi", "[ContactActions] - [deleteContact] executed")
         return try {
             repository.delete(id)
+
+            // Publish Fact
+            eventBus?.publish(
+                PluginEvent(
+                    source = "contacts",
+                    type = EventType.DELETED,
+                    itemId = id
+                )
+            )
+
             true
         } catch (e: Exception) {
             false

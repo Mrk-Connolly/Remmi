@@ -1,26 +1,29 @@
 package com.remmi.app.core.events
 
 import android.util.Log
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 
+/**
+ * EVENT BUS
+ *
+ * Centralized communication channel for system-wide events.
+ * Follows the Publish-Subscribe pattern to ensure loose coupling between components.
+ */
 class EventBus {
 
     // ----------------------------------------------------------------------------
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
-    private val _events = MutableSharedFlow<RemmiEvent>(extraBufferCapacity = 64)
-    val events = _events.asSharedFlow()
+    /** Set of currently active listeners */
+    private val listeners = mutableSetOf<EventListener>()
 
 
     // ----------------------------------------------------------------------------
     //                                 CONSTRUCTOR
     // ----------------------------------------------------------------------------
 
-
     init {
-        Log.d("Remmi", "[Event Bus] - Constructor initialized")
+        Log.d("Remmi", "[EventBus] - Constructor initialized")
     }
 
 
@@ -28,12 +31,19 @@ class EventBus {
     //                                CORE FUNCTIONS
     // ----------------------------------------------------------------------------
 
-    fun stop() {
-        Log.d("Remmi", "[Event Bus] - Stopping services")
+    /**                                 Start
+     * Start the event bus service.
+     * */
+    fun start() {
+        Log.d("Remmi", "[EventBus] - Starting services")
     }
 
-    fun start() {
-        Log.d("Remmi", "[Event Bus] - Starting services")
+    /**                                 Stop
+     * Stop the event bus and clear all subscriptions.
+     * */
+    fun stop() {
+        Log.d("Remmi", "[EventBus] - Stopping services")
+        clear()
     }
 
 
@@ -41,16 +51,43 @@ class EventBus {
     //                                ACTION FUNCTIONS
     // ----------------------------------------------------------------------------
 
+    /**                                 Subscribe
+     * Register a new listener to receive events.
+     * */
+    fun subscribe(listener: EventListener) {
+        Log.d("Remmi", "[EventBus] - Subscribing new listener")
+        listeners.add(listener)
+    }
 
+    /**                                 Unsubscribe
+     * Remove a previously registered listener.
+     * */
+    fun unsubscribe(listener: EventListener) {
+        Log.d("Remmi", "[EventBus] - Unsubscribing listener")
+        listeners.remove(listener)
+    }
+
+    /**                                 Publish
+     * Distribute an event to all subscribed listeners.
+     * Ensures that one listener failure does not interrupt the delivery to others.
+     * */
     suspend fun publish(event: RemmiEvent) {
-        Log.d("Remmi", "[EventBus] - Publishing event: ${event::class.simpleName}")
-        _events.emit(event)
+        Log.d("Remmi", "[EventBus] - Publishing event: ${event.type} from ${event.source}")
+        
+        listeners.forEach { listener ->
+            try {
+                listener.onEvent(event)
+            } catch (e: Exception) {
+                Log.e("Remmi", "[EventBus] - Listener failure for event ${event.eventId}: ${e.message}")
+            }
+        }
     }
 
-    fun tryPublish(event: RemmiEvent) {
-        Log.d("Remmi", "[EventBus] - Try publishing event: ${event::class.simpleName}")
-        _events.tryEmit(event)
+    /**                                 Clear
+     * Remove all listeners from the bus.
+     * */
+    fun clear() {
+        Log.d("Remmi", "[EventBus] - Clearing all listeners")
+        listeners.clear()
     }
-
-
 }

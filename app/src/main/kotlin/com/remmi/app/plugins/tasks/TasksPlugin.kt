@@ -2,12 +2,11 @@ package com.remmi.app.plugins.tasks
 
 import android.util.Log
 import androidx.compose.runtime.Composable
-import com.remmi.app.core.plugins.PluginManager
+import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.service.SupabaseService
-import com.remmi.app.plugins.calendar.CalendarRepository
 import com.remmi.app.core.plugins.widgets.RemmiWidget
 import com.remmi.app.plugins.tasks.ui.screens.TasksScreen
 import kotlinx.coroutines.CoroutineScope
@@ -18,8 +17,7 @@ import kotlinx.coroutines.launch
  * Entry point for the Tasks plugin.
  */
 class TasksPlugin(
-    override val metadata: PluginMetadata,
-    private val pluginManager: PluginManager
+    override val metadata: PluginMetadata
 ) : RemmiPlugin {
 
 
@@ -27,15 +25,14 @@ class TasksPlugin(
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
+    /** Shared system context */
+    private lateinit var context: PluginContext
+
     /** Repository for managing Tasks data */
     override val repository: TasksRepository = TasksRepository(SupabaseService)
 
     /** Action controller for tasks logic. */
-    override val actions: TasksActions = TasksActions(
-        repository,
-        CalendarRepository(SupabaseService),
-        pluginManager
-    )
+    override val actions: TasksActions = TasksActions(repository)
 
     /** Dashboard widget for tasks. */
     override val widget: RemmiWidget = TasksWidget(metadata, actions)
@@ -64,6 +61,15 @@ class TasksPlugin(
     // ----------------------------------------------------------------------------
     //                                CORE FUNCTIONS
     // ----------------------------------------------------------------------------
+
+    /**                                   Initialize
+     * Configure the plugin with the shared system context.
+     */
+    override suspend fun initialize(context: PluginContext) {
+        Log.d("Remmi", "[TasksPlugin] - Initializing with shared context")
+        this.context = context
+        actions.eventBus = context.eventBus
+    }
 
     /**                                   On Load
      * Called when the plugin is loaded.

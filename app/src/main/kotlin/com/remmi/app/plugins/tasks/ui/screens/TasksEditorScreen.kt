@@ -98,17 +98,6 @@ fun TasksEditorScreen(
                 null
             }
 
-            val finalAlarmInstant = if (addToAlarm && alarmTime != null) {
-                try {
-                    val dateToUse = alarmDate ?: startDate
-                    LocalDateTime(dateToUse.year, dateToUse.monthNumber, dateToUse.dayOfMonth, alarmTime!!.hour, alarmTime!!.minute).toInstant(timeZone)
-                } catch (e: Exception) {
-                    null
-                }
-            } else {
-                null
-            }
-            
             scope.launch {
                 if (initialTask != null) {
                     actions.updateTask(initialTask.copy(
@@ -127,10 +116,8 @@ fun TasksEditorScreen(
                         dueDate = finalDueDate,
                         isPriority = isPriority,
                         group = group,
-                        repeat = repeatRule,
-                        addToCalendar = addToCalendar,
-                        addToAlarm = addToAlarm,
-                        alarmTime = finalAlarmInstant
+                        repeat = repeatRule
+                        // Note: addToCalendar and addToAlarm are handled by future automation facts
                     )
                 }
                 onSave()

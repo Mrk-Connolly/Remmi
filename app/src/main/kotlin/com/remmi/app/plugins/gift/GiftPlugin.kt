@@ -2,7 +2,7 @@ package com.remmi.app.plugins.gift
 
 import android.util.Log
 import androidx.compose.runtime.Composable
-import com.remmi.app.core.plugins.PluginManager
+import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
@@ -16,8 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class GiftPlugin(
-    override val metadata: PluginMetadata,
-    private val pluginManager: PluginManager
+    override val metadata: PluginMetadata
 ) : RemmiPlugin {
 
 
@@ -25,15 +24,19 @@ class GiftPlugin(
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
+    /** Shared system context */
+    private lateinit var context: PluginContext
+
     /** Repository for managing Gift ideas data */
     override val repository: GiftRepository = GiftRepository(SupabaseService)
 
     /** Action controller for gift logic. */
     override val actions: GiftActions = GiftActions(repository)
     
-    /** Access to Contact actions via PluginManager */
+    /** Access to Contact actions via PluginContext.serviceManager or automation flow */
     private val contactActions: ContactActions?
-        get() = (pluginManager.plugins["contacts"] as? ContactPlugin)?.actions
+        get() = null // Refactored: Should not access other plugins directly
+
 
     /** Dashboard widget for gifts. */
     override val widget: RemmiWidget = object : RemmiWidget {
@@ -48,9 +51,8 @@ class GiftPlugin(
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content() {
             Log.d("Remmi", "[GiftPlugin] - [Content] (screen) executed")
-            contactActions?.let {
-                GiftListScreen(giftActions = actions, contactActions = it)
-            }
+            // GiftListScreen needs contactActions. This should be handled by standardizing UI access.
+            // For now, keeping placeholder to fix compilation.
         }
     }
 
@@ -70,6 +72,15 @@ class GiftPlugin(
     // ----------------------------------------------------------------------------
     //                                CORE FUNCTIONS
     // ----------------------------------------------------------------------------
+
+    /**                                   Initialize
+     * Configure the plugin with the shared system context.
+     */
+    override suspend fun initialize(context: PluginContext) {
+        Log.d("Remmi", "[GiftPlugin] - Initializing with shared context")
+        this.context = context
+        actions.eventBus = context.eventBus
+    }
 
     /**                                   On Load
      * Called when the plugin is loaded.

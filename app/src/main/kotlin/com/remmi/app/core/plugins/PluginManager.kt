@@ -152,24 +152,39 @@ class PluginManager {
         _pluginMetadata.value.forEach { metadata ->
 
             val plugin = when (metadata.id) {
-                "calendar" -> CalendarPlugin(metadata, this)
-                "tasks" -> TasksPlugin(metadata, this)
-                "alarm" -> AlarmPlugin(metadata, this)
+                "calendar" -> CalendarPlugin(metadata)
+                "tasks" -> TasksPlugin(metadata)
+                "alarm" -> AlarmPlugin(metadata)
                 "contacts" -> ContactPlugin(metadata)
-                "gift" -> GiftPlugin(metadata, this)
+                "gift" -> GiftPlugin(metadata)
                 else -> null
             }
 
             try {
                 plugin?.let {
                     plugins[metadata.id] = plugin
-                    plugin.onLoad()
-                    Log.d("Remmi", "Loaded ${metadata.name}")
+                    Log.d("Remmi", "Discovered ${metadata.name}")
                 }
             } catch (e: Exception) {
                 println("Something went wrong loading plugin: ${e.message}, check plugin loader")
             }
         }
+    }
+
+    /**                                 Initialize All
+     * Configure all discovered plugins with the shared system context
+     * */
+    suspend fun initializeAll(context: PluginContext) {
+        Log.d("Remmi", "[PluginManager] - Initializing all plugins")
+        plugins.values.forEach { it.initialize(context) }
+    }
+
+    /**                                 Load All
+     * Start the data loading process for all initialized plugins
+     * */
+    fun loadAll() {
+        Log.d("Remmi", "[PluginManager] - Loading data for all plugins")
+        plugins.values.forEach { it.onLoad() }
     }
 
 }

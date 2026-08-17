@@ -1,18 +1,32 @@
 package com.remmi.app.core.automation
 
 import android.util.Log
-import com.remmi.app.core.events.EventListener
-import com.remmi.app.core.events.RemmiEvent
+import com.remmi.app.core.events.*
+import com.remmi.app.core.plugins.PluginManager
 
-class AutomationEngine : EventListener {
+/**
+ * AUTOMATION ENGINE
+ *
+ * Central intelligence of the system that reacts to events and triggers automated actions.
+ * Listens to the EventBus and coordinates cross-plugin operations.
+ */
+class AutomationEngine(
+    private val pluginManager: PluginManager,
+    private val eventBus: EventBus
+) : EventListener {
 
     /**
      * REMMI AUTOMATION ENGINE  will be the head of the AI controller for automatic
      * scanning and creation of events without user interaction.
-     *
-     * Will be implemented once the core is sturdy needs access to phone services
-     *
      * */
+
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Flag indicating if the engine is currently running and listening to events */
+    private var running = false
 
 
     // ----------------------------------------------------------------------------
@@ -23,7 +37,7 @@ class AutomationEngine : EventListener {
      * Constructor for Automation Engine
      * */
     init {
-        Log.d("Remmi", "[Automation Engine] - Constructor initialized")
+        Log.d("Remmi", "[AutomationEngine] - Constructor initialized")
     }
 
 
@@ -32,17 +46,23 @@ class AutomationEngine : EventListener {
     // ----------------------------------------------------------------------------
 
     /**                                 Start
-     * Start automation services
+     * Subscribe to the EventBus and start processing events
      * */
     fun start(){
+        if (running) return
         Log.d("Remmi", "[AutomationEngine] - Starting services")
+        eventBus.subscribe(this)
+        running = true
     }
 
     /**                                 Stop
-     * Stop automation services
+     * Unsubscribe from the EventBus and stop processing
      * */
     fun stop() {
+        if (!running) return
         Log.d("Remmi", "[AutomationEngine] - Stopping services")
+        eventBus.unsubscribe(this)
+        running = false
     }
 
 
@@ -52,11 +72,24 @@ class AutomationEngine : EventListener {
 
 
     /**                                 On Event
-     * Handle events received from the system
+     * Entry point for events distributed via the EventBus
      * */
-    override fun onEvent(event: RemmiEvent) {
-        Log.d("Remmi", "[AutomationEngine] - [onEvent] executed")
-        Log.d("Remmi", "Automation received: ${event::class.simpleName}")
+    override suspend fun onEvent(event: RemmiEvent) {
+        Log.d("Remmi", "[AutomationEngine] - Received event: ${event.type} from ${event.source}")
+        
+        when (event) {
+            is PluginEvent -> handlePluginEvent(event)
+        }
+    }
+
+    /**                                 Handle Plugin Event
+     * Process standard CRUD events from plugins and determine if automation is needed
+     * */
+    private suspend fun handlePluginEvent(event: PluginEvent) {
+        Log.d("Remmi", "[AutomationEngine] - Processing plugin event for item ${event.itemId}")
+        
+        // FUTURE: Implement cross-plugin automation logic here
+        // Example: If a Calendar event is deleted, find and delete linked Alarms
     }
 
 }

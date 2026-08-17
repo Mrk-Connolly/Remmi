@@ -1,17 +1,13 @@
 package com.remmi.app.core.events
 
 /**
- * Interface for components that listen for system events
+ * Interface for components that listen for system events.
  */
-interface EventListener {
-
-    // ----------------------------------------------------------------------------
-    //                             INTERFACE FUNCTIONS
-    // ----------------------------------------------------------------------------
+fun interface EventListener {
 
     /**                                 On Event
-     * Callback executed when a RemmiEvent is published to the system
+     * Callback executed when a RemmiEvent is published to the system.
+     * Must be a suspend function to allow asynchronous processing.
      * */
-    fun onEvent(event: RemmiEvent)
-
+    suspend fun onEvent(event: RemmiEvent)
 }

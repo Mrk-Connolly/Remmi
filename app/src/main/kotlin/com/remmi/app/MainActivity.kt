@@ -5,9 +5,11 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.lifecycleScope
 
 import com.remmi.app.core.host.RemmiHost
 import com.remmi.app.core.screens.RemmiApp
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     // Android launches this class when the user opens Remmi.
@@ -18,10 +20,6 @@ class MainActivity : ComponentActivity() {
 
     /** RemmiHost is the lead function that executes core functions and their environment*/
     private lateinit var remmiHost: RemmiHost
-
-
-
-
 
 
     // ----------------------------------------------------------------------------
@@ -35,18 +33,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d("Remmi", "[MainActivity] - App started")
 
-        /**
-         * Bundle : Saves remmiHost in a bundle so that android actions
-         * can erase their information nor stop their function
-         *
-         * Calls the onCreate from parent class, dont know why
-         * */
-
         super.onCreate(savedInstanceState)
 
         // Initialize the Remmi core system
         remmiHost = RemmiHost(applicationContext)
-        remmiHost.start()
+        
+        // Start the system in a coroutine
+        lifecycleScope.launch {
+            remmiHost.start()
+        }
 
         // Initialise and run UI system
         enableEdgeToEdge()

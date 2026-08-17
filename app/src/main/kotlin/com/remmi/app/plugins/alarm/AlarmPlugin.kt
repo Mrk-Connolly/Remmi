@@ -2,7 +2,7 @@ package com.remmi.app.plugins.alarm
 
 import android.util.Log
 import androidx.compose.runtime.Composable
-import com.remmi.app.core.plugins.PluginManager
+import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
@@ -19,8 +19,7 @@ import kotlinx.coroutines.launch
  * Integrates alarm scheduling and management into the Remmi platform.
  */
 class AlarmPlugin(
-    override val metadata: PluginMetadata,
-    private val pluginManager: PluginManager
+    override val metadata: PluginMetadata
 ) : RemmiPlugin {
 
 
@@ -28,11 +27,14 @@ class AlarmPlugin(
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
+    /** Shared system context */
+    private lateinit var context: PluginContext
+
     /** Repository for persistent alarm data. */
     override val repository: AlarmRepository = AlarmRepository(SupabaseService)
 
     /** Action controller for alarm logic. */
-    override val actions: AlarmActions = AlarmActions(repository, pluginManager)
+    override val actions: AlarmActions = AlarmActions(repository)
 
     /** Dashboard widget for alarms. */
     override val widget: RemmiWidget = AlarmWidget(metadata, actions)
@@ -61,6 +63,15 @@ class AlarmPlugin(
     // ----------------------------------------------------------------------------
     //                                CORE FUNCTIONS
     // ----------------------------------------------------------------------------
+
+    /**                                   Initialize
+     * Configure the plugin with the shared system context.
+     */
+    override suspend fun initialize(context: PluginContext) {
+        Log.d("Remmi", "[AlarmPlugin] - Initializing with shared context")
+        this.context = context
+        actions.eventBus = context.eventBus
+    }
 
     /**                                   On Load
      * Called when the plugin is loaded.
