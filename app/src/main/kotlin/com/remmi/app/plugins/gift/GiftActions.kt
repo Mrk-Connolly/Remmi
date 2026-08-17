@@ -11,10 +11,26 @@ class GiftActions(
     override val name: String = "Gift Actions"
 ) : RemmiAction {
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Gift Actions
+     * */
     init {
-        Log.d("Remmi", "[GiftActions] - [constructor] executed")
+        Log.d("Remmi", "[GiftActions] - Constructor initialized")
     }
 
+
+    // ----------------------------------------------------------------------------
+    //                                ACTION FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 Add Gift Idea
+     * Create and insert a new gift idea for a specific contact
+     * */
     suspend fun addGiftIdea(
         contactId: String,
         name: String,
@@ -45,6 +61,9 @@ class GiftActions(
         }
     }
 
+    /**                                 Update Gift Idea
+     * Update details of an existing gift idea
+     * */
     suspend fun updateGiftIdea(idea: GiftIdea): Boolean {
         Log.d("Remmi", "[GiftActions] - [updateGiftIdea] executed")
         return try {
@@ -57,6 +76,9 @@ class GiftActions(
         }
     }
 
+    /**                                 Delete Gift Idea
+     * Remove a gift idea from the repository by ID
+     * */
     suspend fun deleteGiftIdea(id: String): Boolean {
         Log.d("Remmi", "[GiftActions] - [deleteGiftIdea] executed")
         return try {
@@ -67,11 +89,17 @@ class GiftActions(
         }
     }
 
+    /**                                 Get Ideas for Contact
+     * Retrieve all gift ideas associated with a specific contact
+     * */
     fun getGiftIdeasForContact(contactId: String): List<GiftIdea> {
         Log.d("Remmi", "[GiftActions] - [getGiftIdeasForContact] executed")
         return repository.getAll().filter { it.contactId == contactId }.sortedByDescending { it.created }
     }
 
+    /**                                 Sync
+     * Synchronize gift ideas with the cloud
+     * */
     suspend fun sync() {
         Log.d("Remmi", "[GiftActions] - [sync] executed")
         repository.sync()

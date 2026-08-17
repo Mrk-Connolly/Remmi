@@ -12,7 +12,17 @@ class ContactRepository(databaseService: DatabaseService) : CloudRepository<Cont
     tableName = "contacts",
     serializer = ContactItem.serializer()
 ) {
+
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Contact Repository
+     * */
     init {
-        Log.d("Remmi", "[ContactRepository] - [constructor] executed")
+        Log.d("Remmi", "[ContactRepository] - Constructor initialized")
     }
+
 }

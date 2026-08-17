@@ -4,9 +4,17 @@ import android.content.Context
 
 interface AndroidService {
 
+    // ----------------------------------------------------------------------------
+    //                             INTERFACE VARIABLES
+    // ----------------------------------------------------------------------------
+
     companion object {
         var context: Context? = null
     }
+
+    // ----------------------------------------------------------------------------
+    //                             INTERFACE FUNCTIONS
+    // ----------------------------------------------------------------------------
 
     // --- Alarm Services ---
     fun setAlarm(id: String, title: String, timeMillis: Long)

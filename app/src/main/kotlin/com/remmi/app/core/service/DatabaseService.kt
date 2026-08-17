@@ -5,6 +5,10 @@ import kotlinx.serialization.KSerializer
 
 interface DatabaseService {
 
+    // ----------------------------------------------------------------------------
+    //                             INTERFACE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
     suspend fun <T : RemmiModel> insert(tableName: String, item: T, serializer: KSerializer<T>)
 
     suspend fun delete(tableName: String, id: String)

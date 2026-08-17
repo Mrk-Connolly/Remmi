@@ -14,10 +14,26 @@ class ContactActions(
     override val name: String = "Contacts Actions"
 ) : RemmiAction {
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Contact Actions
+     * */
     init {
-        Log.d("Remmi", "[ContactActions] - [constructor] executed")
+        Log.d("Remmi", "[ContactActions] - Constructor initialized")
     }
 
+
+    // ----------------------------------------------------------------------------
+    //                                ACTION FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 Create Contact
+     * Create and insert a new contact
+     * */
     suspend fun createContact(
         name: String,
         surname: String,
@@ -54,6 +70,9 @@ class ContactActions(
         }
     }
 
+    /**                                 Update Contact
+     * Update contact details in the repository
+     * */
     suspend fun updateContact(contact: ContactItem): Boolean {
         Log.d("Remmi", "[ContactActions] - [updateContact] executed")
         return try {
@@ -66,6 +85,9 @@ class ContactActions(
         }
     }
 
+    /**                                 Delete Contact
+     * Delete a contact by ID
+     * */
     suspend fun deleteContact(id: String): Boolean {
         Log.d("Remmi", "[ContactActions] - [deleteContact] executed")
         return try {
@@ -76,23 +98,35 @@ class ContactActions(
         }
     }
 
+    /**                                 Toggle Favorite
+     * Toggle the favorite status of a contact
+     * */
     suspend fun toggleFavorite(contact: ContactItem): Boolean {
         Log.d("Remmi", "[ContactActions] - [toggleFavorite] executed")
         val updated = contact.copy(isFavorite = !contact.isFavorite)
         return updateContact(updated)
     }
 
+    /**                                 Toggle Gift List
+     * Toggle whether a contact is included in the gift list
+     * */
     suspend fun toggleGiftList(contact: ContactItem): Boolean {
         Log.d("Remmi", "[ContactActions] - [toggleGiftList] executed")
         val updated = contact.copy(inGiftList = !contact.inGiftList)
         return updateContact(updated)
     }
 
+    /**                                 Get All
+     * Retrieve all contacts sorted by name
+     * */
     suspend fun getAllContacts(): List<ContactItem> {
         Log.d("Remmi", "[ContactActions] - [getAllContacts] executed")
         return repository.getAll().sortedBy { it.name }
     }
 
+    /**                                 Sync
+     * Synchronize contacts with the cloud
+     * */
     suspend fun sync() {
         Log.d("Remmi", "[ContactActions] - [sync] executed")
         repository.sync()

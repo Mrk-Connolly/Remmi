@@ -14,13 +14,49 @@ class AutomationEngine : EventListener {
      *
      * */
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Automation Engine
+     * */
+    init {
+        Log.d("Remmi", "[Automation Engine] - Constructor initialized")
+    }
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 Start
+     * Start automation services
+     * */
+    fun start(){
+        Log.d("Remmi", "[AutomationEngine] - Starting services")
+    }
+
+    /**                                 Stop
+     * Stop automation services
+     * */
+    fun stop() {
+        Log.d("Remmi", "[AutomationEngine] - Stopping services")
+    }
+
+
+    // ----------------------------------------------------------------------------
+    //                                ACTION FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+
+    /**                                 On Event
+     * Handle events received from the system
+     * */
     override fun onEvent(event: RemmiEvent) {
         Log.d("Remmi", "[AutomationEngine] - [onEvent] executed")
         Log.d("Remmi", "Automation received: ${event::class.simpleName}")
-    }
-
-    fun start(){
-
     }
 
 }

@@ -17,18 +17,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
-import com.remmi.app.core.runtime.RemmiCore
+import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.navigation.getIconForName
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * SETTINGS SCREEN
+ * Configuration page for plugin management and system settings
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    runtime: RemmiCore,
+    runtime: RemmiController,
     onBack: () -> Unit
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
     Log.d("Remmi", "[SettingsScreen] - [SettingsScreen] executed")
     val pluginManager = runtime.pluginManager
     val metadata by pluginManager.pluginMetadata.collectAsState()
@@ -40,6 +49,14 @@ fun SettingsScreen(
 
     var selectedPluginForInfo by remember { mutableStateOf<PluginMetadata?>(null) }
 
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 On Refresh
+     * Refresh settings data
+     * */
     val onRefresh: () -> Unit = {
         scope.launch {
             isRefreshing = true
@@ -64,7 +81,7 @@ fun SettingsScreen(
             if (hasChanges) {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        pluginManager.updateAllPluginSettings(pendingMetadata)
+                        pluginManager.updateAllPluginSettings(runtime.androidContext, pendingMetadata)
                         pluginManager.loadPlugins()
                         onBack()
                     },
@@ -148,6 +165,10 @@ fun SettingsScreen(
     }
 }
 
+/**
+ * PLUGIN SETTING ITEM
+ * Individual UI card for managing a single plugin's settings
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PluginSettingItem(
@@ -157,7 +178,18 @@ fun PluginSettingItem(
     onToggleWidget: (Boolean) -> Unit,
     onLongClick: () -> Unit
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
     Log.d("Remmi", "[SettingsScreen] - [PluginSettingItem] executed")
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
     Card(
         modifier = Modifier
             .fillMaxWidth()

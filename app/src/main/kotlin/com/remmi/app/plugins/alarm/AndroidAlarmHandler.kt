@@ -18,13 +18,35 @@ import java.util.Calendar
 
 class AndroidAlarmHandler(private val manualContext: Context? = null) : AndroidService {
 
-    init {
-        Log.d("Remmi", "[AndroidAlarmHandler] - [constructor] executed")
-    }
 
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Internal access to Android Context */
     private val context: Context? 
         get() = manualContext ?: AndroidService.context
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Android Alarm Handler
+     * */
+    init {
+        Log.d("Remmi", "[AndroidAlarmHandler] - Constructor initialized")
+    }
+
+
+    // ----------------------------------------------------------------------------
+    //                                ACTION FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 Set Alarm
+     * Schedule a system alarm via AlarmManager
+     * */
     override fun setAlarm(id: String, title: String, timeMillis: Long) {
         Log.d("Remmi", "[AndroidAlarmHandler] - [setAlarm] executed")
         val currentContext = context
@@ -75,6 +97,9 @@ class AndroidAlarmHandler(private val manualContext: Context? = null) : AndroidS
         }
     }
 
+    /**                                 Sync to System Clock
+     * Push alarm details to the Android external Clock app
+     * */
     override fun syncToSystemClock(title: String, timeMillis: Long) {
         Log.d("Remmi", "[AndroidAlarmHandler] - [syncToSystemClock] executed")
         val currentContext = context ?: return
@@ -100,6 +125,9 @@ class AndroidAlarmHandler(private val manualContext: Context? = null) : AndroidS
         }
     }
 
+    /**                                 Fetch System Alarms
+     * Query Android content providers for existing system alarms
+     * */
     override fun fetchSystemAlarms(): List<AlarmItem> {
         Log.d("Remmi", "[AndroidAlarmHandler] - [fetchSystemAlarms] executed")
         val currentContext = context ?: return emptyList()
@@ -166,6 +194,9 @@ class AndroidAlarmHandler(private val manualContext: Context? = null) : AndroidS
         return alarms
     }
 
+    /**                                 Open System App
+     * Show the system alarms interface
+     * */
     override fun openSystemAlarmApp() {
         Log.d("Remmi", "[AndroidAlarmHandler] - [openSystemAlarmApp] executed")
         val currentContext = context ?: return
@@ -179,6 +210,9 @@ class AndroidAlarmHandler(private val manualContext: Context? = null) : AndroidS
         }
     }
 
+    /**                                 Cancel Alarm
+     * Cancel a previously scheduled system alarm
+     * */
     override fun cancelAlarm(id: String) {
         Log.d("Remmi", "[AndroidAlarmHandler] - [cancelAlarm] executed")
         val currentContext = context
@@ -213,6 +247,9 @@ class AndroidAlarmHandler(private val manualContext: Context? = null) : AndroidS
         }
     }
 
+    /**                                 Post Notification
+     * Display a high-priority system notification
+     * */
     override fun postNotification(title: String, content: String) {
         Log.d("Remmi", "[AndroidAlarmHandler] - [postNotification] executed")
         val currentContext = context

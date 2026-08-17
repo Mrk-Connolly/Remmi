@@ -14,42 +14,42 @@ import com.remmi.app.core.plugins.widgets.RemmiWidget
  */
 interface RemmiPlugin {
 
-    /**
-     * Metadata describing the plugin (id, name, version, etc.).
-     */
+
+    // ----------------------------------------------------------------------------
+    //                             INTERFACE VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Metadata describing the plugin (id, name, version, etc.). */
     val metadata : PluginMetadata
 
-    /**
-     * The main UI screen for the plugin.
-     */
+    /** The main UI screen for the plugin. */
     val screen : RemmiScreen
 
-    /**
-     * The dashboard widget for the plugin.
-     */
+    /** The dashboard widget for the plugin. */
     val widget : RemmiWidget
 
-    /**
-     * The action controller managing the plugin's logic.
-     */
+    /** The action controller managing the plugin's logic. */
     val actions : RemmiAction
 
-    /**
-     * The repository managing the plugin's persistent data.
-     */
+    /** The repository managing the plugin's persistent data. */
     val repository : RemmiRepository<out RemmiModel>
 
-    /**
+
+    // ----------------------------------------------------------------------------
+    //                             INTERFACE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                   Load
      * Load plugin and items.
      */
     fun onLoad()
 
-    /**
+    /**                                   Unload
      * Called when the plugin is being unloaded (e.g., during app shutdown).
      */
     fun onUnload()
 
-    /**
+    /**                                   Reformat
      * Reformat plugin database (clear all data).
      */
     suspend fun reformat()

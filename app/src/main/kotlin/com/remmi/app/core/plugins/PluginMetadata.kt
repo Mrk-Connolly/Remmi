@@ -3,6 +3,10 @@ package com.remmi.app.core.plugins
 import android.util.Log
 import kotlinx.serialization.Serializable
 
+/**
+ * PLUGIN METADATA
+ * Data class containing configuration and identity information for a plugin
+ */
 @Serializable
 data class PluginMetadata(
     val id: String,
@@ -14,7 +18,12 @@ data class PluginMetadata(
     val showWidget: Boolean,
     val icon: String? = null
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
     init {
-        Log.d("Remmi", "[PluginMetadata] - [constructor] executed")
+        Log.d("Remmi", "[PluginMetadata] - Constructor initialized")
     }
 }

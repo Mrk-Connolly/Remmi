@@ -22,17 +22,25 @@ class TasksPlugin(
     private val pluginManager: PluginManager
 ) : RemmiPlugin {
 
-    init {
-        Log.d("Remmi", "[TasksPlugin] - [constructor] executed")
-    }
 
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Repository for managing Tasks data */
     override val repository: TasksRepository = TasksRepository(SupabaseService)
+
+    /** Action controller for tasks logic. */
     override val actions: TasksActions = TasksActions(
         repository,
         CalendarRepository(SupabaseService),
         pluginManager
     )
+
+    /** Dashboard widget for tasks. */
     override val widget: RemmiWidget = TasksWidget(metadata, actions)
+
+    /** UI screen for task management. */
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content() {
             Log.d("Remmi", "[TasksPlugin] - [Content] executed")
@@ -40,6 +48,26 @@ class TasksPlugin(
         }
     }
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Tasks Plugin
+     * */
+    init {
+        Log.d("Remmi", "[TasksPlugin] - Constructor initialized")
+    }
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                   On Load
+     * Called when the plugin is loaded.
+     */
     override fun onLoad() {
         Log.d("Remmi", "[TasksPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Tasks Plugin...")
@@ -48,10 +76,16 @@ class TasksPlugin(
         }
     }
 
+    /**                                   On Unload
+     * Called when the plugin is unloaded.
+     */
     override fun onUnload() {
         Log.d("Remmi", "[TasksPlugin] - [onUnload] executed")
     }
 
+    /**                                   Reformat
+     * Reformat plugin database (clear all data).
+     */
     override suspend fun reformat() {
         Log.d("Remmi", "[TasksPlugin] - [reformat] executed")
         repository.clearAll()

@@ -12,32 +12,36 @@ import com.remmi.app.core.plugins.model.models.RemmiModel
  */
 interface RemmiRepository<T : RemmiModel> {
 
-    /**
+    // ----------------------------------------------------------------------------
+    //                             INTERFACE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                   Add
      * Adds a new item to the repository.
      */
     fun add(item: T)
 
-    /**
+    /**                                   Remove
      * Removes an item from the repository by its [id].
      */
     fun remove(id: String)
 
-    /**
+    /**                                   Update
      * Updates an existing item in the repository.
      */
     fun update(item: T)
 
-    /**
+    /**                                   Get
      * Retrieves an item by its [id].
      */
     fun get(id: String): T?
 
-    /**
+    /**                                   Get All
      * Retrieves all items currently managed by the repository.
      */
     fun getAll(): List<T>
 
-    /**
+    /**                                   Clear
      * Clears all items from the repository.
      */
     fun clear()

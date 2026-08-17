@@ -21,25 +21,66 @@ class PluginManager {
      *
      * */
 
+
     // ----------------------------------------------------------------------------
     //                                 VARIABLES
     // ----------------------------------------------------------------------------
 
+    /** List of loaded plugins */
     val plugins = mutableMapOf<String, RemmiPlugin>()
-    
+
+    /** Metadata for all discovered plugins */
     private val _pluginMetadata = MutableStateFlow<List<PluginMetadata>>(emptyList())
     val pluginMetadata = _pluginMetadata.asStateFlow()
 
-    private var androidContext: Context? = null
-    private val jsonConfig = Json { 
+    /** JSON configuration for plugin metadata */
+    private val jsonConfig = Json {
         prettyPrint = true
         ignoreUnknownKeys = true 
     }
 
 
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Plugin Manager
+     * */
+    init {
+        Log.d("Remmi", "[Plugin Manager] - Constructor initialized")
+    }
+
 
     // ----------------------------------------------------------------------------
-    //                               CORE FUNCTIONS
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 Start
+     * Start plugin manager services (if any)
+     * */
+    fun start() {
+        Log.d("Remmi", "[PluginManager] - Starting services")
+    }
+
+    /**                                 Stop
+     * Close plugin manager and unload all plugins
+     * */
+    fun stop() {
+        Log.d("Remmi", "[PluginManager] - Stopping services")
+
+        try {
+            plugins.values.forEach { it.onUnload() }
+            plugins.clear()
+
+        }catch (e : Exception) {
+            println("Something went wrong unloading plugin: ${e.message}, check plugin unloader")
+        }
+    }
+
+
+    // ----------------------------------------------------------------------------
+    //                                ACTION FUNCTIONS
     // ----------------------------------------------------------------------------
 
     /**                               READ PLUGINS
@@ -48,7 +89,6 @@ class PluginManager {
      * reads all available plugins to be installed and saves their information*/
     fun readPlugins(context: Context) {
         Log.d("Remmi", "[PluginManager] - [readPlugins] executed")
-        this.androidContext = context
 
         val localFile = File(context.filesDir, "plugins.json")
         val jsonString = if (localFile.exists()) {
@@ -74,15 +114,21 @@ class PluginManager {
         }
     }
 
-    fun updateAllPluginSettings(newList: List<PluginMetadata>) {
+    /**                               UPDATE SETTINGS
+     * Update plugin settings and save to disk
+     * */
+    fun updateAllPluginSettings(context : Context, newList: List<PluginMetadata>) {
         Log.d("Remmi", "[PluginManager] - [updateAllPluginSettings] executed")
         _pluginMetadata.value = newList
-        savePlugins(newList)
+        savePlugins(context, newList)
     }
 
-    private fun savePlugins(metadata: List<PluginMetadata>) {
+    /**                               SAVE PLUGINS
+     * Internal function to save plugin metadata to local storage
+     * */
+    private fun savePlugins(context: Context, metadata: List<PluginMetadata>) {
         Log.d("Remmi", "[PluginManager] - [savePlugins] executed")
-        androidContext?.let { context ->
+        context.let { context ->
             try {
                 val jsonString = jsonConfig.encodeToString(metadata)
                 File(context.filesDir, "plugins.json").writeText(jsonString)
@@ -92,13 +138,10 @@ class PluginManager {
         }
     }
 
-
-
     /**                               LOAD PLUGINS
      *
      * recieves android contextex from host -> runtime to access plugin.json file and
      * load all available plugins to be installed*/
-
     fun loadPlugins() {
         Log.d("Remmi", "[PluginManager] - [loadPlugins] executed")
 
@@ -126,26 +169,6 @@ class PluginManager {
             } catch (e: Exception) {
                 println("Something went wrong loading plugin: ${e.message}, check plugin loader")
             }
-        }
-    }
-
-
-    /**                                 CLOSE PLUGIN MANAGER
-     *
-     * Should run a small script to erase plugin memory data to avoid clogging up the phone, but
-     * I don't know if kotlin does it automatically.
-     *
-     * Still calls unload function on each plugin
-     * */
-    fun close() {
-        Log.d("Remmi", "[PluginManager] - [close] executed")
-
-        try {
-            plugins.values.forEach { it.onUnload() }
-            plugins.clear()
-
-        }catch (e : Exception) {
-            println("Something went wrong unloading plugin: ${e.message}, check plugin unloader")
         }
     }
 

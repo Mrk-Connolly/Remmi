@@ -21,21 +21,40 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.remmi.app.core.plugins.RemmiPlugin
-import com.remmi.app.core.runtime.RemmiCore
+import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.screens.HomeScreen
 import com.remmi.app.core.screens.SettingsScreen
 import kotlinx.coroutines.launch
 
+/**
+ * REMMI DESTINATION
+ * Sealed class defining the app's navigation routes
+ */
 sealed class RemmiDestination(val route: String) {
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
     init {
-        Log.d("Remmi", "[RemmiDestination] - [constructor] executed")
+        Log.d("Remmi", "[Remmi Destination] - Constructor initialized")
     }
+
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
     data object Home : RemmiDestination("home")
     data object Settings : RemmiDestination("settings")
 
     companion object {
         const val HOME_ROUTE = "home"
         const val SETTINGS_ROUTE = "settings"
+
+        /**                                 Plugin Route
+         * Generate a dynamic route for a plugin screen
+         * */
         fun pluginRoute(id: String): String {
             Log.d("Remmi", "[RemmiDestination] - [pluginRoute] executed")
             return "plugin/$id"
@@ -43,9 +62,18 @@ sealed class RemmiDestination(val route: String) {
     }
 }
 
+/**
+ * APP NAVIGATION
+ * Main navigation controller for the Remmi application
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(runtime: RemmiCore) {
+fun AppNavigation(runtime: RemmiController) {
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
     Log.d("Remmi", "[AppNavigation] - [AppNavigation] executed")
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -63,6 +91,11 @@ fun AppNavigation(runtime: RemmiCore) {
         )
     )
     val scope = rememberCoroutineScope()
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
@@ -168,12 +201,27 @@ fun AppNavigation(runtime: RemmiCore) {
     }
 }
 
+/**
+ * PLUGIN GRID
+ * UI component displaying available plugins in a grid layout
+ */
 @Composable
 fun PluginGrid(
     plugins: List<RemmiPlugin>,
     onPluginClick: (String) -> Unit
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
     Log.d("Remmi", "[AppNavigation] - [PluginGrid] executed")
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -193,12 +241,27 @@ fun PluginGrid(
     }
 }
 
+/**
+ * PLUGIN GRID ITEM
+ * Individual item within the plugin grid
+ */
 @Composable
 fun PluginGridItem(
     plugin: RemmiPlugin,
     onClick: (String) -> Unit
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
     Log.d("Remmi", "[AppNavigation] - [PluginGridItem] executed")
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -229,6 +292,9 @@ fun PluginGridItem(
     }
 }
 
+/**                                 Get Icon for Name
+ * Map a string name to a specific ImageVector icon
+ * */
 fun getIconForName(name: String?): ImageVector {
     Log.d("Remmi", "[AppNavigation] - [getIconForName] executed")
     return when (name) {

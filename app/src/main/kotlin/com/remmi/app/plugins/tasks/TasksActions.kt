@@ -21,20 +21,38 @@ class TasksActions(
     override val name: String = "Tasks Actions"
 ) : RemmiAction {
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Tasks Actions
+     * */
     init {
-        Log.d("Remmi", "[TasksActions] - [constructor] executed")
+        Log.d("Remmi", "[TasksActions] - Constructor initialized")
     }
 
     companion object {
         private const val TAG = "TasksActions"
     }
 
-    
+
+    // ----------------------------------------------------------------------------
+    //                                ACTION FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 Get Alarm Actions
+     * Retrieve actions from the Alarm plugin via PluginManager
+     * */
     fun getAlarmActions(): AlarmActions? {
         Log.d("Remmi", "[TasksActions] - [getAlarmActions] executed")
         return pluginManager.plugins["alarm"]?.actions as? AlarmActions
     }
 
+    /**                                 Create Task
+     * Create a new task and optionally link it to Calendar and Alarms
+     * */
     suspend fun createTask(
         title: String,
         description: String,
@@ -105,6 +123,9 @@ class TasksActions(
         }
     }
 
+    /**                                 Update Task
+     * Update task details and synchronize with linked calendar events
+     * */
     suspend fun updateTask(task: TaskItem): Boolean {
         Log.d("Remmi", "[TasksActions] - [updateTask] executed")
         return try {
@@ -134,6 +155,9 @@ class TasksActions(
         }
     }
 
+    /**                                 Delete Task
+     * Delete a task and its linked calendar item
+     * */
     suspend fun deleteTask(id: String): Boolean {
         Log.d("Remmi", "[TasksActions] - [deleteTask] executed")
         return try {
@@ -149,12 +173,18 @@ class TasksActions(
         }
     }
 
+    /**                                 Toggle Task
+     * Toggle completion status of a task
+     * */
     suspend fun toggleTask(task: TaskItem): Boolean {
         Log.d("Remmi", "[TasksActions] - [toggleTask] executed")
         val updatedTask = task.copy(completed = !task.completed)
         return updateTask(updatedTask)
     }
 
+    /**                                 Get All
+     * Retrieve all tasks sorted by creation date
+     * */
     suspend fun getAllTasks(): List<TaskItem> {
         Log.d("Remmi", "[TasksActions] - [getAllTasks] executed")
         return try {
@@ -165,6 +195,9 @@ class TasksActions(
         }
     }
 
+    /**                                 Sync
+     * Synchronize tasks with the cloud
+     * */
     suspend fun sync() {
         Log.d("Remmi", "[TasksActions] - [sync] executed")
         try {
@@ -174,6 +207,9 @@ class TasksActions(
         }
     }
 
+    /**                                 Get Today
+     * Retrieve incomplete tasks due today
+     * */
     suspend fun getTodayTasks(): List<TaskItem> {
         Log.d("Remmi", "[TasksActions] - [getTodayTasks] executed")
         val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
@@ -182,6 +218,9 @@ class TasksActions(
         }
     }
 
+    /**                                 Get High Priority (Month)
+     * Retrieve high priority tasks due in the current month
+     * */
     suspend fun getHighPriorityTasksOfMonth(): List<TaskItem> {
         Log.d("Remmi", "[TasksActions] - [getHighPriorityTasksOfMonth] executed")
         val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault())
@@ -193,6 +232,9 @@ class TasksActions(
         }
     }
 
+    /**                                 Get All Groups
+     * Retrieve all unique group names from tasks and calendar events
+     * */
     suspend fun getAllGroups(): List<String> {
         Log.d("Remmi", "[TasksActions] - [getAllGroups] executed")
         val taskGroups = repository.getAll().mapNotNull { it.group }

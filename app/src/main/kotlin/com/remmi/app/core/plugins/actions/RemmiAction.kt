@@ -2,29 +2,25 @@ package com.remmi.app.core.plugins.actions
 
 /**
  * Base interface for all actions within the Remmi ecosystem.
+ *
+ * REMMI ACTIONS are large customized to each plugin, they do not follow a firm
+ * structure.
  */
 interface RemmiAction {
 
-    /**
-     * REMMI ACTIONS  are large customized to each plugin, they do not follow a firm
-     * structure.
-     *
-     * One may be created when implementing the Automation Engine
-     *
-     * The Interface in either case will still exist as a structural waypoint
-     * */
-
     // ----------------------------------------------------------------------------
-    //                                 VARIABLES
+    //                             INTERFACE VARIABLES
     // ----------------------------------------------------------------------------
 
-
+    /** Unique identifier for the action set */
     val id: String
+
+    /** Human-readable name for the actions */
     val name: String
 
 
     // ----------------------------------------------------------------------------
-    //                                 CORE OPERATIONS
+    //                               CORE OPERATIONS
     // ----------------------------------------------------------------------------
 
 }

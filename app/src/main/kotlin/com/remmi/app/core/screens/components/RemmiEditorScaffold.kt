@@ -8,6 +8,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+/**
+ * REMMI EDITOR SCAFFOLD
+ * Standardized layout for plugin editor screens, including navigation and save actions
+ */
 @Composable
 fun RemmiEditorScaffold(
     title: String,
@@ -16,6 +20,11 @@ fun RemmiEditorScaffold(
     saveEnabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
     Scaffold(
         bottomBar = {
             Column {

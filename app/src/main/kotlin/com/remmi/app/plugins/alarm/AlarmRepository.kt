@@ -14,7 +14,17 @@ class AlarmRepository(databaseService: DatabaseService) : CloudRepository<AlarmI
     tableName = "alarms",
     serializer = AlarmItem.serializer()
 ) {
+
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Alarm Repository
+     * */
     init {
-        Log.d("Remmi", "[AlarmRepository] - [constructor] executed")
+        Log.d("Remmi", "[AlarmRepository] - Constructor initialized")
     }
+
 }

@@ -15,7 +15,17 @@ class TasksRepository(databaseService: DatabaseService) : CloudRepository<TaskIt
     tableName = "tasks",
     serializer = TaskItem.serializer()
 ) {
+
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Tasks Repository
+     * */
     init {
-        Log.d("Remmi", "[TasksRepository] - [constructor] executed")
+        Log.d("Remmi", "[TasksRepository] - Constructor initialized")
     }
+
 }

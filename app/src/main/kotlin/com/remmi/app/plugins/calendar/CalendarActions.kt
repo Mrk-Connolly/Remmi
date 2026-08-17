@@ -22,27 +22,54 @@ class CalendarActions(
     override val name: String
 ) : RemmiAction {
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Calendar Actions
+     * */
     init {
-        Log.d("Remmi", "[CalendarActions] - [constructor] executed")
+        Log.d("Remmi", "[CalendarActions] - Constructor initialized")
     }
 
     companion object {
         private const val TAG = "CalendarActions"
     }
-    
+
+
+    // ----------------------------------------------------------------------------
+    //                                ACTION FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 Get Alarm Actions
+     * Retrieve actions from the Alarm plugin
+     * */
     fun getAlarmActions(): AlarmActions? {
         Log.d("Remmi", "[CalendarActions] - [getAlarmActions] executed")
         return pluginManager.plugins["alarm"]?.actions as? AlarmActions
     }
+
+    /**                                 Get Contact Actions
+     * Retrieve actions from the Contacts plugin
+     * */
     fun getContactActions(): ContactActions? {
         Log.d("Remmi", "[CalendarActions] - [getContactActions] executed")
         return pluginManager.plugins["contacts"]?.actions as? ContactActions
     }
+
+    /**                                 Get Tasks Actions
+     * Retrieve actions from the Tasks plugin
+     * */
     fun getTasksActions(): TasksActions? {
         Log.d("Remmi", "[CalendarActions] - [getTasksActions] executed")
         return pluginManager.plugins["tasks"]?.actions as? TasksActions
     }
 
+    /**                                 Add Event
+     * Create and insert a new calendar event
+     * */
     suspend fun addEvent(
         id: String = UUID.randomUUID().toString(),
         title: String,
@@ -89,6 +116,9 @@ class CalendarActions(
         }
     }
 
+    /**                                 Remove Event
+     * Delete an event and its linked tasks
+     * */
     suspend fun removeEvent(id: String): Boolean {
         Log.d("Remmi", "[CalendarActions] - [removeEvent] executed")
         return try {
@@ -104,6 +134,9 @@ class CalendarActions(
         }
     }
 
+    /**                                 Update Event
+     * Update event details and synchronize linked tasks
+     * */
     suspend fun updateEvent(event: CalendarItem): Boolean {
         Log.d("Remmi", "[CalendarActions] - [updateEvent] executed")
         return try {
@@ -131,6 +164,9 @@ class CalendarActions(
         }
     }
 
+    /**                                 Get All
+     * Retrieve all calendar events
+     * */
     suspend fun getAllEvents(): List<CalendarItem> {
         Log.d("Remmi", "[CalendarActions] - [getAllEvents] executed")
         return try {
@@ -141,6 +177,9 @@ class CalendarActions(
         }
     }
 
+    /**                                 Sync
+     * Synchronize events with the cloud
+     * */
     suspend fun sync(): Boolean {
         Log.d("Remmi", "[CalendarActions] - [sync] executed")
         return try {
@@ -152,11 +191,17 @@ class CalendarActions(
         }
     }
 
+    /**                                 Add Task
+     * Create and insert a new task associated with the calendar
+     * */
     suspend fun addTask(task: TaskItem) {
         Log.d("Remmi", "[CalendarActions] - [addTask] executed")
         tasksRepository.insert(task)
     }
 
+    /**                                 Get Events On
+     * Retrieve all events for a specific date
+     * */
     suspend fun getEventsOn(date: LocalDate): List<CalendarItem> {
         Log.d("Remmi", "[CalendarActions] - [getEventsOn] executed")
         return try {
@@ -167,6 +212,9 @@ class CalendarActions(
         }
     }
 
+    /**                                 Get Upcoming
+     * Retrieve all upcoming events sorted by date
+     * */
     suspend fun getUpcomingEvents(): List<CalendarItem> {
         Log.d("Remmi", "[CalendarActions] - [getUpcomingEvents] executed")
         return try {
@@ -178,12 +226,18 @@ class CalendarActions(
         }
     }
 
+    /**                                 Get Today
+     * Retrieve all events scheduled for today
+     * */
     suspend fun getTodayEvents(): List<CalendarItem> {
         Log.d("Remmi", "[CalendarActions] - [getTodayEvents] executed")
         val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
         return getEventsOn(today)
     }
 
+    /**                                 Get All Groups
+     * Retrieve all unique group names used in events and tasks
+     * */
     suspend fun getAllGroups(): List<String> {
         Log.d("Remmi", "[CalendarActions] - [getAllGroups] executed")
         val eventGroups = repository.getAll().mapNotNull { it.group }

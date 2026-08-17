@@ -9,6 +9,10 @@ import com.remmi.app.core.plugins.PluginMetadata
  */
 interface RemmiWidget {
 
+    // ----------------------------------------------------------------------------
+    //                             INTERFACE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
     /**
      * Metadata describing the plugin. Used to determine widget enablement.
      */

@@ -20,17 +20,22 @@ class GiftPlugin(
     private val pluginManager: PluginManager
 ) : RemmiPlugin {
 
-    init {
-        Log.d("Remmi", "[GiftPlugin] - [constructor] executed")
-    }
 
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Repository for managing Gift ideas data */
     override val repository: GiftRepository = GiftRepository(SupabaseService)
+
+    /** Action controller for gift logic. */
     override val actions: GiftActions = GiftActions(repository)
     
-    // The Gift List plugin requires access to Contacts
+    /** Access to Contact actions via PluginManager */
     private val contactActions: ContactActions?
         get() = (pluginManager.plugins["contacts"] as? ContactPlugin)?.actions
 
+    /** Dashboard widget for gifts. */
     override val widget: RemmiWidget = object : RemmiWidget {
         override val metadata: PluginMetadata = this@GiftPlugin.metadata
         @Composable override fun Content() {
@@ -39,6 +44,7 @@ class GiftPlugin(
         }
     }
 
+    /** UI screen for gift management. */
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content() {
             Log.d("Remmi", "[GiftPlugin] - [Content] (screen) executed")
@@ -48,6 +54,26 @@ class GiftPlugin(
         }
     }
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Gift Plugin
+     * */
+    init {
+        Log.d("Remmi", "[GiftPlugin] - Constructor initialized")
+    }
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                   On Load
+     * Called when the plugin is loaded.
+     */
     override fun onLoad() {
         Log.d("Remmi", "[GiftPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Gift Plugin...")
@@ -60,10 +86,16 @@ class GiftPlugin(
         }
     }
 
+    /**                                   On Unload
+     * Called when the plugin is unloaded.
+     */
     override fun onUnload() {
         Log.d("Remmi", "[GiftPlugin] - [onUnload] executed")
     }
 
+    /**                                   Reformat
+     * Reformat plugin database (clear all data).
+     */
     override suspend fun reformat() {
         Log.d("Remmi", "[GiftPlugin] - [reformat] executed")
         repository.clearAll()

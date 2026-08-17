@@ -13,6 +13,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+/**
+ * REMMI TITLE DESCRIPTION GROUP
+ * Combined input fields for common item properties (title and description)
+ */
 @Composable
 fun RemmiTitleDescriptionGroup(
     title: String,
@@ -21,6 +25,11 @@ fun RemmiTitleDescriptionGroup(
     onDescriptionChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -42,6 +51,10 @@ fun RemmiTitleDescriptionGroup(
     }
 }
 
+/**
+ * REMMI PRIORITY SWITCH
+ * Standardized toggle for high-priority items
+ */
 @Composable
 fun RemmiPrioritySwitch(
     isPriority: Boolean,
@@ -49,6 +62,11 @@ fun RemmiPrioritySwitch(
     label: String = "Priority",
     modifier: Modifier = Modifier
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,

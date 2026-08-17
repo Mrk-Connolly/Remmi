@@ -17,13 +17,21 @@ import kotlinx.coroutines.launch
  */
 class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
 
-    init {
-        Log.d("Remmi", "[ContactPlugin] - [constructor] executed")
-    }
 
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Repository for managing Contacts data */
     override val repository: ContactRepository = ContactRepository(SupabaseService)
+
+    /** Action controller for contact logic. */
     override val actions: ContactActions = ContactActions(repository)
+
+    /** Dashboard widget for contacts. */
     override val widget: RemmiWidget = ContactWidget(metadata, actions)
+
+    /** UI screen for contact management. */
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content() {
             Log.d("Remmi", "[ContactPlugin] - [Content] executed")
@@ -31,6 +39,26 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
         }
     }
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Contact Plugin
+     * */
+    init {
+        Log.d("Remmi", "[ContactPlugin] - Constructor initialized")
+    }
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                   On Load
+     * Called when the plugin is loaded.
+     */
     override fun onLoad() {
         Log.d("Remmi", "[ContactPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Contacts Plugin...")
@@ -43,10 +71,16 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
         }
     }
 
+    /**                                   On Unload
+     * Called when the plugin is unloaded.
+     */
     override fun onUnload() {
         Log.d("Remmi", "[ContactPlugin] - [onUnload] executed")
     }
 
+    /**                                   Reformat
+     * Reformat plugin database (clear all data).
+     */
     override suspend fun reformat() {
         Log.d("Remmi", "[ContactPlugin] - [reformat] executed")
         repository.clearAll()

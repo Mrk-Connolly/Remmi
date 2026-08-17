@@ -14,6 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.plugins.contacts.ContactItem
 
+/**
+ * CONTACTS SELECTION DIALOG
+ * Shared component for selecting multiple participants from the contact list
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactsSelectionDialog(
@@ -22,6 +26,11 @@ fun ContactsSelectionDialog(
     onDismiss: () -> Unit,
     onConfirm: (List<String>) -> Unit
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
     Log.d("Remmi", "[ContactsSelectionDialog] - Generic")
     var searchQuery by remember { mutableStateOf("") }
     var selectedGroup by remember { mutableStateOf("All") }
@@ -34,6 +43,11 @@ fun ContactsSelectionDialog(
         (selectedGroup == "All" || it.group == selectedGroup) &&
         (it.name.contains(searchQuery, ignoreCase = true) || it.surname.contains(searchQuery, ignoreCase = true))
     }
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
 
     AlertDialog(
         onDismissRequest = onDismiss,

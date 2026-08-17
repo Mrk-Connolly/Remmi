@@ -10,7 +10,11 @@ import androidx.compose.runtime.Composable
  */
 interface RemmiScreen {
 
-    /**
+    // ----------------------------------------------------------------------------
+    //                             INTERFACE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 Content
      * The UI content of the screen, defined as a Composable function.
      */
     @Composable

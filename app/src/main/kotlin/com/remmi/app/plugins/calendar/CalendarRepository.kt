@@ -14,8 +14,17 @@ class CalendarRepository (databaseService: DatabaseService) : CloudRepository<Ca
     serializer = CalendarItem.serializer()
 ) {
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Calendar Repository
+     * Initializes with sample data for demonstration
+     * */
     init {
-        Log.d("Remmi", "[CalendarRepository] - [constructor] executed")
+        Log.d("Remmi", "[CalendarRepository] - Constructor initialized")
         val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
         val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
         // Add a default sample event to ensure the UI has something to display initially.
@@ -40,4 +49,5 @@ class CalendarRepository (databaseService: DatabaseService) : CloudRepository<Ca
             )
         )
     }
+
 }

@@ -12,12 +12,15 @@ import kotlinx.serialization.json.Json
 
 object SupabaseService : DatabaseService {
 
-    // TODO: Move these into BuildConfig or local.properties before publishing.
-    private const val SUPABASE_URL =
-        "https://lmgexteedqzchmjdagxn.supabase.co"
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
 
-    private const val SUPABASE_ANON_KEY =
-        "sb_publishable_NHFmOe4l9Yhz8nbfZay_pg_fi5j6boy"
+    /** Database Location */
+    private const val SUPABASE_URL = "https://lmgexteedqzchmjdagxn.supabase.co"
+
+    /** Database Public Key */
+    private const val SUPABASE_ANON_KEY = "sb_publishable_NHFmOe4l9Yhz8nbfZay_pg_fi5j6boy"
 
     val client = createSupabaseClient(
         supabaseUrl = SUPABASE_URL,
@@ -33,12 +36,23 @@ object SupabaseService : DatabaseService {
         coerceInputValues = true
     }
 
+
+    // ----------------------------------------------------------------------------
+    //                                ACTION FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 Insert
+     * Insert a RemmiModel item into the specified Supabase table
+     * */
     override suspend fun <T : RemmiModel> insert(tableName: String, item: T, serializer: KSerializer<T>) {
         Log.d("Remmi", "[SupabaseService] - [insert] executed")
         val jsonElement = json.encodeToJsonElement(serializer, item)
         client.postgrest.from(tableName).insert(jsonElement)
     }
 
+    /**                                 Delete
+     * Delete an item from the specified Supabase table by ID
+     * */
     override suspend fun delete(tableName: String, id: String) {
         Log.d("Remmi", "[SupabaseService] - [delete] executed")
         client.postgrest.from(tableName).delete {
@@ -48,6 +62,9 @@ object SupabaseService : DatabaseService {
         }
     }
 
+    /**                                 Update
+     * Update a RemmiModel item in the specified Supabase table
+     * */
     override suspend fun <T : RemmiModel> update(tableName: String, item: T, serializer: KSerializer<T>) {
         Log.d("Remmi", "[SupabaseService] - [update] executed")
         val jsonElement = json.encodeToJsonElement(serializer, item)
@@ -58,12 +75,18 @@ object SupabaseService : DatabaseService {
         }
     }
 
+    /**                                 Get All
+     * Retrieve all items from the specified Supabase table
+     * */
     override suspend fun <T : RemmiModel> getAll(tableName: String, serializer: KSerializer<T>): List<T> {
         Log.d("Remmi", "[SupabaseService] - [getAll] executed")
         val result = client.postgrest.from(tableName).select()
         return json.decodeFromString(ListSerializer(serializer), result.data)
     }
 
+    /**                                 Get By ID
+     * Retrieve a specific item from the specified Supabase table by ID
+     * */
     override suspend fun <T : RemmiModel> getById(tableName: String, id: String, serializer: KSerializer<T>): T? {
         Log.d("Remmi", "[SupabaseService] - [getById] executed")
         val result = client.postgrest.from(tableName).select {
@@ -75,6 +98,9 @@ object SupabaseService : DatabaseService {
         return list.firstOrNull()
     }
 
+    /**                                 Clear Table
+     * Remove all entries from the specified Supabase table
+     * */
     override suspend fun clearTable(tableName: String) {
         Log.d("Remmi", "[SupabaseService] - [clearTable] executed")
         client.postgrest.from(tableName).delete {

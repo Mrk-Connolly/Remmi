@@ -10,7 +10,16 @@ import kotlin.time.Instant
  */
 interface RemmiModel {
 
+    // ----------------------------------------------------------------------------
+    //                             INTERFACE VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Unique identifier for the model instance */
     val id: String
+
+    /** Creation timestamp */
     val created: Instant
+
+    /** Last modification timestamp */
     var modified: Instant
 }

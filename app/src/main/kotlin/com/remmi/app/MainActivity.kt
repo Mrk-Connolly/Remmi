@@ -19,7 +19,19 @@ class MainActivity : ComponentActivity() {
     /** RemmiHost is the lead function that executes core functions and their environment*/
     private lateinit var remmiHost: RemmiHost
 
-    //
+
+
+
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                               On Create
+     * On create start activity by calling Remmi Application ui and Remmi Hosting
+     * manager by overriding parent class
+     * */
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d("Remmi", "[MainActivity] - App started")
 
@@ -32,16 +44,20 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
 
-        // Initialize the Remmi system
+        // Initialize the Remmi core system
         remmiHost = RemmiHost(applicationContext)
         remmiHost.start()
 
+        // Initialise and run UI system
         enableEdgeToEdge()
         setContent {
             RemmiApp(remmiHost)
         }
     }
 
+    /**                               On Destroy
+     * On destroy end activity from Remmi Application overriding parent class
+     * */
     override fun onDestroy() {
         super.onDestroy()
         remmiHost.stop()

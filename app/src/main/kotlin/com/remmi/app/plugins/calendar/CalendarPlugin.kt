@@ -22,11 +22,15 @@ class CalendarPlugin(
     private val pluginManager: PluginManager
 ) : RemmiPlugin {
 
-    init {
-        Log.d("Remmi", "[CalendarPlugin] - [constructor] executed")
-    }
 
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Repository for managing Calendar data */
     override val repository: CalendarRepository = CalendarRepository(SupabaseService)
+
+    /** Action controller for calendar logic. */
     override val actions: CalendarActions = CalendarActions(
         repository,
         TasksRepository(SupabaseService),
@@ -34,7 +38,11 @@ class CalendarPlugin(
         id = "calendar_actions",
         name = "Calendar Actions"
     )
+
+    /** Dashboard widget for calendar. */
     override val widget: RemmiWidget = CalendarWidget(metadata, actions)
+
+    /** UI screen for calendar management. */
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable
         override fun Content() {
@@ -43,6 +51,26 @@ class CalendarPlugin(
         }
     }
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Calendar Plugin
+     * */
+    init {
+        Log.d("Remmi", "[CalendarPlugin] - Constructor initialized")
+    }
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                   On Load
+     * Called when the plugin is loaded.
+     */
     override fun onLoad() {
         Log.d("Remmi", "[CalendarPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Calendar Plugin...")
@@ -52,11 +80,17 @@ class CalendarPlugin(
         Log.d("Remmi", "Calendar Plugin Loaded")
     }
 
+    /**                                   On Unload
+     * Called when the plugin is unloaded.
+     */
     override fun onUnload() {
         Log.d("Remmi", "[CalendarPlugin] - [onUnload] executed")
         Log.d("Remmi", "Unloading Calendar Plugin...")
     }
 
+    /**                                   Reformat
+     * Reformat plugin database (clear all data).
+     */
     override suspend fun reformat() {
         Log.d("Remmi", "[CalendarPlugin] - [reformat] executed")
         repository.clearAll()

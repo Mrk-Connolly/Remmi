@@ -14,7 +14,18 @@ import com.remmi.app.core.navigation.AppNavigation
  */
 @Composable
 fun RemmiApp(host: RemmiHost) {
+
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
     Log.d("Remmi", "[RemmiApp] - UI started")
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
 
     MaterialTheme {
         Surface(
@@ -25,4 +36,5 @@ fun RemmiApp(host: RemmiHost) {
             AppNavigation(runtime = host.runtime)
         }
     }
+
 }

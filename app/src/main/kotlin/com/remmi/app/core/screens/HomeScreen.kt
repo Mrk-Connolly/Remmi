@@ -17,12 +17,21 @@ import com.remmi.app.core.plugins.PluginManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * HOME SCREEN
+ * Main landing page of the application, displaying active widgets
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     pluginManager: PluginManager,
     onWidgetClick: (String) -> Unit
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
     Log.d("Remmi", "[HomeScreen] - [HomeScreen] executed")
     val scope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }
@@ -35,6 +44,14 @@ fun HomeScreen(
         pluginManager.plugins.values.filter { it.widget.isEnabled() }
     }
 
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 On Refresh
+     * Logic for pull-to-refresh action
+     * */
     val onRefresh: () -> Unit = {
         scope.launch {
             isRefreshing = true

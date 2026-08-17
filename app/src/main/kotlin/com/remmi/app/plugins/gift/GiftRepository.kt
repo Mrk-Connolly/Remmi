@@ -9,7 +9,17 @@ class GiftRepository(databaseService: DatabaseService) : CloudRepository<GiftIde
     tableName = "gift_ideas",
     serializer = GiftIdea.serializer()
 ) {
+
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Gift Repository
+     * */
     init {
-        Log.d("Remmi", "[GiftRepository] - [constructor] executed")
+        Log.d("Remmi", "[GiftRepository] - Constructor initialized")
     }
+
 }

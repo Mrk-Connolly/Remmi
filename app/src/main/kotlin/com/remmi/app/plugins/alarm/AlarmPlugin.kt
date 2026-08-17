@@ -23,28 +23,21 @@ class AlarmPlugin(
     private val pluginManager: PluginManager
 ) : RemmiPlugin {
 
-    init {
-        Log.d("Remmi", "[AlarmPlugin] - [constructor] executed")
-    }
 
-    /**
-     * Repository for persistent alarm data.
-     */
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Repository for persistent alarm data. */
     override val repository: AlarmRepository = AlarmRepository(SupabaseService)
 
-    /**
-     * Action controller for alarm logic.
-     */
+    /** Action controller for alarm logic. */
     override val actions: AlarmActions = AlarmActions(repository, pluginManager)
 
-    /**
-     * Dashboard widget for alarms.
-     */
+    /** Dashboard widget for alarms. */
     override val widget: RemmiWidget = AlarmWidget(metadata, actions)
 
-    /**
-     * UI screen for detailed alarm management.
-     */
+    /** UI screen for detailed alarm management. */
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content() {
             Log.d("Remmi", "[AlarmPlugin] - [Content] executed")
@@ -52,7 +45,24 @@ class AlarmPlugin(
         }
     }
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
     /**
+     * Constructor for Alarm Plugin
+     * */
+    init {
+        Log.d("Remmi", "[AlarmPlugin] - Constructor initialized")
+    }
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                   On Load
      * Called when the plugin is loaded.
      */
     override fun onLoad() {
@@ -67,13 +77,16 @@ class AlarmPlugin(
         }
     }
 
-    /**
+    /**                                   On Unload
      * Called when the plugin is unloaded.
      */
     override fun onUnload() {
         Log.d("Remmi", "[AlarmPlugin] - [onUnload] executed")
     }
 
+    /**                                   Reformat
+     * Reformat plugin database (clear all data).
+     */
     override suspend fun reformat() {
         Log.d("Remmi", "[AlarmPlugin] - [reformat] executed")
         repository.clearAll()

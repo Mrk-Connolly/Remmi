@@ -19,14 +19,33 @@ class AlarmActions(
     override val id: String = "alarm_actions",
     override val name: String = "Alarm Actions"
 ) : RemmiAction {
-    
-    init {
-        Log.d("Remmi", "[AlarmActions] - [constructor] executed")
-    }
 
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Internal handler for Android AlarmManager */
     private val androidHandler = AndroidAlarmHandler()
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
     /**
+     * Constructor for Alarm Actions
+     * */
+    init {
+        Log.d("Remmi", "[AlarmActions] - Constructor initialized")
+    }
+
+
+    // ----------------------------------------------------------------------------
+    //                                ACTION FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 Get All
      * Retrieves all alarms, including local system alarms.
      */
     suspend fun getAllAlarms(): List<AlarmUiModel> {
@@ -40,11 +59,17 @@ class AlarmActions(
         return (repoAlarms + systemAlarms).sortedBy { it.alarm.time }
     }
     
+    /**                                 Open System App
+     * Open the Android system Clock/Alarm application
+     * */
     fun openSystemAlarmApp() {
         Log.d("Remmi", "[AlarmActions] - [openSystemAlarmApp] executed")
         androidHandler.openSystemAlarmApp()
     }
     
+    /**                                 Add Alarm
+     * Add a new alarm and schedule it in the system
+     * */
     suspend fun addAlarm(
         title: String,
         description: String,
@@ -88,8 +113,8 @@ class AlarmActions(
         }
     }
 
-    /**
-     * Updates an existing alarm.
+    /**                                 Update Alarm
+     * Updates an existing alarm and reschedules it
      */
     suspend fun updateAlarm(alarm: AlarmItem, syncToSystem: Boolean = true): Boolean {
         Log.d("Remmi", "[AlarmActions] - [updateAlarm] executed")
@@ -114,8 +139,8 @@ class AlarmActions(
         }
     }
 
-    /**
-     * Deletes an alarm.
+    /**                                 Delete Alarm
+     * Deletes an alarm from the repository and cancels system scheduling
      */
     suspend fun deleteAlarm(id: String): Boolean {
         Log.d("Remmi", "[AlarmActions] - [deleteAlarm] executed")
@@ -134,7 +159,7 @@ class AlarmActions(
         }
     }
 
-    /**
+    /**                                 Sync
      * Syncs alarms with cloud storage.
      */
     suspend fun sync() {
@@ -142,6 +167,9 @@ class AlarmActions(
         repository.sync()
     }
 
+    /**                                 Get Today
+     * Retrieve all alarms scheduled for today
+     * */
     suspend fun getTodayAlarms(): List<AlarmItem> {
         Log.d("Remmi", "[AlarmActions] - [getTodayAlarms] executed")
         val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date

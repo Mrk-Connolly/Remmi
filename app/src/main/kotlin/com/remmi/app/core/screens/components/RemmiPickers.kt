@@ -17,6 +17,9 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 
+/**                                 Date Picker Dialog
+ * Shared Material 3 Date Picker interface
+ * */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RemmiDatePickerDialog(
@@ -24,10 +27,20 @@ fun RemmiDatePickerDialog(
     onDismiss: () -> Unit,
     onDateSelected: (LocalDate) -> Unit
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
     val timeZone = TimeZone.currentSystemDefault()
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = initialDate.atTime(0, 0).toInstant(timeZone).toEpochMilliseconds()
     )
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
 
     DatePickerDialog(
         onDismissRequest = onDismiss,
@@ -48,6 +61,9 @@ fun RemmiDatePickerDialog(
     }
 }
 
+/**                                 Time Picker Dialog
+ * Shared Material 3 Time Picker interface (Clock)
+ * */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RemmiTimePickerDialog(
@@ -55,10 +71,20 @@ fun RemmiTimePickerDialog(
     onDismiss: () -> Unit,
     onTimeSelected: (LocalTime) -> Unit
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
     val timePickerState = rememberTimePickerState(
         initialHour = initialTime.hour,
         initialMinute = initialTime.minute
     )
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -85,14 +111,27 @@ fun RemmiTimePickerDialog(
     }
 }
 
+/**                                 Day Selection Dialog
+ * Interface for selecting multiple days of the week
+ * */
 @Composable
 fun RemmiDaySelectionDialog(
     selectedDays: List<String>,
     onDismiss: () -> Unit,
     onConfirm: (List<String>) -> Unit
 ) {
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
     val days = DayOfWeek.entries
     val currentSelected = remember { mutableStateListOf<String>().apply { addAll(selectedDays) } }
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
 
     AlertDialog(
         onDismissRequest = onDismiss,
