@@ -90,7 +90,8 @@ class CalendarActions(
             Log.d(TAG, "Event inserted successfully")
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[CalendarActions] - Successfully created event: ${item.id}. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "calendar",
                     type = EventType.CREATED,
@@ -114,7 +115,8 @@ class CalendarActions(
             repository.delete(id)
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[CalendarActions] - Successfully deleted event: $id. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "calendar",
                     type = EventType.DELETED,
@@ -139,7 +141,8 @@ class CalendarActions(
             repository.updateCloud(event)
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[CalendarActions] - Successfully updated event: ${event.id}. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "calendar",
                     type = EventType.UPDATED,

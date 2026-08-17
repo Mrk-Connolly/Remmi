@@ -81,7 +81,8 @@ class TasksActions(
             Log.d(TAG, "Task created successfully")
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[TasksActions] - Successfully created task: ${task.id}. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "tasks",
                     type = EventType.CREATED,
@@ -106,7 +107,8 @@ class TasksActions(
             repository.updateCloud(task)
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[TasksActions] - Successfully updated task: ${task.id}. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "tasks",
                     type = EventType.UPDATED,
@@ -130,7 +132,8 @@ class TasksActions(
             repository.delete(id)
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[TasksActions] - Successfully deleted task: $id. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "tasks",
                     type = EventType.DELETED,

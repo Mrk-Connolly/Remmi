@@ -2,6 +2,9 @@ package com.remmi.app.core.plugins
 
 import android.content.Context
 import android.util.Log
+import com.remmi.app.core.events.CommandListener
+import com.remmi.app.core.events.DeleteAlarmCommand
+import com.remmi.app.core.events.RemmiCommand
 import com.remmi.app.core.service.file.FileService
 import com.remmi.app.plugins.alarm.AlarmPlugin
 import com.remmi.app.plugins.calendar.CalendarPlugin
@@ -13,28 +16,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 
-class PluginManager {
-
-    /**
-     *                            PLUGIN MANAGER
-     *
-     * Loads, unload and manages all interaction from runtime with the plugins
-     *
-     * */
-
+/**
+ * PLUGIN MANAGER
+ *
+ * Manages plugin lifecycle and routes system Commands to the appropriate plugin instance.
+ */
+class PluginManager : CommandListener {
 
     // ----------------------------------------------------------------------------
     //                                 VARIABLES
     // ----------------------------------------------------------------------------
 
-    /** List of loaded plugins */
+    /** Map of active plugin instances indexed by their metadata ID */
     val plugins = mutableMapOf<String, RemmiPlugin>()
 
-    /** Metadata for all discovered plugins */
+    /** Stream of plugin metadata for all discovered plugins */
     private val _pluginMetadata = MutableStateFlow<List<PluginMetadata>>(emptyList())
     val pluginMetadata = _pluginMetadata.asStateFlow()
 
-    /** JSON configuration for plugin metadata */
     private val jsonConfig = Json {
         prettyPrint = true
         ignoreUnknownKeys = true 
@@ -45,11 +44,8 @@ class PluginManager {
     //                                 CONSTRUCTOR
     // ----------------------------------------------------------------------------
 
-    /**
-     * Constructor for Plugin Manager
-     * */
     init {
-        Log.d("Remmi", "[Plugin Manager] - Constructor initialized")
+        Log.d("Remmi", "[PluginManager] - Constructor initialized")
     }
 
 
@@ -58,24 +54,22 @@ class PluginManager {
     // ----------------------------------------------------------------------------
 
     /**                                 Start
-     * Start plugin manager services (if any)
+     * Prepare plugin management services.
      * */
     fun start() {
         Log.d("Remmi", "[PluginManager] - Starting services")
     }
 
     /**                                 Stop
-     * Close plugin manager and unload all plugins
+     * Unload all plugins and release resources.
      * */
     fun stop() {
         Log.d("Remmi", "[PluginManager] - Stopping services")
-
         try {
             plugins.values.forEach { it.onUnload() }
             plugins.clear()
-
-        }catch (e : Exception) {
-            println("Something went wrong unloading plugin: ${e.message}, check plugin unloader")
+        } catch (e: Exception) {
+            Log.e("Remmi", "[PluginManager] - Failed to stop plugins: ${e.message}")
         }
     }
 
@@ -84,10 +78,24 @@ class PluginManager {
     //                                ACTION FUNCTIONS
     // ----------------------------------------------------------------------------
 
+    /**                                 On Command
+     * Handle incoming Intents targeted at plugins.
+     * PluginManager acts as the router to the correct plugin instance.
+     * */
+    override suspend fun onCommand(command: RemmiCommand) {
+        Log.i("Remmi", "[PluginManager] - RECEIVED COMMAND: [${command::class.simpleName}] from [${command.source}]")
+        
+        when (command) {
+            is DeleteAlarmCommand -> {
+                Log.i("Remmi", "[PluginManager] - Routing DeleteAlarmCommand to AlarmsPlugin for ID: ${command.alarmId}")
+                val alarmPlugin = plugins["alarm"] as? AlarmPlugin
+                alarmPlugin?.actions?.deleteAlarm(command.alarmId)
+            }
+        }
+    }
+
     /**                               READ PLUGINS
-     *
-     * Accesses plugin.json file via FileService and reads all available plugins 
-     * to be installed and saves their information.
+     * Discover plugins from the configuration file.
      * */
     fun readPlugins(fileService: FileService) {
         Log.d("Remmi", "[PluginManager] - [readPlugins] executed")
@@ -97,7 +105,6 @@ class PluginManager {
             fileService.readText(fileName)
         } else {
             val fromAssets = fileService.readText(fileName, useAssets = true)
-            // Copy to local files for future writing
             fileService.writeText(fileName, fromAssets)
             fromAssets
         }
@@ -106,45 +113,37 @@ class PluginManager {
             val metadata = jsonConfig.decodeFromString<List<PluginMetadata>>(jsonString)
             _pluginMetadata.value = metadata
         } catch (e: Exception) {
-            Log.e("Remmi", "Something went wrong while reading plugins: ${e.message}")
+            Log.e("Remmi", "[PluginManager] - Error reading plugins: ${e.message}")
         }
     }
 
     /**                               UPDATE SETTINGS
-     * Update plugin settings and save to disk
+     * Persist updated plugin configuration.
      * */
     fun updateAllPluginSettings(fileService: FileService, newList: List<PluginMetadata>) {
-        Log.d("Remmi", "[PluginManager] - [updateAllPluginSettings] executed")
+        Log.d("Remmi", "[PluginManager] - Updating all plugin settings")
         _pluginMetadata.value = newList
         savePlugins(fileService, newList)
     }
 
-    /**                               SAVE PLUGINS
-     * Internal function to save plugin metadata to local storage
-     * */
     private fun savePlugins(fileService: FileService, metadata: List<PluginMetadata>) {
-        Log.d("Remmi", "[PluginManager] - [savePlugins] executed")
         try {
             val jsonString = jsonConfig.encodeToString(metadata)
             fileService.writeText("plugins.json", jsonString)
         } catch (e: Exception) {
-            Log.e("Remmi", "Failed to save plugin settings: ${e.message}")
+            Log.e("Remmi", "[PluginManager] - Failed to save plugin settings: ${e.message}")
         }
     }
 
     /**                               LOAD PLUGINS
-     *
-     * load all available plugins discovered during readPlugins phase.
+     * Instantiate discovered plugins.
      * */
     fun loadPlugins() {
-        Log.d("Remmi", "[PluginManager] - [loadPlugins] executed")
-
-        // Remove any existing data
+        Log.d("Remmi", "[PluginManager] - Loading plugins")
         plugins.values.forEach { it.onUnload() }
         plugins.clear()
 
         _pluginMetadata.value.forEach { metadata ->
-
             val plugin = when (metadata.id) {
                 "calendar" -> CalendarPlugin(metadata)
                 "tasks" -> TasksPlugin(metadata)
@@ -157,16 +156,16 @@ class PluginManager {
             try {
                 plugin?.let {
                     plugins[metadata.id] = plugin
-                    Log.d("Remmi", "Discovered ${metadata.name}")
+                    Log.d("Remmi", "[PluginManager] - Loaded ${metadata.name}")
                 }
             } catch (e: Exception) {
-                println("Something went wrong loading plugin: ${e.message}, check plugin loader")
+                Log.e("Remmi", "[PluginManager] - Failed to load ${metadata.id}: ${e.message}")
             }
         }
     }
 
     /**                                 Initialize All
-     * Configure all discovered plugins with the shared system context
+     * Dependency injection phase for all plugins.
      * */
     suspend fun initializeAll(context: PluginContext) {
         Log.d("Remmi", "[PluginManager] - Initializing all plugins")
@@ -174,11 +173,10 @@ class PluginManager {
     }
 
     /**                                 Load All
-     * Start the data loading process for all initialized plugins
+     * Data loading phase for all plugins.
      * */
     fun loadAll() {
-        Log.d("Remmi", "[PluginManager] - Loading data for all plugins")
+        Log.d("Remmi", "[PluginManager] - Starting data load for all plugins")
         plugins.values.forEach { it.onLoad() }
     }
-
 }

@@ -11,21 +11,22 @@ import com.remmi.app.core.service.ServiceManager
 /**
  * REMMI CONTROLLER
  *
- * Central coordinator for system-level managers and plugin lifecycles.
- * Handles the initialization and teardown of core engines and services.
+ * Central coordinator for system-level managers, plugin lifecycles, and messaging orchestration.
+ * Manages the initialization, subscription, and teardown of core engines and services.
  */
 class RemmiController(val androidContext: Context) {
-
 
     // ----------------------------------------------------------------------------
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
+    /** Shared Communication Channel */
+    val eventBus = EventBus()
+
     /** Core System Managers */
     val serviceManager = ServiceManager(androidContext)
-    val eventBus = EventBus()
     val pluginManager = PluginManager()
-    val automationEngine = AutomationEngine(pluginManager, eventBus)
+    val automationEngine = AutomationEngine(eventBus)
 
     /** Shared Plugin Context */
     private val pluginContext = PluginContext(serviceManager, eventBus)
@@ -45,39 +46,50 @@ class RemmiController(val androidContext: Context) {
     // ----------------------------------------------------------------------------
 
     /**                                 Start
-     * Orchestrate the startup sequence of all core systems
+     * Orchestrate the startup sequence of all core systems.
      */
     suspend fun start() {
         Log.d("Remmi", "[RemmiController] - Starting system")
 
-        // 1. Discover Plugins using FileService
+        // 1. Start Messaging Bus
+        eventBus.start()
+
+        // 2. Discover Plugins using FileService
         pluginManager.readPlugins(serviceManager.fileService)
         pluginManager.loadPlugins()
 
-        // 2. Initialize Plugins with Shared Context
+        // 3. Subscribe Command Listeners
+        eventBus.subscribeCommand(pluginManager)
+        eventBus.subscribeCommand(serviceManager)
+
+        // 4. Initialize Plugins with Shared Context
         pluginManager.initializeAll(pluginContext)
 
-        // 3. Load Plugin Data
+        // 5. Load Plugin Data
         pluginManager.loadAll()
 
-        // 4. Start Core Engines
+        // 6. Start Engines and Services
         serviceManager.start()
         automationEngine.start()
-        eventBus.start()
     }
 
     /**                                 Stop
-     * Orchestrate the teardown sequence of all core systems
+     * Orchestrate the teardown sequence of all core systems.
      */
     fun stop() {
         Log.d("Remmi", "[RemmiController] - Stopping system")
 
-        // Stop Engines and Services
+        // 1. Stop Automation (Unsubscribe from facts)
         automationEngine.stop()
+
+        // 2. Stop Core Services and Command Channel
+        eventBus.unsubscribeCommand(pluginManager)
+        eventBus.unsubscribeCommand(serviceManager)
         eventBus.stop()
+        
         serviceManager.stop()
 
-        // Unload Plugins
+        // 3. Unload Plugins
         pluginManager.stop()
     }
 }

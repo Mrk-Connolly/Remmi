@@ -5,8 +5,8 @@ import android.util.Log
 /**
  * EVENT BUS
  *
- * Centralized communication channel for system-wide events.
- * Follows the Publish-Subscribe pattern to ensure loose coupling between components.
+ * Centralized communication channel for system-wide events and commands.
+ * Distinguishes between completed facts (Events) and requests for action (Commands).
  */
 class EventBus {
 
@@ -14,8 +14,11 @@ class EventBus {
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
-    /** Set of currently active listeners */
-    private val listeners = mutableSetOf<EventListener>()
+    /** Listeners for Facts (something already happened) */
+    private val eventListeners = mutableSetOf<EventListener>()
+
+    /** Listeners for Intents (requests to perform an action) */
+    private val commandListeners = mutableSetOf<CommandListener>()
 
 
     // ----------------------------------------------------------------------------
@@ -51,34 +54,64 @@ class EventBus {
     //                                ACTION FUNCTIONS
     // ----------------------------------------------------------------------------
 
-    /**                                 Subscribe
-     * Register a new listener to receive events.
+    /**                                 Subscribe Event
+     * Register a new listener to receive Fact notifications.
      * */
-    fun subscribe(listener: EventListener) {
-        Log.d("Remmi", "[EventBus] - Subscribing new listener")
-        listeners.add(listener)
+    fun subscribeEvent(listener: EventListener) {
+        Log.d("Remmi", "[EventBus] - Subscribing new EventListener")
+        eventListeners.add(listener)
     }
 
-    /**                                 Unsubscribe
-     * Remove a previously registered listener.
+    /**                                 Unsubscribe Event
+     * Remove a previously registered EventListener.
      * */
-    fun unsubscribe(listener: EventListener) {
-        Log.d("Remmi", "[EventBus] - Unsubscribing listener")
-        listeners.remove(listener)
+    fun unsubscribeEvent(listener: EventListener) {
+        Log.d("Remmi", "[EventBus] - Unsubscribing EventListener")
+        eventListeners.remove(listener)
     }
 
-    /**                                 Publish
-     * Distribute an event to all subscribed listeners.
-     * Ensures that one listener failure does not interrupt the delivery to others.
+    /**                                 Subscribe Command
+     * Register a new listener to receive action requests.
      * */
-    suspend fun publish(event: RemmiEvent) {
-        Log.d("Remmi", "[EventBus] - Publishing event: ${event.type} from ${event.source}")
+    fun subscribeCommand(listener: CommandListener) {
+        Log.d("Remmi", "[EventBus] - Subscribing new CommandListener")
+        commandListeners.add(listener)
+    }
+
+    /**                                 Unsubscribe Command
+     * Remove a previously registered CommandListener.
+     * */
+    fun unsubscribeCommand(listener: CommandListener) {
+        Log.d("Remmi", "[EventBus] - Unsubscribing CommandListener")
+        commandListeners.remove(listener)
+    }
+
+    /**                                 Publish Event
+     * Distribute a Fact to all subscribed EventListeners.
+     * */
+    suspend fun publishEvent(event: RemmiEvent) {
+        Log.i("Remmi", "[EventBus] - EVENT PUBLISHED: [${event.type}] from [${event.source}] (ID: ${event.eventId})")
         
-        listeners.forEach { listener ->
+        eventListeners.forEach { listener ->
             try {
                 listener.onEvent(event)
             } catch (e: Exception) {
-                Log.e("Remmi", "[EventBus] - Listener failure for event ${event.eventId}: ${e.message}")
+                Log.e("Remmi", "[EventBus] - EventListener failure for [${event.type}]: ${e.message}")
+            }
+        }
+    }
+
+    /**                                 Publish Command
+     * Distribute an action request to all subscribed CommandListeners.
+     * */
+    suspend fun publishCommand(command: RemmiCommand) {
+        Log.i("Remmi", "[EventBus] - COMMAND PUBLISHED: [${command::class.simpleName}] from [${command.source}] (ID: ${command.commandId})")
+        
+        commandListeners.forEach { listener ->
+            try {
+                listener.onCommand(command)
+            } catch (e: Exception) {
+                Log.e("Remmi", "[EventBus] - CommandListener failure for [${command::class.simpleName}]: ${e.message}")
             }
         }
     }
@@ -88,6 +121,7 @@ class EventBus {
      * */
     fun clear() {
         Log.d("Remmi", "[EventBus] - Clearing all listeners")
-        listeners.clear()
+        eventListeners.clear()
+        commandListeners.clear()
     }
 }

@@ -76,7 +76,8 @@ class ContactActions(
             repository.insert(contact)
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[ContactActions] - Successfully created contact: ${contact.id}. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "contacts",
                     type = EventType.CREATED,
@@ -101,7 +102,8 @@ class ContactActions(
             repository.updateCloud(contact)
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[ContactActions] - Successfully updated contact: ${contact.id}. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "contacts",
                     type = EventType.UPDATED,
@@ -125,7 +127,8 @@ class ContactActions(
             repository.delete(id)
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[ContactActions] - Successfully deleted contact: $id. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "contacts",
                     type = EventType.DELETED,

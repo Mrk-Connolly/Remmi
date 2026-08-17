@@ -112,7 +112,8 @@ class AlarmActions(
             Log.d("AlarmActions", "System alarm scheduled for: ${alarm.time}")
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[AlarmActions] - Successfully created alarm: ${alarm.id}. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "alarm",
                     type = EventType.CREATED,
@@ -147,7 +148,8 @@ class AlarmActions(
             }
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[AlarmActions] - Successfully updated alarm: ${alarm.id}. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "alarm",
                     type = EventType.UPDATED,
@@ -176,7 +178,8 @@ class AlarmActions(
             alarmService?.cancelAlarm(id)
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[AlarmActions] - Successfully deleted alarm: $id. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "alarm",
                     type = EventType.DELETED,

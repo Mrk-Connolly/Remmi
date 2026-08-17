@@ -70,7 +70,8 @@ class GiftActions(
             repository.insert(idea)
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[GiftActions] - Successfully created gift idea: ${idea.id}. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "gift",
                     type = EventType.CREATED,
@@ -95,7 +96,8 @@ class GiftActions(
             repository.updateCloud(idea)
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[GiftActions] - Successfully updated gift idea: ${idea.id}. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "gift",
                     type = EventType.UPDATED,
@@ -119,7 +121,8 @@ class GiftActions(
             repository.delete(id)
 
             // Publish Fact
-            eventBus?.publish(
+            Log.i("Remmi", "[GiftActions] - Successfully deleted gift idea: $id. Publishing event...")
+            eventBus?.publishEvent(
                 PluginEvent(
                     source = "gift",
                     type = EventType.DELETED,

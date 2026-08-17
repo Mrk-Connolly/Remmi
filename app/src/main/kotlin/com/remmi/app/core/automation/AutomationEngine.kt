@@ -2,24 +2,16 @@ package com.remmi.app.core.automation
 
 import android.util.Log
 import com.remmi.app.core.events.*
-import com.remmi.app.core.plugins.PluginManager
 
 /**
  * AUTOMATION ENGINE
  *
- * Central intelligence of the system that reacts to events and triggers automated actions.
- * Listens to the EventBus and coordinates cross-plugin operations.
+ * Central intelligence of the system that reacts to events (Facts) and issues commands (Intents).
+ * Coordinates cross-plugin operations without direct dependencies between plugins.
  */
 class AutomationEngine(
-    private val pluginManager: PluginManager,
     private val eventBus: EventBus
 ) : EventListener {
-
-    /**
-     * REMMI AUTOMATION ENGINE  will be the head of the AI controller for automatic
-     * scanning and creation of events without user interaction.
-     * */
-
 
     // ----------------------------------------------------------------------------
     //                                  VARIABLES
@@ -33,9 +25,6 @@ class AutomationEngine(
     //                                 CONSTRUCTOR
     // ----------------------------------------------------------------------------
 
-    /**
-     * Constructor for Automation Engine
-     * */
     init {
         Log.d("Remmi", "[AutomationEngine] - Constructor initialized")
     }
@@ -46,22 +35,22 @@ class AutomationEngine(
     // ----------------------------------------------------------------------------
 
     /**                                 Start
-     * Subscribe to the EventBus and start processing events
+     * Subscribe to Fact events on the EventBus.
      * */
-    fun start(){
+    fun start() {
         if (running) return
-        Log.d("Remmi", "[AutomationEngine] - Starting services")
-        eventBus.subscribe(this)
+        Log.d("Remmi", "[AutomationEngine] - Starting automation services")
+        eventBus.subscribeEvent(this)
         running = true
     }
 
     /**                                 Stop
-     * Unsubscribe from the EventBus and stop processing
+     * Unsubscribe from the Fact channel.
      * */
     fun stop() {
         if (!running) return
-        Log.d("Remmi", "[AutomationEngine] - Stopping services")
-        eventBus.unsubscribe(this)
+        Log.d("Remmi", "[AutomationEngine] - Stopping automation services")
+        eventBus.unsubscribeEvent(this)
         running = false
     }
 
@@ -70,12 +59,12 @@ class AutomationEngine(
     //                                ACTION FUNCTIONS
     // ----------------------------------------------------------------------------
 
-
     /**                                 On Event
-     * Entry point for events distributed via the EventBus
+     * Handle Facts distributed via the EventBus.
+     * Decisions made here will result in Commands being published.
      * */
     override suspend fun onEvent(event: RemmiEvent) {
-        Log.d("Remmi", "[AutomationEngine] - Received event: ${event.type} from ${event.source}")
+        Log.i("Remmi", "[AutomationEngine] - RECEIVED FACT: [${event.type}] from [${event.source}]")
         
         when (event) {
             is PluginEvent -> handlePluginEvent(event)
@@ -83,13 +72,22 @@ class AutomationEngine(
     }
 
     /**                                 Handle Plugin Event
-     * Process standard CRUD events from plugins and determine if automation is needed
+     * Logic for cross-plugin automation based on standard CRUD facts.
      * */
     private suspend fun handlePluginEvent(event: PluginEvent) {
-        Log.d("Remmi", "[AutomationEngine] - Processing plugin event for item ${event.itemId}")
-        
-        // FUTURE: Implement cross-plugin automation logic here
-        // Example: If a Calendar event is deleted, find and delete linked Alarms
+        // EXAMPLE: Linked resource cleanup
+        if (event.source == "calendar" && event.type == EventType.DELETED) {
+            Log.i("Remmi", "[AutomationEngine] - Calendar event deleted. Checking for linked Alarms...")
+            
+            // TODO: In a real implementation, we would lookup linkedAlarmId from a mapping service/db
+            val linkedAlarmId: String? = null 
+            
+            linkedAlarmId?.let { alarmId ->
+                Log.i("Remmi", "[AutomationEngine] - Issuing DeleteAlarmCommand for: $alarmId")
+                eventBus.publishCommand(
+                    DeleteAlarmCommand(alarmId = alarmId)
+                )
+            }
+        }
     }
-
 }
