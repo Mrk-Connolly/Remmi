@@ -1,4 +1,4 @@
-package com.remmi.app.core.service
+package com.remmi.app.core.service.database
 
 import android.util.Log
 import io.github.jan.supabase.createSupabaseClient

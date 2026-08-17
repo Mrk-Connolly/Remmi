@@ -2,6 +2,7 @@ package com.remmi.app.core.plugins
 
 import android.content.Context
 import android.util.Log
+import com.remmi.app.core.service.file.FileService
 import com.remmi.app.plugins.alarm.AlarmPlugin
 import com.remmi.app.plugins.calendar.CalendarPlugin
 import com.remmi.app.plugins.contacts.ContactPlugin
@@ -85,24 +86,19 @@ class PluginManager {
 
     /**                               READ PLUGINS
      *
-     * recieves android contextex from host -> runtime to access plugin.json file and
-     * reads all available plugins to be installed and saves their information*/
-    fun readPlugins(context: Context) {
+     * Accesses plugin.json file via FileService and reads all available plugins 
+     * to be installed and saves their information.
+     * */
+    fun readPlugins(fileService: FileService) {
         Log.d("Remmi", "[PluginManager] - [readPlugins] executed")
 
-        val localFile = File(context.filesDir, "plugins.json")
-        val jsonString = if (localFile.exists()) {
-            localFile.readText()
+        val fileName = "plugins.json"
+        val jsonString = if (fileService.exists(fileName)) {
+            fileService.readText(fileName)
         } else {
-            val fromAssets = context.assets
-                .open("plugins.json")
-                .bufferedReader()
-                .use { it.readText() }
-            
+            val fromAssets = fileService.readText(fileName, useAssets = true)
             // Copy to local files for future writing
-            localFile.writeText(fromAssets)
-
-            // return fromAssets
+            fileService.writeText(fileName, fromAssets)
             fromAssets
         }
 
@@ -117,31 +113,29 @@ class PluginManager {
     /**                               UPDATE SETTINGS
      * Update plugin settings and save to disk
      * */
-    fun updateAllPluginSettings(context : Context, newList: List<PluginMetadata>) {
+    fun updateAllPluginSettings(fileService: FileService, newList: List<PluginMetadata>) {
         Log.d("Remmi", "[PluginManager] - [updateAllPluginSettings] executed")
         _pluginMetadata.value = newList
-        savePlugins(context, newList)
+        savePlugins(fileService, newList)
     }
 
     /**                               SAVE PLUGINS
      * Internal function to save plugin metadata to local storage
      * */
-    private fun savePlugins(context: Context, metadata: List<PluginMetadata>) {
+    private fun savePlugins(fileService: FileService, metadata: List<PluginMetadata>) {
         Log.d("Remmi", "[PluginManager] - [savePlugins] executed")
-        context.let { context ->
-            try {
-                val jsonString = jsonConfig.encodeToString(metadata)
-                File(context.filesDir, "plugins.json").writeText(jsonString)
-            } catch (e: Exception) {
-                Log.e("Remmi", "Failed to save plugin settings: ${e.message}")
-            }
+        try {
+            val jsonString = jsonConfig.encodeToString(metadata)
+            fileService.writeText("plugins.json", jsonString)
+        } catch (e: Exception) {
+            Log.e("Remmi", "Failed to save plugin settings: ${e.message}")
         }
     }
 
     /**                               LOAD PLUGINS
      *
-     * recieves android contextex from host -> runtime to access plugin.json file and
-     * load all available plugins to be installed*/
+     * load all available plugins discovered during readPlugins phase.
+     * */
     fun loadPlugins() {
         Log.d("Remmi", "[PluginManager] - [loadPlugins] executed")
 

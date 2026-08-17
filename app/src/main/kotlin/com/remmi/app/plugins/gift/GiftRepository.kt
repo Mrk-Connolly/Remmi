@@ -2,7 +2,7 @@ package com.remmi.app.plugins.gift
 
 import android.util.Log
 import com.remmi.app.core.plugins.repository.CloudRepository
-import com.remmi.app.core.service.DatabaseService
+import com.remmi.app.core.service.database.DatabaseService
 
 class GiftRepository(databaseService: DatabaseService) : CloudRepository<GiftIdea>(
     databaseService = databaseService,

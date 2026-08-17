@@ -2,7 +2,7 @@ package com.remmi.app.core.plugins.repository
 
 import android.util.Log
 import com.remmi.app.core.plugins.model.models.RemmiModel
-import com.remmi.app.core.service.DatabaseService
+import com.remmi.app.core.service.database.DatabaseService
 import kotlinx.serialization.KSerializer
 
 abstract class CloudRepository<T : RemmiModel>(

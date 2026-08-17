@@ -6,7 +6,6 @@ import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.service.SupabaseService
 import com.remmi.app.core.plugins.widgets.RemmiWidget
 import com.remmi.app.plugins.contacts.ContactActions
 import com.remmi.app.plugins.contacts.ContactPlugin
@@ -24,14 +23,17 @@ class GiftPlugin(
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
-    /** Shared system context */
-    private lateinit var context: PluginContext
+    /** Internal storage for initialized components */
+    private var _repository: GiftRepository? = null
+    private var _actions: GiftActions? = null
 
     /** Repository for managing Gift ideas data */
-    override val repository: GiftRepository = GiftRepository(SupabaseService)
+    override val repository: GiftRepository
+        get() = _repository ?: throw IllegalStateException("GiftPlugin not initialized")
 
     /** Action controller for gift logic. */
-    override val actions: GiftActions = GiftActions(repository)
+    override val actions: GiftActions
+        get() = _actions ?: throw IllegalStateException("GiftPlugin not initialized")
     
     /** Access to Contact actions via PluginContext.serviceManager or automation flow */
     private val contactActions: ContactActions?
@@ -61,9 +63,6 @@ class GiftPlugin(
     //                                 CONSTRUCTOR
     // ----------------------------------------------------------------------------
 
-    /**
-     * Constructor for Gift Plugin
-     * */
     init {
         Log.d("Remmi", "[GiftPlugin] - Constructor initialized")
     }
@@ -78,8 +77,15 @@ class GiftPlugin(
      */
     override suspend fun initialize(context: PluginContext) {
         Log.d("Remmi", "[GiftPlugin] - Initializing with shared context")
-        this.context = context
-        actions.eventBus = context.eventBus
+        
+        // Initialize Repository via ServiceManager
+        val repo = GiftRepository(context.serviceManager.databaseService)
+        _repository = repo
+        
+        // Initialize Actions
+        _actions = GiftActions(repo).apply {
+            this.eventBus = context.eventBus
+        }
     }
 
     /**                                   On Load
@@ -109,6 +115,6 @@ class GiftPlugin(
      */
     override suspend fun reformat() {
         Log.d("Remmi", "[GiftPlugin] - [reformat] executed")
-        repository.clearAll()
+        _repository?.clear()
     }
 }

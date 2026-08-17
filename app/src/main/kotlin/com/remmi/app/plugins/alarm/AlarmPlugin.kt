@@ -6,7 +6,6 @@ import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.service.SupabaseService
 import com.remmi.app.core.plugins.widgets.RemmiWidget
 import com.remmi.app.plugins.alarm.ui.screens.AlarmScreen
 import kotlinx.coroutines.CoroutineScope
@@ -27,17 +26,20 @@ class AlarmPlugin(
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
-    /** Shared system context */
-    private lateinit var context: PluginContext
+    /** Internal storage for initialized components */
+    private var _repository: AlarmRepository? = null
+    private var _actions: AlarmActions? = null
 
     /** Repository for persistent alarm data. */
-    override val repository: AlarmRepository = AlarmRepository(SupabaseService)
+    override val repository: AlarmRepository
+        get() = _repository ?: throw IllegalStateException("AlarmPlugin not initialized")
 
     /** Action controller for alarm logic. */
-    override val actions: AlarmActions = AlarmActions(repository)
+    override val actions: AlarmActions
+        get() = _actions ?: throw IllegalStateException("AlarmPlugin not initialized")
 
     /** Dashboard widget for alarms. */
-    override val widget: RemmiWidget = AlarmWidget(metadata, actions)
+    override val widget: RemmiWidget by lazy { AlarmWidget(metadata, actions) }
 
     /** UI screen for detailed alarm management. */
     override val screen: RemmiScreen = object : RemmiScreen {
@@ -52,9 +54,6 @@ class AlarmPlugin(
     //                                 CONSTRUCTOR
     // ----------------------------------------------------------------------------
 
-    /**
-     * Constructor for Alarm Plugin
-     * */
     init {
         Log.d("Remmi", "[AlarmPlugin] - Constructor initialized")
     }
@@ -69,8 +68,16 @@ class AlarmPlugin(
      */
     override suspend fun initialize(context: PluginContext) {
         Log.d("Remmi", "[AlarmPlugin] - Initializing with shared context")
-        this.context = context
-        actions.eventBus = context.eventBus
+        
+        // Initialize Repository via ServiceManager
+        val repo = AlarmRepository(context.serviceManager.databaseService)
+        _repository = repo
+        
+        // Initialize Actions
+        _actions = AlarmActions(repo).apply {
+            this.eventBus = context.eventBus
+            this.alarmService = context.serviceManager.alarmService
+        }
     }
 
     /**                                   On Load
@@ -100,6 +107,6 @@ class AlarmPlugin(
      */
     override suspend fun reformat() {
         Log.d("Remmi", "[AlarmPlugin] - [reformat] executed")
-        repository.clearAll()
+        _repository?.clear()
     }
 }

@@ -6,7 +6,6 @@ import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.service.SupabaseService
 import com.remmi.app.core.plugins.widgets.RemmiWidget
 import com.remmi.app.plugins.tasks.ui.screens.TasksScreen
 import kotlinx.coroutines.CoroutineScope
@@ -25,17 +24,20 @@ class TasksPlugin(
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
-    /** Shared system context */
-    private lateinit var context: PluginContext
+    /** Internal storage for initialized components */
+    private var _repository: TasksRepository? = null
+    private var _actions: TasksActions? = null
 
     /** Repository for managing Tasks data */
-    override val repository: TasksRepository = TasksRepository(SupabaseService)
+    override val repository: TasksRepository
+        get() = _repository ?: throw IllegalStateException("TasksPlugin not initialized")
 
     /** Action controller for tasks logic. */
-    override val actions: TasksActions = TasksActions(repository)
+    override val actions: TasksActions
+        get() = _actions ?: throw IllegalStateException("TasksPlugin not initialized")
 
     /** Dashboard widget for tasks. */
-    override val widget: RemmiWidget = TasksWidget(metadata, actions)
+    override val widget: RemmiWidget by lazy { TasksWidget(metadata, actions) }
 
     /** UI screen for task management. */
     override val screen: RemmiScreen = object : RemmiScreen {
@@ -50,9 +52,6 @@ class TasksPlugin(
     //                                 CONSTRUCTOR
     // ----------------------------------------------------------------------------
 
-    /**
-     * Constructor for Tasks Plugin
-     * */
     init {
         Log.d("Remmi", "[TasksPlugin] - Constructor initialized")
     }
@@ -67,8 +66,15 @@ class TasksPlugin(
      */
     override suspend fun initialize(context: PluginContext) {
         Log.d("Remmi", "[TasksPlugin] - Initializing with shared context")
-        this.context = context
-        actions.eventBus = context.eventBus
+        
+        // Initialize Repository via ServiceManager
+        val repo = TasksRepository(context.serviceManager.databaseService)
+        _repository = repo
+        
+        // Initialize Actions
+        _actions = TasksActions(repo).apply {
+            this.eventBus = context.eventBus
+        }
     }
 
     /**                                   On Load
@@ -94,6 +100,6 @@ class TasksPlugin(
      */
     override suspend fun reformat() {
         Log.d("Remmi", "[TasksPlugin] - [reformat] executed")
-        repository.clearAll()
+        _repository?.clear()
     }
 }
