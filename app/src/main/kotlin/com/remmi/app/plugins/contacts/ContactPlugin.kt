@@ -6,7 +6,6 @@ import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.service.SupabaseService
 import com.remmi.app.core.plugins.widgets.RemmiWidget
 import com.remmi.app.plugins.contacts.ui.screens.ContactScreen
 import kotlinx.coroutines.CoroutineScope
@@ -23,17 +22,20 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
-    /** Shared system context */
-    private lateinit var context: PluginContext
+    /** Internal storage for initialized components */
+    private var _repository: ContactRepository? = null
+    private var _actions: ContactActions? = null
 
     /** Repository for managing Contacts data */
-    override val repository: ContactRepository = ContactRepository(SupabaseService)
+    override val repository: ContactRepository
+        get() = _repository ?: throw IllegalStateException("ContactPlugin not initialized")
 
     /** Action controller for contact logic. */
-    override val actions: ContactActions = ContactActions(repository)
+    override val actions: ContactActions
+        get() = _actions ?: throw IllegalStateException("ContactPlugin not initialized")
 
     /** Dashboard widget for contacts. */
-    override val widget: RemmiWidget = ContactWidget(metadata, actions)
+    override val widget: RemmiWidget by lazy { ContactWidget(metadata, actions) }
 
     /** UI screen for contact management. */
     override val screen: RemmiScreen = object : RemmiScreen {
@@ -48,9 +50,6 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     //                                 CONSTRUCTOR
     // ----------------------------------------------------------------------------
 
-    /**
-     * Constructor for Contact Plugin
-     * */
     init {
         Log.d("Remmi", "[ContactPlugin] - Constructor initialized")
     }
@@ -65,8 +64,15 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
      */
     override suspend fun initialize(context: PluginContext) {
         Log.d("Remmi", "[ContactPlugin] - Initializing with shared context")
-        this.context = context
-        actions.eventBus = context.eventBus
+        
+        // Initialize Repository via ServiceManager
+        val repo = ContactRepository(context.serviceManager.databaseService)
+        _repository = repo
+        
+        // Initialize Actions
+        _actions = ContactActions(repo).apply {
+            this.eventBus = context.eventBus
+        }
     }
 
     /**                                   On Load
@@ -96,6 +102,6 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
      */
     override suspend fun reformat() {
         Log.d("Remmi", "[ContactPlugin] - [reformat] executed")
-        repository.clearAll()
+        _repository?.clear()
     }
 }

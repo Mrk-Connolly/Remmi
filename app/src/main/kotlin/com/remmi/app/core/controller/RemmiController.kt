@@ -50,8 +50,8 @@ class RemmiController(val androidContext: Context) {
     suspend fun start() {
         Log.d("Remmi", "[RemmiController] - Starting system")
 
-        // 1. Discover Plugins
-        pluginManager.readPlugins(androidContext)
+        // 1. Discover Plugins using FileService
+        pluginManager.readPlugins(serviceManager.fileService)
         pluginManager.loadPlugins()
 
         // 2. Initialize Plugins with Shared Context

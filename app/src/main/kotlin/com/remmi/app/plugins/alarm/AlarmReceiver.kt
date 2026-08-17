@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.remmi.app.core.service.android.implementations.AndroidAlarmService
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -21,8 +22,8 @@ class AlarmReceiver : BroadcastReceiver() {
             return
         }
         
-        val handler = AndroidAlarmHandler(context)
-        handler.postNotification(alarmTitle, "Your alarm is ringing!")
+        val service = AndroidAlarmService(context)
+        service.postNotification(alarmTitle, "Your alarm is ringing!")
         Log.d("AlarmReceiver", "Notification posted for alarm: $alarmId")
     }
 }

@@ -81,7 +81,7 @@ fun SettingsScreen(
             if (hasChanges) {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        pluginManager.updateAllPluginSettings(runtime.androidContext, pendingMetadata)
+                        pluginManager.updateAllPluginSettings(runtime.serviceManager.fileService, pendingMetadata)
                         pluginManager.loadPlugins()
                         onBack()
                     },

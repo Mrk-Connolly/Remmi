@@ -5,6 +5,7 @@ import com.remmi.app.core.events.EventBus
 import com.remmi.app.core.events.EventType
 import com.remmi.app.core.events.PluginEvent
 import com.remmi.app.core.plugins.actions.RemmiAction
+import com.remmi.app.core.service.android.AlarmService
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -26,11 +27,11 @@ class AlarmActions(
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
-    /** Internal handler for Android AlarmManager */
-    private val androidHandler = AndroidAlarmHandler()
-
     /** Shared system event bus */
     override var eventBus: EventBus? = null
+
+    /** Specialized Android Alarm service */
+    var alarmService: AlarmService? = null
 
 
     // ----------------------------------------------------------------------------
@@ -56,7 +57,7 @@ class AlarmActions(
         Log.d("Remmi", "[AlarmActions] - [getAllAlarms] executed")
         val repoAlarms = repository.getAll().map { AlarmUiModel(it, isLocal = false) }
         val systemAlarms = try {
-            androidHandler.fetchSystemAlarms().map { AlarmUiModel(it, isLocal = true) }
+            alarmService?.fetchSystemAlarms()?.map { AlarmUiModel(it, isLocal = true) } ?: emptyList()
         } catch (e: Exception) {
             emptyList()
         }
@@ -68,7 +69,7 @@ class AlarmActions(
      * */
     fun openSystemAlarmApp() {
         Log.d("Remmi", "[AlarmActions] - [openSystemAlarmApp] executed")
-        androidHandler.openSystemAlarmApp()
+        alarmService?.openSystemAlarmApp()
     }
     
     /**                                 Add Alarm
@@ -100,12 +101,12 @@ class AlarmActions(
             repository.insert(alarm)
             Log.d("AlarmActions", "Alarm inserted into repository: ${alarm.id}")
             
-            // Schedule internal system alarm (registers as an AlarmClock in the system)
-            androidHandler.setAlarm(alarm.id, alarm.title, alarm.time.toEpochMilliseconds())
+            // Schedule internal system alarm
+            alarmService?.setAlarm(alarm.id, alarm.title, alarm.time.toEpochMilliseconds())
             
             // Optionally push to external Clock app
             if (syncToSystem) {
-                androidHandler.syncToSystemClock(alarm.title, alarm.time.toEpochMilliseconds())
+                alarmService?.syncToSystemClock(alarm.title, alarm.time.toEpochMilliseconds())
             }
             
             Log.d("AlarmActions", "System alarm scheduled for: ${alarm.time}")
@@ -138,11 +139,11 @@ class AlarmActions(
             
             // Reschedule internal system alarm
             Log.d("AlarmActions", "Rescheduling system alarm for: ${alarm.time}")
-            androidHandler.setAlarm(alarm.id, alarm.title, alarm.time.toEpochMilliseconds())
+            alarmService?.setAlarm(alarm.id, alarm.title, alarm.time.toEpochMilliseconds())
             
             // Optionally push to external Clock app
             if (syncToSystem) {
-                androidHandler.syncToSystemClock(alarm.title, alarm.time.toEpochMilliseconds())
+                alarmService?.syncToSystemClock(alarm.title, alarm.time.toEpochMilliseconds())
             }
 
             // Publish Fact
@@ -172,7 +173,7 @@ class AlarmActions(
             
             // Cancel system alarm
             Log.d("AlarmActions", "Canceling system alarm for: $id")
-            androidHandler.cancelAlarm(id)
+            alarmService?.cancelAlarm(id)
 
             // Publish Fact
             eventBus?.publish(

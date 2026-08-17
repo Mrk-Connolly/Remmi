@@ -2,7 +2,7 @@ package com.remmi.app.plugins.calendar
 
 import android.util.Log
 import com.remmi.app.core.plugins.repository.CloudRepository
-import com.remmi.app.core.service.DatabaseService
+import com.remmi.app.core.service.database.DatabaseService
 import kotlinx.datetime.*
 
 /**

@@ -1,4 +1,4 @@
-package com.remmi.app.core.service
+package com.remmi.app.core.service.database
 
 import com.remmi.app.core.plugins.model.models.RemmiModel
 import kotlinx.serialization.KSerializer
