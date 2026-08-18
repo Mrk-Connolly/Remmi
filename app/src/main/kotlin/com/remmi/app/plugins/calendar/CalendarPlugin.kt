@@ -2,71 +2,143 @@ package com.remmi.app.plugins.calendar
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.*
+import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.service.DatabaseService
-import com.remmi.app.core.service.SupabaseService
-import com.remmi.app.core.widgets.RemmiWidget
-import com.remmi.app.plugins.tasks.TasksRepository
+import com.remmi.app.core.plugins.widgets.RemmiWidget
+import com.remmi.app.plugins.calendar.ui.screens.CalendarScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
  * The main entry point for the Calendar plugin.
- *
- * This class coordinates the setup of the repository, action controller, and UI
- * components (Widget and Screen). It also handles the background synchronization
- * of calendar items.
  */
-class CalendarPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
+class CalendarPlugin(
+    override val metadata: PluginMetadata
+) : RemmiPlugin {
 
-    /**
-     * Plugin Classes.
-     * Created and initialized on class instance creation
-     */
-    override val widget: RemmiWidget = CalendarWidget()
-    override val repository: CalendarRepository = CalendarRepository(SupabaseService)
-    override val actions: CalendarActions = CalendarActions(
-        repository,
-        TasksRepository(SupabaseService),
-        id = "calendar_actions",
-        name = "Calendar Actions"
-    )
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Internal storage for initialized components */
+    private var _repository: CalendarRepository? = null
+    private var _actions: CalendarActions? = null
+
+    /** Repository for managing Calendar data */
+    override val repository: CalendarRepository
+        get() = _repository ?: throw IllegalStateException("CalendarPlugin not initialized")
+
+    /** Action controller for calendar logic. */
+    override val actions: CalendarActions
+        get() = _actions ?: throw IllegalStateException("CalendarPlugin not initialized")
+
+    /** Dashboard widget for calendar. */
+    override val widget: RemmiWidget by lazy { CalendarWidget(metadata, actions) }
+
+    /** UI screen for calendar management. */
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable
-        override fun Content() = CalendarScreen(actions)
+        override fun Content(controller: RemmiController) {
+            Log.d("Remmi", "[CalendarPlugin] - [Content] executed")
+            CalendarScreen(actions, controller)
+        }
     }
 
 
-    // --------------------------------------------------------------------------
-    //                       REMMI PLUGIN OVERRIDES.
-    // --------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    init {
+        Log.d("Remmi", "[CalendarPlugin] - Constructor initialized")
+    }
 
 
-    /**
-     * On load function
-     *
-     *
-     *
-     *
-     * */
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                   Initialize
+     * Configure the plugin with the shared system context.
+     */
+    override suspend fun initialize(context: PluginContext) {
+        Log.d("Remmi", "[CalendarPlugin] - Initializing with shared context")
+        
+        // Initialize Repository via ServiceManager
+        val repo = CalendarRepository(context.serviceManager.databaseService)
+        _repository = repo
+        
+        // Initialize Actions
+        _actions = CalendarActions(repo).apply {
+            this.eventBus = context.eventBus
+        }
+    }
+
+    /**                                   On Command
+     * Handle commands specifically targeted at the Calendar plugin.
+     */
+    override suspend fun onCommand(command: RemmiCommand) {
+        Log.d("Remmi", "[CalendarPlugin] - Received command: ${command::class.simpleName}")
+        when (command) {
+            is CreateCalendarEventCommand -> actions.addEvent(
+                title = command.title,
+                description = command.description,
+                startingDate = command.startingDate,
+                startingTime = command.startingTime,
+                endingDate = command.endingDate,
+                endingTime = command.endingTime,
+                isPriority = command.isPriority,
+                group = command.group,
+                participants = command.participants,
+                repeat = command.repeat,
+                location = command.location,
+                linkedTasks = command.linkedTasks,
+                linkedAlarm = command.linkedAlarm
+            )
+            is UpdateCalendarEventCommand -> actions.updateEvent(
+                event = command.event
+            )
+            is DeleteCalendarEventCommand -> actions.removeEvent(
+                id = command.eventId
+            )
+            is FetchTodayEventsCommand -> {
+                Log.d("Remmi", "[CalendarPlugin] - Fetching today's events for automation")
+                val events = actions.getTodayEvents()
+                actions.eventBus?.publishEvent(TodayEventsFetchedEvent(events))
+            }
+        }
+    }
+
+    /**                                   On Load
+     * Called when the plugin is loaded.
+     */
     override fun onLoad() {
+        Log.d("Remmi", "[CalendarPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Calendar Plugin...")
-
         CoroutineScope(Dispatchers.IO).launch {
             actions.sync()
         }
-
         Log.d("Remmi", "Calendar Plugin Loaded")
     }
 
-    /**
+    /**                                   On Unload
      * Called when the plugin is unloaded.
      */
     override fun onUnload() {
-        Log.d("Remmi", "Unloading Calendar Plugin...")
+        Log.d("Remmi", "[CalendarPlugin] - [onUnload] executed")
     }
 
+    /**                                   Reformat
+     * Reformat plugin database (clear all data).
+     */
+    override suspend fun reformat() {
+        Log.d("Remmi", "[CalendarPlugin] - [reformat] executed")
+        _repository?.clear()
+    }
 }

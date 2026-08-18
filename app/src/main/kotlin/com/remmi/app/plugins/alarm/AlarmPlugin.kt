@@ -2,11 +2,17 @@ package com.remmi.app.plugins.alarm
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.CreateAlarmCommand
+import com.remmi.app.core.events.DeleteAlarmCommand
+import com.remmi.app.core.events.RemmiCommand
+import com.remmi.app.core.events.UpdateAlarmCommand
+import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.service.SupabaseService
-import com.remmi.app.core.widgets.RemmiWidget
+import com.remmi.app.core.plugins.widgets.RemmiWidget
+import com.remmi.app.plugins.alarm.ui.screens.AlarmScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -16,34 +22,99 @@ import kotlinx.coroutines.launch
  *
  * Integrates alarm scheduling and management into the Remmi platform.
  */
-class AlarmPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
+class AlarmPlugin(
+    override val metadata: PluginMetadata
+) : RemmiPlugin {
 
-    /**
-     * Repository for persistent alarm data.
-     */
-    override val repository: AlarmRepository = AlarmRepository(SupabaseService)
 
-    /**
-     * Action controller for alarm logic.
-     */
-    override val actions: AlarmActions = AlarmActions(repository)
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
 
-    /**
-     * Dashboard widget for alarms.
-     */
-    override val widget: RemmiWidget = AlarmWidget(actions)
+    /** Internal storage for initialized components */
+    private var _repository: AlarmRepository? = null
+    private var _actions: AlarmActions? = null
 
-    /**
-     * UI screen for detailed alarm management.
-     */
+    /** Repository for persistent alarm data. */
+    override val repository: AlarmRepository
+        get() = _repository ?: throw IllegalStateException("AlarmPlugin not initialized")
+
+    /** Action controller for alarm logic. */
+    override val actions: AlarmActions
+        get() = _actions ?: throw IllegalStateException("AlarmPlugin not initialized")
+
+    /** Dashboard widget for alarms. */
+    override val widget: RemmiWidget by lazy { AlarmWidget(metadata, actions) }
+
+    /** UI screen for detailed alarm management. */
     override val screen: RemmiScreen = object : RemmiScreen {
-        @Composable override fun Content() = AlarmScreen(actions)
+        @Composable override fun Content(controller: RemmiController) {
+            Log.d("Remmi", "[AlarmPlugin] - [Content] executed")
+            AlarmScreen(actions, controller)
+        }
     }
 
-    /**
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    init {
+        Log.d("Remmi", "[AlarmPlugin] - Constructor initialized")
+    }
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                   Initialize
+     * Configure the plugin with the shared system context.
+     */
+    override suspend fun initialize(context: PluginContext) {
+        Log.d("Remmi", "[AlarmPlugin] - Initializing with shared context")
+        
+        // Initialize Repository via ServiceManager
+        val repo = AlarmRepository(context.serviceManager.databaseService)
+        _repository = repo
+        
+        // Initialize Actions
+        _actions = AlarmActions(repo).apply {
+            this.eventBus = context.eventBus
+            this.alarmService = context.serviceManager.alarmService
+        }
+    }
+
+    /**                                   On Command
+     * Handle commands specifically targeted at the Alarm plugin.
+     */
+    override suspend fun onCommand(command: RemmiCommand) {
+        Log.d("Remmi", "[AlarmPlugin] - Received command: ${command::class.simpleName}")
+        when (command) {
+            is CreateAlarmCommand -> actions.addAlarm(
+                title = command.title,
+                description = command.description,
+                time = command.time,
+                isPriority = command.isPriority,
+                repeatable = command.repeatable,
+                custom = command.custom,
+                syncToSystem = command.syncToSystem
+            )
+            is UpdateAlarmCommand -> actions.updateAlarm(
+                alarm = command.alarm,
+                syncToSystem = command.syncToSystem
+            )
+            is DeleteAlarmCommand -> actions.deleteAlarm(
+                id = command.alarmId
+            )
+        }
+    }
+
+    /**                                   On Load
      * Called when the plugin is loaded.
      */
     override fun onLoad() {
+        Log.d("Remmi", "[AlarmPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Alarm Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -54,9 +125,18 @@ class AlarmPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
         }
     }
 
-    /**
+    /**                                   On Unload
      * Called when the plugin is unloaded.
      */
     override fun onUnload() {
+        Log.d("Remmi", "[AlarmPlugin] - [onUnload] executed")
+    }
+
+    /**                                   Reformat
+     * Reformat plugin database (clear all data).
+     */
+    override suspend fun reformat() {
+        Log.d("Remmi", "[AlarmPlugin] - [reformat] executed")
+        _repository?.clear()
     }
 }

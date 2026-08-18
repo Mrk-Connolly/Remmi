@@ -1,7 +1,8 @@
 package com.remmi.app.plugins.tasks
 
-import com.remmi.app.core.repository.CloudRepository
-import com.remmi.app.core.service.DatabaseService
+import android.util.Log
+import com.remmi.app.core.plugins.repository.CloudRepository
+import com.remmi.app.core.service.database.DatabaseService
 
 /**
  * Repository for managing [TaskItem] data.
@@ -13,4 +14,18 @@ class TasksRepository(databaseService: DatabaseService) : CloudRepository<TaskIt
     databaseService = databaseService,
     tableName = "tasks",
     serializer = TaskItem.serializer()
-)
+) {
+
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Tasks Repository
+     * */
+    init {
+        Log.d("Remmi", "[TasksRepository] - Constructor initialized")
+    }
+
+}

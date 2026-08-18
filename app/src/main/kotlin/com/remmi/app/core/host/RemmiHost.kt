@@ -1,40 +1,56 @@
 package com.remmi.app.core.host
 
+import android.content.Context
 import android.util.Log
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
-import com.remmi.app.core.navigation.AppNavigation
-import com.remmi.app.core.runtime.RemmiRuntime
+import com.remmi.app.core.controller.RemmiController
+
+/**
+ * Remmi Host
+ * Owns the app environment and builds the system
+ */
+class RemmiHost(val androidContext: Context) {
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    val runtime = RemmiController(androidContext)
 
 
-@Composable
-fun RemmiHost() {
 
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
 
     /**
-     * Remmi Host
-     *
-     * Executes Runtime and UI menu
-     */
-
-
-    Log.d("Remmi", "Runtime generated")
-
-    // Used to load JSON files
-    val androidContext = LocalContext.current
-
-    //  1º Executes startup script
-    val runtime = remember { // Create this object once, and keep it between recompositions
-
-        RemmiRuntime(androidContext).apply { // Construct class and Executes first
-            Log.d("Remmi", "Runtime executed")
-
-            // 2. Start loading services and plugins.
-            start()
-        }
+     * Constructor for RemmiHost
+     * */
+    init {
+        Log.d("Remmi", "[RemmiHost] - Constructor initialized")
     }
 
-    // 3. Start ui bottom menu navigation
-    AppNavigation(context = runtime.controller)
+
+
+    // ----------------------------------------------------------------------------
+    //                                CORE FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 Start
+     * Orchestrates the system startup sequence.
+     * Must be called from a coroutine scope as it initializes plugins.
+     * */
+    suspend fun start() {
+        Log.d("Remmi", "[RemmiHost] - Starting system")
+        // Start core functions and load plugins
+        runtime.start()
+    }
+
+    /**                                 Stop
+     * Orchestrates the system teardown sequence.
+     * */
+    fun stop() {
+        Log.d("Remmi", "[RemmiHost] - Stopping system")
+        runtime.stop()
+    }
 }

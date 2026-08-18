@@ -1,19 +1,19 @@
 package com.remmi.app.core.events
 
 /**
- * Interface representing a system-wide or plugin-specific event.
+ * REMMI EVENT
  *
- * Events are used to notify different parts of the system about changes
- * or triggers (e.g., "Calendar synced", "Task completed").
+ * Interface representing a system-wide or plugin-specific notification.
+ * Events are fact-based and describe something that has already happened.
  */
-interface RemmiEvent {
+interface RemmiEvent : RemmiMessage {
 
-    /**
-     * REMMI EVENT is the base of all remmi runtime events and errors created
-     * by any plugin
-     *
-     * IMPORTANT CORE FUNCTION - MUST BE IMPLEMENTED
-     * */
+    /** Unique identifier for the event instance */
+    val eventId: String
 
+    /** The system or plugin that originated the event (e.g., "calendar") */
+    val source: String
 
+    /** Standard type of the event */
+    val type: EventType
 }

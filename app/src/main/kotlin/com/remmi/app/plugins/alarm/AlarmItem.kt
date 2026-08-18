@@ -1,9 +1,9 @@
 package com.remmi.app.plugins.alarm
 
+import android.util.Log
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
-import com.remmi.app.core.model.components.Priority
-import com.remmi.app.core.model.models.RemmiModel
+import com.remmi.app.core.plugins.model.models.RemmiModel
 import kotlinx.datetime.Instant
 
 /**
@@ -24,7 +24,8 @@ data class AlarmItem(
 
     val description: String = "",
 
-    val priority: Priority = Priority.Normal,
+    @SerialName("is_priority")
+    val isPriority: Boolean = false,
 
     @SerialName("linked_calendar_event")
     val linkedCalendarEvent: String? = null,
@@ -38,4 +39,8 @@ data class AlarmItem(
 
     val custom: List<String> = emptyList()
 
-) : RemmiModel
+) : RemmiModel {
+    init {
+        Log.d("Remmi", "[AlarmItem] - [constructor] executed")
+    }
+}

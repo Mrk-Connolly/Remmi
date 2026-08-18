@@ -1,7 +1,8 @@
 package com.remmi.app.plugins.alarm
 
-import com.remmi.app.core.repository.CloudRepository
-import com.remmi.app.core.service.DatabaseService
+import android.util.Log
+import com.remmi.app.core.plugins.repository.CloudRepository
+import com.remmi.app.core.service.database.DatabaseService
 
 /**
  * Repository for managing [AlarmItem] data.
@@ -12,4 +13,18 @@ class AlarmRepository(databaseService: DatabaseService) : CloudRepository<AlarmI
     databaseService = databaseService,
     tableName = "alarms",
     serializer = AlarmItem.serializer()
-)
+) {
+
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Alarm Repository
+     * */
+    init {
+        Log.d("Remmi", "[AlarmRepository] - Constructor initialized")
+    }
+
+}

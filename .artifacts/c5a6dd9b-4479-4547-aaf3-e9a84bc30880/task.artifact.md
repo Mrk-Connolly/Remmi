@@ -1,0 +1,6 @@
+- `[ ]` Reorganize SQL scripts to plugin directories
+- `[ ]` Update `DatabaseService` interface and `SupabaseService` implementation
+- `[ ]` Update `RemmiRepository` and `CloudRepository` for clearing data
+- `[ ]` Update `RemmiPlugin` interface and implement `reformat` in all plugins
+- `[ ]` Update `SettingsScreen` UI with "Reformat Database" button and confirmation
+- `[ ]` Verify functionality by reformatting a plugin

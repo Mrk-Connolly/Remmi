@@ -1,11 +1,9 @@
 package com.remmi.app.plugins.tasks
 
 import android.util.Log
-import com.remmi.app.core.actions.RemmiAction
-import com.remmi.app.core.model.components.Priority
-import com.remmi.app.core.model.components.RepeatRule
-import com.remmi.app.plugins.calendar.CalendarItem
-import com.remmi.app.plugins.calendar.CalendarRepository
+import com.remmi.app.core.events.*
+import com.remmi.app.core.plugins.actions.RemmiAction
+import com.remmi.app.core.plugins.model.components.RepeatRule
 import kotlinx.datetime.*
 import java.util.UUID
 
@@ -14,44 +12,54 @@ import java.util.UUID
  */
 class TasksActions(
     private val repository: TasksRepository,
-    private val calendarRepository: CalendarRepository,
     override val id: String = "tasks_actions",
     override val name: String = "Tasks Actions"
 ) : RemmiAction {
+
+
+    // ----------------------------------------------------------------------------
+    //                                  VARIABLES
+    // ----------------------------------------------------------------------------
+
+    /** Shared system event bus */
+    override var eventBus: EventBus? = null
 
     companion object {
         private const val TAG = "TasksActions"
     }
 
-    suspend fun addTask(
+
+    // ----------------------------------------------------------------------------
+    //                                 CONSTRUCTOR
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Constructor for Tasks Actions
+     * */
+    init {
+        Log.d("Remmi", "[TasksActions] - Constructor initialized")
+    }
+
+
+    // ----------------------------------------------------------------------------
+    //                                ACTION FUNCTIONS
+    // ----------------------------------------------------------------------------
+
+    /**                                 Create Task
+     * Create a new task and publish a Fact event
+     * */
+    suspend fun createTask(
         title: String,
         description: String,
         dueDate: Instant? = null,
-        priority: Priority = Priority.Normal,
-        repeat: RepeatRule? = null,
-        addToCalendar: Boolean = false
+        isPriority: Boolean = false,
+        group: String? = null,
+        repeat: RepeatRule? = null
     ): Boolean {
+        Log.d("Remmi", "[TasksActions] - [createTask] executed")
         return try {
             val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             val taskId = UUID.randomUUID().toString()
-            var calendarItemId: String? = null
-
-            if (addToCalendar) {
-                val startDateTime = dueDate?.toLocalDateTime(TimeZone.currentSystemDefault()) ?: now.toLocalDateTime(TimeZone.currentSystemDefault())
-                val calendarItem = CalendarItem(
-                    id = UUID.randomUUID().toString(),
-                    created = now,
-                    modified = now,
-                    title = title,
-                    description = description,
-                    startingDate = startDateTime.date,
-                    startingTime = startDateTime.time,
-                    priority = priority,
-                    linkedTasks = listOf(taskId)
-                )
-                calendarRepository.insert(calendarItem)
-                calendarItemId = calendarItem.id
-            }
 
             val task = TaskItem(
                 id = taskId,
@@ -60,41 +68,48 @@ class TasksActions(
                 title = title,
                 description = description,
                 dueDate = dueDate,
-                priority = priority,
+                isPriority = isPriority,
+                group = group,
                 completed = false,
                 repeat = repeat,
-                linkedCalendar = calendarItemId
+                linkedCalendar = null // Will be linked via AutomationEngine if needed
             )
 
             repository.insert(task)
-            Log.d(TAG, "Task added successfully")
+            Log.d(TAG, "Task created successfully")
+
+            // Publish Fact
+            Log.i("Remmi", "[TasksActions] - Successfully created task: ${task.id}. Publishing event...")
+            eventBus?.publishEvent(
+                TaskCreatedEvent(
+                    taskId = task.id,
+                    priority = task.isPriority,
+                    group = task.group
+                )
+            )
+
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to add task", e)
+            Log.e(TAG, "Failed to create task", e)
             false
         }
     }
 
+    /**                                 Update Task
+     * Update task details and publish a Fact event
+     */
     suspend fun updateTask(task: TaskItem): Boolean {
+        Log.d("Remmi", "[TasksActions] - [updateTask] executed")
         return try {
             task.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             repository.updateCloud(task)
 
-            // Sync with linked calendar item
-            task.linkedCalendar?.let { calendarId ->
-                calendarRepository.get(calendarId)?.let { calendarItem ->
-                    val startDateTime = task.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())
-                    val updatedCalendarItem = calendarItem.copy(
-                        modified = task.modified,
-                        title = task.title,
-                        description = task.description,
-                        startingDate = startDateTime?.date ?: calendarItem.startingDate,
-                        startingTime = startDateTime?.time ?: calendarItem.startingTime,
-                        priority = task.priority
-                    )
-                    calendarRepository.updateCloud(updatedCalendarItem)
-                }
-            }
+            // Publish Fact
+            Log.i("Remmi", "[TasksActions] - Successfully updated task: ${task.id}. Publishing event...")
+            eventBus?.publishEvent(
+                TaskUpdatedEvent(taskId = task.id)
+            )
+
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to update task", e)
@@ -102,13 +117,20 @@ class TasksActions(
         }
     }
 
+    /**                                 Delete Task
+     * Delete a task by ID and publish a Fact event
+     * */
     suspend fun deleteTask(id: String): Boolean {
+        Log.d("Remmi", "[TasksActions] - [deleteTask] executed")
         return try {
-            val task = repository.get(id)
-            task?.linkedCalendar?.let { calendarId ->
-                calendarRepository.delete(calendarId)
-            }
             repository.delete(id)
+
+            // Publish Fact
+            Log.i("Remmi", "[TasksActions] - Successfully deleted task: $id. Publishing event...")
+            eventBus?.publishEvent(
+                TaskDeletedEvent(taskId = id)
+            )
+
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete task", e)
@@ -116,12 +138,20 @@ class TasksActions(
         }
     }
 
+    /**                                 Toggle Task
+     * Toggle completion status of a task
+     * */
     suspend fun toggleTask(task: TaskItem): Boolean {
+        Log.d("Remmi", "[TasksActions] - [toggleTask] executed")
         val updatedTask = task.copy(completed = !task.completed)
         return updateTask(updatedTask)
     }
 
+    /**                                 Get All
+     * Retrieve all tasks sorted by creation date
+     * */
     suspend fun getAllTasks(): List<TaskItem> {
+        Log.d("Remmi", "[TasksActions] - [getAllTasks] executed")
         return try {
             repository.getAll().sortedByDescending { it.created }
         } catch (e: Exception) {
@@ -130,11 +160,56 @@ class TasksActions(
         }
     }
 
+    /**                                 Get Task
+     * Retrieve a specific task by ID
+     * */
+    suspend fun getTask(id: String): TaskItem? {
+        Log.d("Remmi", "[TasksActions] - [getTask] executed")
+        return repository.get(id)
+    }
+
+    /**                                 Sync
+     * Synchronize tasks with the cloud
+     * */
     suspend fun sync() {
+        Log.d("Remmi", "[TasksActions] - [sync] executed")
         try {
             repository.sync()
         } catch (e: Exception) {
-            Log.e(TAG, "Sync failed", e)
+            Log.e(TAG, "Sync failed")
         }
+    }
+
+    /**                                 Get Today
+     * Retrieve incomplete tasks due today
+     * */
+    suspend fun getTodayTasks(): List<TaskItem> {
+        Log.d("Remmi", "[TasksActions] - [getTodayTasks] executed")
+        val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return repository.getAll().filter { 
+            (!it.completed) && (it.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date == today)
+        }
+    }
+
+    /**                                 Get High Priority (Month)
+     * Retrieve high priority tasks due in the current month
+     * */
+    suspend fun getHighPriorityTasksOfMonth(): List<TaskItem> {
+        Log.d("Remmi", "[TasksActions] - [getHighPriorityTasksOfMonth] executed")
+        val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault())
+        return repository.getAll().filter { 
+            it.isPriority && 
+            it.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.let { date ->
+                date.monthNumber == now.monthNumber && date.year == now.year
+            } == true
+        }
+    }
+
+    /**                                 Get All Groups
+     * Retrieve all unique group names from tasks
+     * */
+    suspend fun getAllGroups(): List<String> {
+        Log.d("Remmi", "[TasksActions] - [getAllGroups] executed")
+        return repository.getAll().mapNotNull { it.group }.distinct().sorted()
     }
 }

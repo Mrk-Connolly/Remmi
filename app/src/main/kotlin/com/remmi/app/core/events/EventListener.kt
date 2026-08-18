@@ -1,7 +1,14 @@
 package com.remmi.app.core.events
 
-interface EventListener {
+/**
+ * EVENT LISTENER
+ *
+ * Interface for components that listen for system notifications (Facts).
+ */
+fun interface EventListener {
 
-    fun onEvent(event: RemmiEvent)
-
+    /**                                 On Event
+     * Callback executed when a RemmiEvent is published to the system.
+     * */
+    suspend fun onEvent(event: RemmiEvent)
 }
