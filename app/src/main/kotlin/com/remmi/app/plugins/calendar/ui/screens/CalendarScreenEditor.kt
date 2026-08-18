@@ -47,9 +47,13 @@ fun CalendarEditorScreen(
     var title by remember { mutableStateOf(initialEvent?.title ?: "") }
     var description by remember { mutableStateOf(initialEvent?.description ?: "") }
     
-    val timeZone = TimeZone.currentSystemDefault()
-    val initialDate = initialEvent?.startingDate ?: (mode as? EditorMode.Create)?.initialDate ?: Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone).date
-    val initialTime = initialEvent?.startingTime ?: LocalTime(0, 0)
+    val timeZone = remember { TimeZone.currentSystemDefault() }
+    val initialDate = remember(initialEvent, mode) {
+        initialEvent?.startingDate ?: (mode as? EditorMode.Create)?.initialDate ?: Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone).date
+    }
+    val initialTime = remember(initialEvent) {
+        initialEvent?.startingTime ?: LocalTime(0, 0)
+    }
 
     var day by remember { mutableStateOf(initialDate.dayOfMonth.toString()) }
     var month by remember { mutableStateOf(initialDate.monthNumber.toString()) }

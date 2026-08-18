@@ -29,12 +29,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.controller.RemmiController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ContactScreen(actions: ContactActions) {
+fun ContactScreen(actions: ContactActions, controller: RemmiController) {
     Log.d("Remmi", "[ContactScreen] - [ContactScreen] executed")
     val scope = rememberCoroutineScope()
     var contacts by remember { mutableStateOf(emptyList<ContactItem>()) }
@@ -42,14 +43,22 @@ fun ContactScreen(actions: ContactActions) {
     
     var selectedContact by remember { mutableStateOf<ContactItem?>(null) }
     var editorMode by remember { mutableStateOf<ContactEditorMode?>(null) }
+    
+    // Track editor state for hiding bottom menu
+    LaunchedEffect(editorMode, selectedContact) {
+        controller.isEditorActive.value = editorMode != null || selectedContact != null
+    }
+
     var isRefreshing by remember { mutableStateOf(false) }
 
-    val onRefresh: () -> Unit = {
-        scope.launch {
-            isRefreshing = true
-            contacts = actions.getAllContacts()
-            delay(500)
-            isRefreshing = false
+    val onRefresh: () -> Unit = remember {
+        {
+            scope.launch {
+                isRefreshing = true
+                contacts = actions.getAllContacts()
+                delay(500)
+                isRefreshing = false
+            }
         }
     }
 
@@ -57,32 +66,35 @@ fun ContactScreen(actions: ContactActions) {
         contacts = actions.getAllContacts()
     }
 
-    val filteredContacts = contacts.filter {
-        it.name.contains(searchQuery, ignoreCase = true) || 
-        it.surname.contains(searchQuery, ignoreCase = true)
+    val filteredContacts = remember(contacts, searchQuery) {
+        contacts.filter {
+            it.name.contains(searchQuery, ignoreCase = true) ||
+                    it.surname.contains(searchQuery, ignoreCase = true)
+        }
     }
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { editorMode = ContactEditorMode.Create }) {
+            FloatingActionButton(
+                onClick = { editorMode = ContactEditorMode.Create },
+                modifier = Modifier.padding(bottom = 220.dp) // Above search and menu
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Contact")
             }
         },
         bottomBar = {
-            Column {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    placeholder = { Text("Search by name...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    shape = CircleShape,
-                    singleLine = true
-                )
-                Spacer(Modifier.height(96.dp))
-            }
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 156.dp), // Above island menu
+                placeholder = { Text("Search by name...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                shape = CircleShape,
+                singleLine = true
+            )
         }
     ) { padding ->
         PullToRefreshBox(

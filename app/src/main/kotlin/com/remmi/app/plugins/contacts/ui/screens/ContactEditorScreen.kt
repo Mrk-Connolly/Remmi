@@ -58,47 +58,51 @@ fun ContactEditorScreen(
     var showAddGroupDialog by remember { mutableStateOf(false) }
     var newGroupName by remember { mutableStateOf("") }
 
+    val onSaveCallback = remember {
+        {
+            scope.launch {
+                val finalPhone = phone.takeIf { it.isNotBlank() }
+                val finalEmail = email.takeIf { it.isNotBlank() }
+                val finalBirthday = birthday?.takeIf { it.isNotBlank() }
+                val finalNickname = nickname.takeIf { it.isNotBlank() }
+
+                if (initialContact != null) {
+                    actions.updateContact(
+                        initialContact.copy(
+                            name = name,
+                            surname = surname,
+                            nickname = finalNickname,
+                            mobilePhone = finalPhone,
+                            email = finalEmail,
+                            birthday = finalBirthday,
+                            group = group,
+                            inGiftList = inGiftList,
+                            isFavorite = isFavorite
+                        )
+                    )
+                } else {
+                    actions.createContact(
+                        name = name,
+                        surname = surname,
+                        nickname = finalNickname,
+                        phone = finalPhone,
+                        email = finalEmail,
+                        birthday = finalBirthday,
+                        group = group,
+                        inGiftList = inGiftList,
+                        isFavorite = isFavorite
+                    )
+                }
+                onSave()
+            }
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             Button(
-                onClick = {
-                    scope.launch {
-                        val finalPhone = phone.takeIf { it.isNotBlank() }
-                        val finalEmail = email.takeIf { it.isNotBlank() }
-                        val finalBirthday = birthday?.takeIf { it.isNotBlank() }
-                        val finalNickname = nickname.takeIf { it.isNotBlank() }
-
-                        if (initialContact != null) {
-                            actions.updateContact(
-                                initialContact.copy(
-                                    name = name,
-                                    surname = surname,
-                                    nickname = finalNickname,
-                                    mobilePhone = finalPhone,
-                                    email = finalEmail,
-                                    birthday = finalBirthday,
-                                    group = group,
-                                    inGiftList = inGiftList,
-                                    isFavorite = isFavorite
-                                )
-                            )
-                        } else {
-                            actions.createContact(
-                                name = name,
-                                surname = surname,
-                                nickname = finalNickname,
-                                phone = finalPhone,
-                                email = finalEmail,
-                                birthday = finalBirthday,
-                                group = group,
-                                inGiftList = inGiftList,
-                                isFavorite = isFavorite
-                            )
-                        }
-                        onSave()
-                    }
-                },
+                onClick = { onSaveCallback() },
                 enabled = name.isNotBlank()
             ) {
                 Text("Save")

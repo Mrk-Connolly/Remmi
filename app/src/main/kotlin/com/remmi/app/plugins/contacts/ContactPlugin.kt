@@ -43,7 +43,7 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content(controller: RemmiController) {
             Log.d("Remmi", "[ContactPlugin] - [Content] executed")
-            ContactScreen(actions)
+            ContactScreen(actions, controller)
         }
     }
 

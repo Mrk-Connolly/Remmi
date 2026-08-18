@@ -2,6 +2,7 @@ package com.remmi.app.core.controller
 
 import android.content.Context
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import com.remmi.app.core.automation.AutomationEngine
 import com.remmi.app.core.automation.AutomationSettingsRepository
 import com.remmi.app.core.events.EventBus
@@ -32,6 +33,9 @@ class RemmiController(val androidContext: Context) {
 
     /** Shared Plugin Context */
     private val pluginContext = PluginContext(serviceManager, eventBus)
+
+    /** UI State Tracking */
+    val isEditorActive = mutableStateOf(false)
 
 
     // ----------------------------------------------------------------------------
