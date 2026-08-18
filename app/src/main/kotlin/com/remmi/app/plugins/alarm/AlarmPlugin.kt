@@ -3,10 +3,7 @@ package com.remmi.app.plugins.alarm
 import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.CreateAlarmCommand
-import com.remmi.app.core.events.DeleteAlarmCommand
-import com.remmi.app.core.events.RemmiCommand
-import com.remmi.app.core.events.UpdateAlarmCommand
+import com.remmi.app.core.events.*
 import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
@@ -16,6 +13,7 @@ import com.remmi.app.plugins.alarm.ui.screens.AlarmScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 /**
  * Entry point for the Alarm plugin.
@@ -34,6 +32,7 @@ class AlarmPlugin(
     /** Internal storage for initialized components */
     private var _repository: AlarmRepository? = null
     private var _actions: AlarmActions? = null
+    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for persistent alarm data. */
     override val repository: AlarmRepository
@@ -77,6 +76,7 @@ class AlarmPlugin(
         // Initialize Repository via ServiceManager
         val repo = AlarmRepository(context.serviceManager.databaseService)
         _repository = repo
+        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = AlarmActions(repo).apply {
@@ -91,22 +91,86 @@ class AlarmPlugin(
     override suspend fun onCommand(command: RemmiCommand) {
         Log.d("Remmi", "[AlarmPlugin] - Received command: ${command::class.simpleName}")
         when (command) {
-            is CreateAlarmCommand -> actions.addAlarm(
-                title = command.title,
-                description = command.description,
-                time = command.time,
-                isPriority = command.isPriority,
-                repeatable = command.repeatable,
-                custom = command.custom,
-                syncToSystem = command.syncToSystem
-            )
-            is UpdateAlarmCommand -> actions.updateAlarm(
-                alarm = command.alarm,
-                syncToSystem = command.syncToSystem
-            )
-            is DeleteAlarmCommand -> actions.deleteAlarm(
-                id = command.alarmId
-            )
+            is CreateAlarmCommand -> {
+                val now = kotlinx.datetime.Clock.System.now()
+                val alarmId = java.util.UUID.randomUUID().toString()
+                val item = AlarmItem(
+                    id = alarmId,
+                    created = now,
+                    modified = now,
+                    title = command.title,
+                    description = command.description,
+                    time = command.time,
+                    isPriority = command.isPriority,
+                    repeatable = command.repeatable,
+                    custom = command.custom,
+                    linkedCalendarEvent = if (command.source == "calendar") "event_key" else null, // Placeholder
+                    userId = _authRepository?.getCurrentUserId()
+                )
+                
+                actions.eventBus?.publishCommand(
+                    UpsertDataCommand(
+                        tableName = "alarms",
+                        item = item,
+                        serializer = AlarmItem.serializer(),
+                        source = "alarm"
+                    )
+                )
+                
+                // If syncToSystem is true, also notify the Android system via AlarmService
+                if (command.syncToSystem) {
+                    actions.alarmService?.setAlarm(item.id, item.title, item.time.toEpochMilliseconds())
+                    actions.alarmService?.syncToSystemClock(item.title, item.time.toEpochMilliseconds())
+                }
+
+                actions.eventBus?.publishEvent(
+                    AlarmCreatedEvent(alarmId = item.id)
+                )
+            }
+            is UpdateAlarmCommand -> {
+                actions.eventBus?.publishCommand(
+                    UpsertDataCommand(
+                        tableName = "alarms",
+                        item = command.alarm,
+                        serializer = AlarmItem.serializer(),
+                        source = "alarm"
+                    )
+                )
+                actions.eventBus?.publishEvent(
+                    AlarmUpdatedEvent(alarmId = command.alarm.id)
+                )
+            }
+            is DeleteAlarmCommand -> {
+                actions.eventBus?.publishCommand(
+                    DeleteDataCommand(
+                        tableName = "alarms",
+                        itemId = command.alarmId,
+                        source = "alarm"
+                    )
+                )
+                actions.eventBus?.publishEvent(
+                    AlarmDeletedEvent(alarmId = command.alarmId)
+                )
+            }
+        }
+    }
+
+    /**                                   On Event
+     * Handle a system-wide or plugin-specific notification (Fact).
+     * */
+    override suspend fun onEvent(event: RemmiEvent) {
+        Log.d("Remmi", "[AlarmPlugin] - Received event: ${event::class.simpleName}")
+        when (event) {
+            is CalendarEventDeletedEvent -> {
+                Log.i("Remmi", "[AlarmPlugin] - Calendar event ${event.itemId} deleted. Cleaning up linked alarms...")
+                val allAlarms = actions.getAllAlarms()
+                val linkedAlarms = allAlarms.filter { it.alarm.linkedCalendarEvent == event.itemId }
+                linkedAlarms.forEach { alarm ->
+                    actions.eventBus?.publishCommand(
+                        DeleteAlarmCommand(alarmId = alarm.alarm.id, source = "alarm_cleanup")
+                    )
+                }
+            }
         }
     }
 

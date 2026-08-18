@@ -18,7 +18,7 @@ import java.io.File
  *
  * Manages plugin lifecycle and routes system Commands to the appropriate plugin instance.
  */
-class PluginManager : CommandListener {
+class PluginManager : CommandListener, EventListener {
 
     // ----------------------------------------------------------------------------
     //                                 VARIABLES
@@ -108,6 +108,14 @@ class PluginManager : CommandListener {
         }
     }
 
+    /**                                 On Event
+     * Broadcast incoming Facts to all active plugins.
+     * */
+    override suspend fun onEvent(event: RemmiEvent) {
+        Log.i("Remmi", "[PluginManager] - RECEIVED EVENT: [${event::class.simpleName}] from [${event.source}]")
+        plugins.values.forEach { it.onEvent(event) }
+    }
+
     /**                               READ PLUGINS
      * Discover plugins from the configuration file.
      * */
@@ -192,5 +200,14 @@ class PluginManager : CommandListener {
     fun loadAll() {
         Log.d("Remmi", "[PluginManager] - Starting data load for all plugins")
         plugins.values.forEach { it.onLoad() }
+    }
+
+    /**                                 Clear All Caches
+     * Clear local memory caches for all active plugins.
+     * Useful during sign-out to ensure data isolation.
+     * */
+    fun clearAllCaches() {
+        Log.d("Remmi", "[PluginManager] - Clearing all plugin memory caches")
+        plugins.values.forEach { it.repository.clear() }
     }
 }

@@ -13,6 +13,7 @@ import com.remmi.app.plugins.tasks.ui.screens.TasksScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 /**
  * Entry point for the Tasks plugin.
@@ -29,6 +30,7 @@ class TasksPlugin(
     /** Internal storage for initialized components */
     private var _repository: TasksRepository? = null
     private var _actions: TasksActions? = null
+    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for managing Tasks data */
     override val repository: TasksRepository
@@ -72,6 +74,7 @@ class TasksPlugin(
         // Initialize Repository via ServiceManager
         val repo = TasksRepository(context.serviceManager.databaseService)
         _repository = repo
+        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = TasksActions(repo).apply {
@@ -85,24 +88,88 @@ class TasksPlugin(
     override suspend fun onCommand(command: RemmiCommand) {
         Log.d("Remmi", "[TasksPlugin] - Received command: ${command::class.simpleName}")
         when (command) {
-            is CreateTaskCommand -> actions.createTask(
-                title = command.title,
-                description = command.description,
-                dueDate = command.dueDate,
-                isPriority = command.isPriority,
-                group = command.group,
-                repeat = command.repeat
-            )
-            is UpdateTaskCommand -> actions.updateTask(
-                task = command.task
-            )
-            is DeleteTaskCommand -> actions.deleteTask(
-                id = command.taskId
-            )
+            is CreateTaskCommand -> {
+                val now = kotlinx.datetime.Clock.System.now()
+                val taskId = java.util.UUID.randomUUID().toString()
+                val item = TaskItem(
+                    id = taskId,
+                    created = now,
+                    modified = now,
+                    title = command.title,
+                    description = command.description,
+                    dueDate = command.dueDate,
+                    isPriority = command.isPriority,
+                    group = command.group,
+                    repeat = command.repeat,
+                    linkedCalendar = if (command.source == "calendar") "event_key" else null, // TODO: Use real ID if available
+                    userId = _authRepository?.getCurrentUserId()
+                )
+                
+                actions.eventBus?.publishCommand(
+                    UpsertDataCommand(
+                        tableName = "tasks",
+                        item = item,
+                        serializer = TaskItem.serializer(),
+                        source = "tasks"
+                    )
+                )
+                
+                actions.eventBus?.publishEvent(
+                    TaskCreatedEvent(
+                        taskId = item.id,
+                        priority = item.isPriority,
+                        group = item.group
+                    )
+                )
+            }
+            is UpdateTaskCommand -> {
+                actions.eventBus?.publishCommand(
+                    UpsertDataCommand(
+                        tableName = "tasks",
+                        item = command.task,
+                        serializer = TaskItem.serializer(),
+                        source = "tasks"
+                    )
+                )
+                actions.eventBus?.publishEvent(
+                    TaskUpdatedEvent(taskId = command.task.id)
+                )
+            }
+            is DeleteTaskCommand -> {
+                actions.eventBus?.publishCommand(
+                    DeleteDataCommand(
+                        tableName = "tasks",
+                        itemId = command.taskId,
+                        source = "tasks"
+                    )
+                )
+                actions.eventBus?.publishEvent(
+                    TaskDeletedEvent(taskId = command.taskId)
+                )
+            }
             is FetchTodayTasksCommand -> {
                 Log.d("Remmi", "[TasksPlugin] - Fetching today's tasks for automation")
                 val tasks = actions.getTodayTasks()
                 actions.eventBus?.publishEvent(TodayTasksFetchedEvent(tasks))
+            }
+        }
+    }
+
+    /**                                   On Event
+     * Handle a system-wide or plugin-specific notification (Fact).
+     * */
+    override suspend fun onEvent(event: RemmiEvent) {
+        Log.d("Remmi", "[TasksPlugin] - Received event: ${event::class.simpleName}")
+        when (event) {
+            is CalendarEventDeletedEvent -> {
+                Log.i("Remmi", "[TasksPlugin] - Calendar event ${event.itemId} deleted. Cleaning up linked tasks...")
+                // Find and delete tasks linked to this calendar event
+                val linkedTasks = actions.getAllTasks().filter { it.linkedCalendar == event.itemId }
+                linkedTasks.forEach { task ->
+                    actions.eventBus?.publishCommand(
+                        DeleteTaskCommand(taskId = task.id, source = "tasks_cleanup")
+                    )
+                }
             }
         }
     }

@@ -22,6 +22,29 @@ data class SaveDataCommand(
     override val source: String = "system"
 ) : RemmiCommand
 
+/**
+ * UPSERT DATA COMMAND
+ * Request to insert or update a RemmiModel in a specific table.
+ */
+data class UpsertDataCommand<T : com.remmi.app.core.plugins.model.models.RemmiModel>(
+    val tableName: String,
+    val item: T,
+    val serializer: kotlinx.serialization.KSerializer<T>,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system"
+) : RemmiCommand
+
+/**
+ * DELETE DATA COMMAND
+ * Request to delete an item by ID from a specific table.
+ */
+data class DeleteDataCommand(
+    val tableName: String,
+    val itemId: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system"
+) : RemmiCommand
+
 // ----------------------------------------------------------------------------
 //                               AUTOMATION COMMANDS
 // ----------------------------------------------------------------------------
@@ -100,6 +123,8 @@ data class CreateCalendarEventCommand(
     val location: List<String> = emptyList(),
     val linkedTasks: List<String> = emptyList(),
     val linkedAlarm: String? = null,
+    val createLinkedTask: Boolean = false,
+    val createLinkedAlarm: Boolean = false,
     override val commandId: String = UUID.randomUUID().toString(),
     override val source: String = "system"
 ) : RemmiCommand

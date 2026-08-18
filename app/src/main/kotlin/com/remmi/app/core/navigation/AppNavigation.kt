@@ -28,6 +28,9 @@ import androidx.navigation.compose.rememberNavController
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.plugins.PluginMetadata
+import com.remmi.app.core.auth.AuthState
+import com.remmi.app.core.auth.AuthViewModel
+import com.remmi.app.core.screens.AuthScreen
 import com.remmi.app.core.screens.HomeScreen
 import com.remmi.app.core.screens.SettingsScreen
 import com.remmi.app.core.screens.AutomatizationSettingsScreen
@@ -67,6 +70,35 @@ sealed class RemmiDestination(val route: String) {
 fun AppNavigation(runtime: RemmiController) {
 
     Log.d("Remmi", "[AppNavigation] - [AppNavigation] executed")
+    val authState by runtime.authRepository.sessionStatus.collectAsState(initial = AuthState.Loading)
+
+    when (authState) {
+        AuthState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        AuthState.Unauthenticated -> {
+            val authViewModel = remember { AuthViewModel(runtime.authRepository) }
+            val scope = rememberCoroutineScope()
+            AuthScreen(
+                viewModel = authViewModel,
+                onAuthSuccess = {
+                    scope.launch {
+                        runtime.initializePlugins()
+                    }
+                }
+            )
+        }
+        AuthState.Authenticated -> {
+            MainAppContent(runtime)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainAppContent(runtime: RemmiController) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route

@@ -95,6 +95,9 @@ fun CalendarEditorScreen(
     var showEndTimePicker by remember { mutableStateOf(false) }
     
     var showTaskDialog by remember { mutableStateOf(false) }
+    var createLinkedTask by remember { mutableStateOf(false) }
+    var createLinkedAlarm by remember { mutableStateOf(false) }
+    
     val linkedTaskIds = remember { mutableStateListOf<String>().apply { addAll(initialEvent?.linkedTasks ?: emptyList()) } }
     val currentEventId = remember { initialEvent?.id ?: UUID.randomUUID().toString() }
     
@@ -215,8 +218,26 @@ fun CalendarEditorScreen(
 
         Text("Quick Add", style = MaterialTheme.typography.titleSmall)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            IconButton(onClick = { showTaskDialog = true }) { Icon(Icons.Default.CheckCircle, "Task") }
-            IconButton(onClick = { showAlarmConfirmation = true }) { Icon(Icons.Default.Alarm, "Alarm") }
+            IconToggleButton(
+                checked = createLinkedTask,
+                onCheckedChange = { createLinkedTask = it }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Link Task",
+                    tint = if (createLinkedTask) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconToggleButton(
+                checked = createLinkedAlarm,
+                onCheckedChange = { createLinkedAlarm = it }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Alarm,
+                    contentDescription = "Link Alarm",
+                    tint = if (createLinkedAlarm) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             IconButton(onClick = { showParticipantsDialog = true }) { Icon(Icons.Default.Person, "Participants") }
             IconButton(onClick = { showLocationDialog = true }) { Icon(Icons.Default.LocationOn, "Location") }
         }
