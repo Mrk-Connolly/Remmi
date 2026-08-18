@@ -1,0 +1,147 @@
+Remmi is not an application.
+
+Remmi is an event-driven runtime that coordinates independent capabilities to assist the user.
+
+Remmi is a platform for personal productivity.
+
+Its goal is to orchestrate information and actions across the phone,
+allowing plugins to expose capabilities and automations to combine them.
+
+Plugins do not communicate directly with one another.
+
+// NEW STRUCTURE
+All communication goes through the Remmi Runtime.
+
+               Remmi structure
+
+                                   Android OS
+                                       │
+                              MainActivity (Entry Point)
+                                       │
+                                       ▼
+                                  RemmiHost
+                                       │
+                                       ▼
+                                Remmi Runtime
+                                       │
+      ┌────────────────────────────────┼─────────────────────────────────┐
+      │                                │                                 │
+      ▼                                ▼                                 ▼
+ Plugin Manager                  Event Bus                     Automation Engine
+      │                                │                                 │
+      │                                │                          Workflow Runner
+      │                                │                                 │
+      ▼                                ▼                                 ▼
+ Registered Plugins              Published Events                 Executed Actions
+      │
+      ├─────────────────────────────────────────────────────────────────────────────┐
+      │                │                │                │               │
+      ▼                ▼                ▼                ▼               ▼
+ Calendar         Weather           Clock           Health            AI
+ Plugin           Plugin            Plugin          Plugin           Plugin
+
+
+Runtime
+│
+├── starts Remmi
+├── creates managers
+├── shuts down Remmi
+├── stores application state
+└── exposes Core API
+
+Plugin Manager
+│
+├── Discover plugins
+├── Register plugins
+├── Enable
+├── Disable
+├── Update
+└── Remove
+
+Event Bus
+│
+├── Publish(Event)
+├── Subscribe(Event)
+├── Dispatch(Event)
+└── Remove Listener
+
+src/main/kotlin/com/remmi/app
+
+│
+├── core
+│   │
+│   ├── runtime
+│   ├── plugin
+│   ├── event
+│   ├── automation
+│   ├── navigation
+│   ├── host
+│   ├── service
+│   └── common
+│
+├── plugins
+│   │
+│   ├── calendar
+│   ├── tasks
+│   ├── weather
+│   ├── clock
+│   ├── ai
+│   ├── health
+│   └── ...
+│
+├── features
+│   │
+│   ├── onboarding
+│   ├── settings
+│   └── about
+│
+└── platform
+    │
+    ├── android
+    ├── network
+    ├── storage
+    ├── notifications
+    └── location
+
+
+                    Remmi Runtime
+                           │
+      ┌────────────────────┼────────────────────┐
+      │                    │                    │
+ Plugin Manager     Automation Engine      AI Engine
+      │                    │                    │
+      └────────────────────┼────────────────────┘
+                           │
+                  Event / Action Bus
+                           │
+      ┌──────────┬──────────┬──────────┬──────────┐
+      │          │          │          │          │
+ Calendar     Weather     Health     Clock      Tasks
+
+
+Automation Engine
+
+Trigger
+↓
+Condition
+↓
+Action
+↓
+Result
+
+ // EXAMPLE
+
+ Good morning, Mark.
+
+ ☀️ 18°C today.
+ ☔ Rain expected at 16:00.
+
+ Your first meeting starts at 09:30.
+ Leave at 08:55 because traffic is heavy.
+
+ You slept 6h 43m.
+ Consider an earlier bedtime tonight.
+
+ You have 3 overdue tasks.
+
+ Would you like me to move your gym session to tomorrow?

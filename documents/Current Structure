@@ -1,0 +1,91 @@
+app -
+
+
+    - core
+
+
+        - actions
+            action context
+            action manager
+            action result
+            action status
+            Remmi action (R)
+
+        - automation
+            Automation Engine
+
+        - common
+
+        - events
+            event bus
+            event listener
+            meeting created event
+            remmi event (R)
+
+        - host
+            Remmi host
+
+        - model
+            - components
+                contact info
+                location
+                metadata
+                person name
+                priority
+                relationship
+                relationship type
+                reminder
+                Remmi component (R)
+                repeat rule
+                time range
+
+            - models
+                Person
+                Remmi model (R)
+
+        - navigation
+            app navigation
+            remmi destination (R)
+
+        - plugins
+            Remmi Plugin (R)
+            plugin context
+            plugin loader
+            plugin metadata
+            plugin registry
+
+        - repository
+            memory repository
+            repository
+
+        - runtime
+            remmi runtime
+
+        - screens
+            remmi screen (R)
+            screen manager
+            Home Screen
+
+        - service
+
+        - widgets
+            remmi widget
+            widget manager
+
+        remmi core
+
+
+
+    - platform
+        - about
+        - on boarding
+        - settings
+
+
+    - plugins
+        - calendar
+
+
+
+    Main activity
+    Remmi App

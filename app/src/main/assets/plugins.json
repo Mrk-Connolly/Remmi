@@ -1,0 +1,52 @@
+[
+  {
+    "id": "calendar",
+    "name": "Calendar",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "icon": "calendar_month"
+  },
+  {
+    "id": "tasks",
+    "name": "Tasks",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "icon": "check_circle"
+  },
+  {
+    "id": "alarm",
+    "name": "Alarm",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": false,
+    "icon": "alarm"
+  },
+  {
+    "id": "contacts",
+    "name": "Contacts",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": false,
+    "icon": "person"
+  },
+  {
+    "id": "gift",
+    "name": "Gift List",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": false,
+    "icon": "card_giftcard"
+  }
+]

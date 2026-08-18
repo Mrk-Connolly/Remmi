@@ -1,0 +1,327 @@
+-- ============================================================
+-- REMMI TEST DATABASE
+-- Creates:
+--   - test_calendar
+--   - test_tasks
+-- Includes sample data.
+-- ============================================================
+
+---------------------------------------------------------------
+-- Remove old test tables
+---------------------------------------------------------------
+
+DROP TABLE IF EXISTS test_calendar CASCADE;
+DROP TABLE IF EXISTS test_tasks CASCADE;
+
+---------------------------------------------------------------
+-- TEST CALENDAR
+---------------------------------------------------------------
+
+CREATE TABLE test_calendar (
+
+    id              TEXT PRIMARY KEY,
+
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+
+    title           TEXT NOT NULL,
+    description     TEXT,
+
+    starting_time   TIMESTAMPTZ,
+    ending_time     TIMESTAMPTZ,
+
+    priority        TEXT NOT NULL,
+
+    participants    JSONB,
+    repeat          JSONB,
+    reminders       JSONB,
+    location        JSONB,
+
+    linked_tasks    JSONB,
+    linked_alarm    TEXT,
+
+    relationships   JSONB
+
+);
+
+---------------------------------------------------------------
+-- TEST TASKS
+---------------------------------------------------------------
+
+CREATE TABLE test_tasks (
+
+    id              TEXT PRIMARY KEY,
+
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+
+    title           TEXT NOT NULL,
+    description     TEXT,
+
+    completed       BOOLEAN NOT NULL DEFAULT FALSE,
+
+    due_date        TIMESTAMPTZ,
+
+    priority        TEXT NOT NULL,
+
+    parent_task     TEXT,
+
+    linked_calendar TEXT,
+
+    reminders       JSONB,
+
+    relationships   JSONB
+
+);
+
+---------------------------------------------------------------
+-- Permissions
+---------------------------------------------------------------
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE test_calendar
+TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE test_tasks
+TO anon;
+
+---------------------------------------------------------------
+-- Enable RLS
+---------------------------------------------------------------
+
+ALTER TABLE test_calendar ENABLE ROW LEVEL SECURITY;
+ALTER TABLE test_tasks ENABLE ROW LEVEL SECURITY;
+
+---------------------------------------------------------------
+-- Calendar Policies
+---------------------------------------------------------------
+
+CREATE POLICY "test_calendar_select"
+ON test_calendar
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "test_calendar_insert"
+ON test_calendar
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "test_calendar_update"
+ON test_calendar
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "test_calendar_delete"
+ON test_calendar
+FOR DELETE
+TO anon
+USING (true);
+
+---------------------------------------------------------------
+-- Task Policies
+---------------------------------------------------------------
+
+CREATE POLICY "test_tasks_select"
+ON test_tasks
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "test_tasks_insert"
+ON test_tasks
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "test_tasks_update"
+ON test_tasks
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "test_tasks_delete"
+ON test_tasks
+FOR DELETE
+TO anon
+USING (true);
+
+---------------------------------------------------------------
+-- Calendar Sample Data
+---------------------------------------------------------------
+
+INSERT INTO test_calendar VALUES
+(
+'cal_001',
+now(),
+now(),
+'Doctor Appointment',
+'Annual health check',
+now() + interval '1 day',
+now() + interval '1 day 1 hour',
+'HIGH',
+'[]',
+NULL,
+'[]',
+NULL,
+'["task_003"]',
+NULL,
+'[]'
+),
+
+(
+'cal_002',
+now(),
+now(),
+'Lunch with Sarah',
+'Italian restaurant',
+now() + interval '2 day 12 hour',
+now() + interval '2 day 13 hour',
+'NORMAL',
+'[]',
+NULL,
+'[]',
+NULL,
+'[]',
+NULL,
+'[]'
+),
+
+(
+'cal_003',
+now(),
+now(),
+'Gym',
+'Leg day',
+now() + interval '3 day 18 hour',
+now() + interval '3 day 19 hour',
+'LOW',
+'[]',
+NULL,
+'[]',
+NULL,
+'[]',
+NULL,
+'[]'
+),
+
+(
+'cal_004',
+now(),
+now(),
+'Project Meeting',
+'Sprint planning',
+now() + interval '4 day 9 hour',
+now() + interval '4 day 10 hour',
+'HIGH',
+'[]',
+NULL,
+'[]',
+NULL,
+'["task_001"]',
+NULL,
+'[]'
+),
+
+(
+'cal_005',
+now(),
+now(),
+'Weekend Trip',
+'Mountain hiking',
+now() + interval '7 day',
+now() + interval '8 day',
+'NORMAL',
+'[]',
+NULL,
+'[]',
+NULL,
+'[]',
+NULL,
+'[]'
+);
+
+---------------------------------------------------------------
+-- Task Sample Data
+---------------------------------------------------------------
+
+INSERT INTO test_tasks VALUES
+(
+'task_001',
+now(),
+now(),
+'Finish Calendar Plugin',
+'Implement database sync',
+false,
+now() + interval '2 day',
+'HIGH',
+NULL,
+'cal_004',
+'[]',
+'[]'
+),
+
+(
+'task_002',
+now(),
+now(),
+'Buy groceries',
+'Milk, eggs, pasta',
+false,
+now() + interval '1 day',
+'NORMAL',
+NULL,
+NULL,
+'[]',
+'[]'
+),
+
+(
+'task_003',
+now(),
+now(),
+'Prepare medical documents',
+'Insurance card and reports',
+false,
+now() + interval '20 hour',
+'HIGH',
+NULL,
+'cal_001',
+'[]',
+'[]'
+),
+
+(
+'task_004',
+now(),
+now(),
+'Clean desk',
+'Organize workspace',
+true,
+NULL,
+'LOW',
+NULL,
+NULL,
+'[]',
+'[]'
+),
+
+(
+'task_005',
+now(),
+now(),
+'Read Kotlin docs',
+'Coroutines and Flow',
+false,
+now() + interval '5 day',
+'NORMAL',
+NULL,
+NULL,
+'[]',
+'[]'
+);

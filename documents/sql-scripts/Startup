@@ -1,0 +1,740 @@
+-- ============================================================
+-- REMMI DATABASE BOOTSTRAP
+-- Calendar + Tasks + Alarms
+-- Development Version
+-- ============================================================
+
+
+-- ============================================================
+-- 1. REMOVE EXISTING TABLES
+-- ============================================================
+
+DROP TABLE IF EXISTS alarms CASCADE;
+DROP TABLE IF EXISTS tasks CASCADE;
+DROP TABLE IF EXISTS calendar CASCADE;
+DROP TABLE IF EXISTS gift_ideas CASCADE;
+DROP TABLE IF EXISTS contacts CASCADE;
+
+
+-- ============================================================
+-- 2. CALENDAR
+-- ============================================================
+
+CREATE TABLE calendar (
+
+    id              TEXT PRIMARY KEY,
+
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+
+    title           TEXT NOT NULL,
+    description     TEXT,
+
+    starting_date   DATE NOT NULL,
+    starting_time   TIME,
+
+    ending_date     DATE,
+    ending_time     TIME,
+
+    priority        TEXT NOT NULL
+        CHECK (priority IN ('LOW', 'NORMAL', 'HIGH')),
+
+    participants    TEXT[] NOT NULL DEFAULT '{}',
+    repeat          TEXT[] NOT NULL DEFAULT '{}',
+    location        TEXT[] NOT NULL DEFAULT '{}',
+
+    linked_tasks    TEXT[] NOT NULL DEFAULT '{}',
+    linked_alarm    TEXT
+
+);
+
+
+-- ============================================================
+-- 3. TASKS
+-- ============================================================
+
+CREATE TABLE tasks (
+
+    id              TEXT PRIMARY KEY,
+
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+
+    title           TEXT NOT NULL,
+    description     TEXT,
+
+    completed       BOOLEAN NOT NULL DEFAULT FALSE,
+
+    due_date        TIMESTAMPTZ,
+
+    priority        TEXT NOT NULL
+        CHECK (priority IN ('LOW', 'NORMAL', 'HIGH')),
+
+    parent_task     TEXT,
+
+    linked_calendar TEXT,
+
+    reminders       TEXT[] NOT NULL DEFAULT '{}',
+    relationships   TEXT[] NOT NULL DEFAULT '{}'
+
+);
+
+
+-- ============================================================
+-- 4. ALARMS
+-- ============================================================
+
+CREATE TABLE alarms (
+
+    id                    TEXT PRIMARY KEY,
+
+    title                 TEXT NOT NULL,
+
+    description           TEXT,
+
+    priority              TEXT NOT NULL
+        CHECK (priority IN ('LOW', 'NORMAL', 'HIGH')),
+
+    linked_calendar_event TEXT,
+
+    linked_task           TEXT,
+
+    time                  TIMESTAMPTZ NOT NULL,
+
+    repeatable            TEXT[] NOT NULL DEFAULT '{}',
+
+    custom                TEXT[] NOT NULL DEFAULT '{}'
+
+);
+
+
+-- ============================================================
+-- 5. CONTACTS
+-- ============================================================
+
+CREATE TABLE contacts (
+
+    id              TEXT PRIMARY KEY,
+
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+
+    name            TEXT NOT NULL,
+    surname         TEXT NOT NULL,
+    nickname        TEXT,
+
+    mobile_phone    TEXT,
+    email           TEXT,
+    birthday        TEXT,
+
+    "group"         TEXT NOT NULL,
+
+    is_favorite     BOOLEAN NOT NULL DEFAULT FALSE,
+    in_gift_list    BOOLEAN NOT NULL DEFAULT FALSE
+
+);
+
+
+-- ============================================================
+-- 6. GIFT IDEAS
+-- ============================================================
+
+CREATE TABLE gift_ideas (
+
+    id              TEXT PRIMARY KEY,
+
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+
+    contact_id      TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+
+    name            TEXT NOT NULL,
+    description     TEXT,
+    link            TEXT,
+    price           DOUBLE PRECISION,
+    event           TEXT
+        CHECK (event IN ('Christmas', 'Birthday', 'FathersDay', 'ValentinesDay', 'MothersDay', 'Anniversary', 'Other'))
+
+);
+
+
+-- ============================================================
+-- 5. PERMISSIONS
+-- ============================================================
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE calendar
+TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE tasks
+TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE alarms
+TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE contacts
+TO anon;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE gift_ideas
+TO anon;
+
+
+-- ============================================================
+-- 6. ENABLE ROW LEVEL SECURITY
+-- ============================================================
+
+ALTER TABLE calendar ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE alarms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gift_ideas ENABLE ROW LEVEL SECURITY;
+
+
+-- ============================================================
+-- 7. CALENDAR POLICIES
+-- ============================================================
+
+CREATE POLICY "calendar_select"
+ON calendar
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "calendar_insert"
+ON calendar
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "calendar_update"
+ON calendar
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "calendar_delete"
+ON calendar
+FOR DELETE
+TO anon
+USING (true);
+
+
+-- ============================================================
+-- 8. TASK POLICIES
+-- ============================================================
+
+CREATE POLICY "tasks_select"
+ON tasks
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "tasks_insert"
+ON tasks
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "tasks_update"
+ON tasks
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "tasks_delete"
+ON tasks
+FOR DELETE
+TO anon
+USING (true);
+
+
+-- ============================================================
+-- 9. ALARM POLICIES
+-- ============================================================
+
+CREATE POLICY "alarms_select"
+ON alarms
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "alarms_insert"
+ON alarms
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "alarms_update"
+ON alarms
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "alarms_delete"
+ON alarms
+FOR DELETE
+TO anon
+USING (true);
+
+
+-- ============================================================
+-- 10. CONTACT POLICIES
+-- ============================================================
+
+CREATE POLICY "contacts_select"
+ON contacts
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "contacts_insert"
+ON contacts
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "contacts_update"
+ON contacts
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "contacts_delete"
+ON contacts
+FOR DELETE
+TO anon
+USING (true);
+
+
+-- ============================================================
+-- 11. GIFT IDEA POLICIES
+-- ============================================================
+
+CREATE POLICY "gift_ideas_select"
+ON gift_ideas
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "gift_ideas_insert"
+ON gift_ideas
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "gift_ideas_update"
+ON gift_ideas
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "gift_ideas_delete"
+ON gift_ideas
+FOR DELETE
+TO anon
+USING (true);
+
+
+-- ============================================================
+-- 10. CALENDAR EXAMPLES
+-- ============================================================
+
+INSERT INTO calendar (
+    id,
+    created,
+    modified,
+    title,
+    description,
+    starting_date,
+    starting_time,
+    ending_date,
+    ending_time,
+    priority,
+    participants,
+    repeat,
+    location,
+    linked_tasks,
+    linked_alarm
+)
+VALUES (
+    'calendar_001',
+    now(),
+    now(),
+    'Doctor Appointment',
+    'Annual checkup',
+    CURRENT_DATE + 2,
+    '09:30:00',
+    CURRENT_DATE + 2,
+    '10:30:00',
+    'HIGH',
+    ARRAY['doctor'],
+    ARRAY[]::TEXT[],
+    ARRAY['Hospital'],
+    ARRAY['task_001'],
+    'alarm_001'
+);
+
+
+INSERT INTO calendar (
+    id,
+    created,
+    modified,
+    title,
+    description,
+    starting_date,
+    starting_time,
+    ending_date,
+    ending_time,
+    priority,
+    participants,
+    repeat,
+    location,
+    linked_tasks,
+    linked_alarm
+)
+VALUES (
+    'calendar_002',
+    now(),
+    now(),
+    'Team Meeting',
+    'Weekly project meeting',
+    CURRENT_DATE + 3,
+    '14:00:00',
+    CURRENT_DATE + 3,
+    '15:00:00',
+    'NORMAL',
+    ARRAY['alice', 'bob', 'charlie'],
+    ARRAY['w'],
+    ARRAY['Office'],
+    ARRAY['task_002'],
+    NULL
+);
+
+
+INSERT INTO calendar (
+    id,
+    created,
+    modified,
+    title,
+    description,
+    starting_date,
+    starting_time,
+    ending_date,
+    ending_time,
+    priority,
+    participants,
+    repeat,
+    location,
+    linked_tasks,
+    linked_alarm
+)
+VALUES (
+    'calendar_003',
+    now(),
+    now(),
+    'Dinner',
+    'Dinner with friends',
+    CURRENT_DATE + 5,
+    '19:00:00',
+    CURRENT_DATE + 5,
+    '21:00:00',
+    'LOW',
+    ARRAY['john', 'sarah'],
+    ARRAY[]::TEXT[],
+    ARRAY['Restaurant'],
+    ARRAY[]::TEXT[],
+    NULL
+);
+
+
+-- ============================================================
+-- 11. TASK EXAMPLES
+-- ============================================================
+
+INSERT INTO tasks (
+    id,
+    created,
+    modified,
+    title,
+    description,
+    completed,
+    due_date,
+    priority,
+    parent_task,
+    linked_calendar,
+    reminders,
+    relationships
+)
+VALUES (
+    'task_001',
+    now(),
+    now(),
+    'Buy groceries',
+    'Milk, eggs and bread',
+    false,
+    now() + interval '1 day',
+    'NORMAL',
+    NULL,
+    NULL,
+    ARRAY[]::TEXT[],
+    ARRAY[]::TEXT[]
+);
+
+
+INSERT INTO tasks (
+    id,
+    created,
+    modified,
+    title,
+    description,
+    completed,
+    due_date,
+    priority,
+    parent_task,
+    linked_calendar,
+    reminders,
+    relationships
+)
+VALUES (
+    'task_002',
+    now(),
+    now(),
+    'Prepare meeting notes',
+    'Prepare the notes for the weekly meeting',
+    false,
+    now() + interval '3 days',
+    'HIGH',
+    NULL,
+    'calendar_002',
+    ARRAY['alarm_002'],
+    ARRAY[]::TEXT[]
+);
+
+
+INSERT INTO tasks (
+    id,
+    created,
+    modified,
+    title,
+    description,
+    completed,
+    due_date,
+    priority,
+    parent_task,
+    linked_calendar,
+    reminders,
+    relationships
+)
+VALUES (
+    'task_003',
+    now(),
+    now(),
+    'Water plants',
+    'Water all indoor plants',
+    true,
+    now() - interval '1 day',
+    'LOW',
+    NULL,
+    NULL,
+    ARRAY[]::TEXT[],
+    ARRAY[]::TEXT[]
+);
+
+
+-- ============================================================
+-- 12. ALARM EXAMPLES
+-- ============================================================
+
+INSERT INTO alarms (
+    id,
+    title,
+    description,
+    priority,
+    linked_calendar_event,
+    linked_task,
+    time,
+    repeatable,
+    custom
+)
+VALUES (
+    'alarm_001',
+    'Doctor Reminder',
+    'Reminder for the doctor appointment',
+    'HIGH',
+    'calendar_001',
+    'task_001',
+    now() + interval '2 days' - interval '30 minutes',
+    ARRAY[]::TEXT[],
+    ARRAY[]::TEXT[]
+);
+
+
+INSERT INTO alarms (
+    id,
+    title,
+    description,
+    priority,
+    linked_calendar_event,
+    linked_task,
+    time,
+    repeatable,
+    custom
+)
+VALUES (
+    'alarm_002',
+    'Meeting Reminder',
+    'Reminder before the weekly meeting',
+    'NORMAL',
+    'calendar_002',
+    'task_002',
+    now() + interval '3 days' - interval '15 minutes',
+    ARRAY['w'],
+    ARRAY[]::TEXT[]
+);
+
+
+INSERT INTO alarms (
+    id,
+    title,
+    description,
+    priority,
+    linked_calendar_event,
+    linked_task,
+    time,
+    repeatable,
+    custom
+)
+VALUES (
+    'alarm_003',
+    'Water Plants',
+    'Remember to water the plants',
+    'LOW',
+    NULL,
+    'task_003',
+    now() + interval '1 day',
+    ARRAY['c'],
+    ARRAY['MONDAY', 'WEDNESDAY', 'FRIDAY']
+);
+
+
+-- ============================================================
+-- 15. CONTACT EXAMPLES
+-- ============================================================
+
+INSERT INTO contacts (
+    id,
+    created,
+    modified,
+    name,
+    surname,
+    nickname,
+    mobile_phone,
+    email,
+    birthday,
+    "group",
+    is_favorite,
+    in_gift_list
+)
+VALUES (
+    'contact_001',
+    now(),
+    now(),
+    'John',
+    'Doe',
+    'Johnny',
+    '+123456789',
+    'john.doe@example.com',
+    '1990-05-15',
+    'Friends',
+    true,
+    true
+);
+
+INSERT INTO contacts (
+    id,
+    created,
+    modified,
+    name,
+    surname,
+    nickname,
+    mobile_phone,
+    email,
+    birthday,
+    "group",
+    is_favorite,
+    in_gift_list
+)
+VALUES (
+    'contact_002',
+    now(),
+    now(),
+    'Jane',
+    'Smith',
+    NULL,
+    '+987654321',
+    'jane.smith@example.com',
+    '1992-11-20',
+    'Work',
+    false,
+    false
+);
+
+
+-- ============================================================
+-- 16. GIFT IDEA EXAMPLES
+-- ============================================================
+
+INSERT INTO gift_ideas (
+    id,
+    created,
+    modified,
+    contact_id,
+    name,
+    description,
+    link,
+    price,
+    event
+)
+VALUES (
+    'gift_001',
+    now(),
+    now(),
+    'contact_001',
+    'Wireless Headphones',
+    'Noise cancelling headphones',
+    'https://example.com/headphones',
+    199.99,
+    'Birthday'
+);
+
+INSERT INTO gift_ideas (
+    id,
+    created,
+    modified,
+    contact_id,
+    name,
+    description,
+    link,
+    price,
+    event
+)
+VALUES (
+    'gift_002',
+    now(),
+    now(),
+    'contact_001',
+    'Kindle E-reader',
+    'For reading books on the go',
+    NULL,
+    129.00,
+    'Christmas'
+);

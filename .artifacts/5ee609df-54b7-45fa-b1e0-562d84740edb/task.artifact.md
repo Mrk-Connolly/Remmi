@@ -1,0 +1,4 @@
+- [x] Add INTERNET permission to `AndroidManifest.xml`
+- [x] Update `app/build.gradle.kts` with Ktor engine and desugaring
+- [x] Run Gradle Sync
+- [x] Verify build and execution
