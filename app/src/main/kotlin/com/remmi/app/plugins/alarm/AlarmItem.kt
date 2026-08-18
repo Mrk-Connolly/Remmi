@@ -37,7 +37,10 @@ data class AlarmItem(
 
     val repeatable: List<String> = emptyList(),
 
-    val custom: List<String> = emptyList()
+    val custom: List<String> = emptyList(),
+
+    @SerialName("user_id")
+    override val userId: String? = null
 
 ) : RemmiModel {
     init {

@@ -37,14 +37,22 @@ fun AlarmScreen(
     val scope = rememberCoroutineScope()
     var alarms by remember { mutableStateOf(emptyList<AlarmUiModel>()) }
     var editorMode by remember { mutableStateOf<AlarmEditorMode?>(null) }
+    
+    // Track editor state for hiding bottom menu
+    LaunchedEffect(editorMode) {
+        controller.isEditorActive.value = editorMode != null
+    }
+
     var isRefreshing by remember { mutableStateOf(false) }
 
-    val onRefresh: () -> Unit = {
-        scope.launch {
-            isRefreshing = true
-            alarms = actions.getAllAlarms()
-            delay(500) // Small delay for visual feedback
-            isRefreshing = false
+    val onRefresh: () -> Unit = remember {
+        {
+            scope.launch {
+                isRefreshing = true
+                alarms = actions.getAllAlarms()
+                delay(500) // Small delay for visual feedback
+                isRefreshing = false
+            }
         }
     }
 
@@ -68,12 +76,12 @@ fun AlarmScreen(
     } else {
         Scaffold(
             floatingActionButton = {
-                FloatingActionButton(onClick = { editorMode = AlarmEditorMode.Create }) {
+                FloatingActionButton(
+                    onClick = { editorMode = AlarmEditorMode.Create },
+                    modifier = Modifier.padding(bottom = 156.dp)
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Alarm")
                 }
-            },
-            bottomBar = {
-                Spacer(Modifier.height(96.dp))
             }
         ) { padding ->
             PullToRefreshBox(

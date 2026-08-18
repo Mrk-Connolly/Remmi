@@ -52,12 +52,14 @@ fun HomeScreen(
     /**                                 On Refresh
      * Logic for pull-to-refresh action
      * */
-    val onRefresh: () -> Unit = {
-        scope.launch {
-            isRefreshing = true
-            // In the future, this could trigger a global sync
-            delay(500)
-            isRefreshing = false
+    val onRefresh: () -> Unit = remember {
+        {
+            scope.launch {
+                isRefreshing = true
+                // In the future, this could trigger a global sync
+                delay(500)
+                isRefreshing = false
+            }
         }
     }
 
@@ -95,8 +97,6 @@ fun HomeScreen(
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(96.dp))
         }
     }
 }

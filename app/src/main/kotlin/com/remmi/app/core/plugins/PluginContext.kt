@@ -1,5 +1,6 @@
 package com.remmi.app.core.plugins
 
+import com.remmi.app.core.auth.AuthRepository
 import com.remmi.app.core.events.EventBus
 import com.remmi.app.core.service.ServiceManager
 
@@ -11,5 +12,6 @@ import com.remmi.app.core.service.ServiceManager
  */
 data class PluginContext(
     val serviceManager: ServiceManager,
-    val eventBus: EventBus
+    val eventBus: EventBus,
+    val authRepository: AuthRepository
 )

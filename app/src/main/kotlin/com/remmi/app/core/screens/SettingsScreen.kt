@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
@@ -62,12 +63,14 @@ fun SettingsScreen(
     /**                                 On Refresh
      * Refresh settings data
      * */
-    val onRefresh: () -> Unit = {
-        scope.launch {
-            isRefreshing = true
-            // In a real app, this might reload settings from disk or server
-            delay(500)
-            isRefreshing = false
+    val onRefresh: () -> Unit = remember {
+        {
+            scope.launch {
+                isRefreshing = true
+                // In a real app, this might reload settings from disk or server
+                delay(500)
+                isRefreshing = false
+            }
         }
     }
 
@@ -96,9 +99,6 @@ fun SettingsScreen(
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
-        },
-        bottomBar = {
-            Spacer(Modifier.height(96.dp))
         }
     ) { padding ->
         PullToRefreshBox(
@@ -142,6 +142,46 @@ fun SettingsScreen(
 
                 item {
                     Text(
+                        text = "Account",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                        ),
+                        onClick = {
+                            scope.launch {
+                                runtime.signOut()
+                            }
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Logout,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = "Sign Out",
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Text(
                         text = "Plugin Management",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary,
@@ -150,23 +190,33 @@ fun SettingsScreen(
                 }
 
                 items(pendingMetadata) { plugin ->
-                    PluginSettingItem(
-                        plugin = plugin,
-                        onToggleEnabled = { enabled ->
-                            pendingMetadata = pendingMetadata.map { 
+                    val onToggleEnabled = remember(plugin.id) {
+                        { enabled: Boolean ->
+                            pendingMetadata = pendingMetadata.map {
                                 if (it.id == plugin.id) it.copy(enabled = enabled) else it
                             }
-                        },
-                        onToggleNavigation = { show ->
-                            pendingMetadata = pendingMetadata.map { 
+                        }
+                    }
+                    val onToggleNavigation = remember(plugin.id) {
+                        { show: Boolean ->
+                            pendingMetadata = pendingMetadata.map {
                                 if (it.id == plugin.id) it.copy(showInNavigation = show) else it
                             }
-                        },
-                        onToggleWidget = { show ->
-                            pendingMetadata = pendingMetadata.map { 
+                        }
+                    }
+                    val onToggleWidget = remember(plugin.id) {
+                        { show: Boolean ->
+                            pendingMetadata = pendingMetadata.map {
                                 if (it.id == plugin.id) it.copy(showWidget = show) else it
                             }
-                        },
+                        }
+                    }
+
+                    PluginSettingItem(
+                        plugin = plugin,
+                        onToggleEnabled = onToggleEnabled,
+                        onToggleNavigation = onToggleNavigation,
+                        onToggleWidget = onToggleWidget,
                         onLongClick = { selectedPluginForInfo = plugin }
                     )
                 }

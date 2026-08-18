@@ -50,8 +50,6 @@ fun RemmiEditorScaffold(
                         }
                     }
                 }
-                // Space for bottom navigation or system bars if needed
-                Spacer(Modifier.height(96.dp))
             }
         }
     ) { paddingValues ->

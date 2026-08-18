@@ -43,9 +43,11 @@ fun AlarmScreenEditor(
     var description by remember { mutableStateOf(initialAlarm?.description ?: "") }
     var isPriority by remember { mutableStateOf(initialAlarm?.isPriority ?: false) }
     
-    val timeZone = TimeZone.currentSystemDefault()
-    val initialDateTime = initialAlarm?.time?.toLocalDateTime(timeZone) ?: 
+    val timeZone = remember { TimeZone.currentSystemDefault() }
+    val initialDateTime = remember(initialAlarm) {
+        initialAlarm?.time?.toLocalDateTime(timeZone) ?: 
         Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone)
+    }
 
     var hour by remember { mutableStateOf(initialDateTime.hour) }
     var minute by remember { mutableStateOf(initialDateTime.minute) }

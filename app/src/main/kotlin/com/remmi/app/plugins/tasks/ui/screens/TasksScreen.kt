@@ -42,19 +42,27 @@ fun TasksScreen(
     val scope = rememberCoroutineScope()
     var tasks by remember { mutableStateOf(emptyList<TaskItem>()) }
     var editorMode by remember { mutableStateOf<TaskEditorMode?>(null) }
+    
+    // Track editor state for hiding bottom menu
+    LaunchedEffect(editorMode) {
+        controller.isEditorActive.value = editorMode != null
+    }
+
     var taskToManage by remember { mutableStateOf<TaskItem?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
 
     var selectedGroupFilter by remember { mutableStateOf("All") }
     var existingGroups by remember { mutableStateOf(emptyList<String>()) }
 
-    val onRefresh: () -> Unit = {
-        scope.launch {
-            isRefreshing = true
-            tasks = actions.getAllTasks()
-            existingGroups = actions.getAllGroups()
-            delay(500)
-            isRefreshing = false
+    val onRefresh: () -> Unit = remember {
+        {
+            scope.launch {
+                isRefreshing = true
+                tasks = actions.getAllTasks()
+                existingGroups = actions.getAllGroups()
+                delay(500)
+                isRefreshing = false
+            }
         }
     }
 
@@ -86,15 +94,17 @@ fun TasksScreen(
     } else {
         Scaffold(
             floatingActionButton = {
-                FloatingActionButton(onClick = { editorMode = TaskEditorMode.Create }) {
+                FloatingActionButton(
+                    onClick = { editorMode = TaskEditorMode.Create },
+                    modifier = Modifier.padding(bottom = 156.dp)
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Task")
                 }
-            },
-            bottomBar = {
-                Spacer(Modifier.height(96.dp))
             }
         ) { padding ->
-            val groupedByGroup = filteredTasks.groupBy { it.group ?: "No Group" }
+            val groupedByGroup = remember(filteredTasks) {
+                filteredTasks.groupBy { it.group ?: "No Group" }
+            }
 
             PullToRefreshBox(
                 isRefreshing = isRefreshing,

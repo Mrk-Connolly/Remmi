@@ -2,6 +2,9 @@ package com.remmi.app.core.controller
 
 import android.content.Context
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
+import com.remmi.app.core.auth.AuthRepository
+import com.remmi.app.core.auth.AuthState
 import com.remmi.app.core.automation.AutomationEngine
 import com.remmi.app.core.automation.AutomationSettingsRepository
 import com.remmi.app.core.events.EventBus
@@ -26,12 +29,16 @@ class RemmiController(val androidContext: Context) {
     val eventBus = EventBus()
 
     /** Core System Managers */
+    val authRepository = AuthRepository()
     val serviceManager = ServiceManager(androidContext)
     val pluginManager = PluginManager()
     val automationEngine = AutomationEngine(eventBus, serviceManager)
 
     /** Shared Plugin Context */
-    private val pluginContext = PluginContext(serviceManager, eventBus)
+    private val pluginContext = PluginContext(serviceManager, eventBus, authRepository)
+
+    /** UI State Tracking */
+    val isEditorActive = mutableStateOf(false)
 
 
     // ----------------------------------------------------------------------------
@@ -60,23 +67,60 @@ class RemmiController(val androidContext: Context) {
         pluginManager.readPlugins(serviceManager.fileService)
         pluginManager.loadPlugins()
 
-        // 3. Subscribe Command Listeners
+        // 3. Subscribe Command and Event Listeners
         eventBus.subscribeCommand(pluginManager)
         eventBus.subscribeCommand(serviceManager)
         eventBus.subscribeCommand(automationEngine)
+        
+        eventBus.subscribeEvent(pluginManager)
 
-        // 4. Initialize Plugins with Shared Context
+        // 4. Check Authentication Status
+        val currentUser = authRepository.getCurrentUser()
+        if (currentUser != null) {
+            Log.i("Remmi", "[RemmiController] - User authenticated: ${currentUser.email}. Loading user data.")
+            initializePlugins()
+        } else {
+            Log.i("Remmi", "[RemmiController] - No authenticated user. Awaiting login.")
+        }
+    }
+
+    /**                                 Initialize Plugins
+     * Complete the startup sequence once a user is authenticated.
+     */
+    suspend fun initializePlugins() {
+        Log.d("Remmi", "[RemmiController] - Initializing plugins for user")
+        
+        // 1. Initialize Plugins with Shared Context
         pluginManager.initializeAll(pluginContext)
 
-        // 5. Load Plugin Data
+        // 2. Load Plugin Data
         pluginManager.loadAll()
 
-        // 6. Start Engines and Services
+        // 3. Start Engines and Services
         serviceManager.start()
         automationEngine.start()
 
-        // 7. Check and ensure Daily Briefing Schedule
+        // 4. Check and ensure Daily Briefing Schedule
         checkDailyBriefingSchedule()
+    }
+
+    /**                                 Sign Out
+     * Terminate the session and clear all sensitive user data from memory.
+     */
+    suspend fun signOut() {
+        Log.i("Remmi", "[RemmiController] - User signing out. Cleaning up environment.")
+        
+        // 1. Terminate Supabase session
+        authRepository.signOut()
+
+        // 2. Stop Automation and Services
+        automationEngine.stop()
+        serviceManager.stop()
+
+        // 3. Clear plugin memory caches
+        pluginManager.clearAllCaches()
+        
+        Log.i("Remmi", "[RemmiController] - Sign out complete")
     }
 
     private fun checkDailyBriefingSchedule() {
@@ -101,6 +145,7 @@ class RemmiController(val androidContext: Context) {
         eventBus.unsubscribeCommand(pluginManager)
         eventBus.unsubscribeCommand(serviceManager)
         eventBus.unsubscribeCommand(automationEngine)
+        eventBus.unsubscribeEvent(pluginManager)
         eventBus.stop()
         
         serviceManager.stop()

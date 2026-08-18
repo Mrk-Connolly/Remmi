@@ -44,9 +44,11 @@ fun TasksEditorScreen(
     var title by remember { mutableStateOf(initialTask?.title ?: "") }
     var description by remember { mutableStateOf(initialTask?.description ?: "") }
     
-    val timeZone = TimeZone.currentSystemDefault()
-    val initialDateTime = initialTask?.dueDate?.toLocalDateTime(timeZone) ?: 
+    val timeZone = remember { TimeZone.currentSystemDefault() }
+    val initialDateTime = remember(initialTask) {
+        initialTask?.dueDate?.toLocalDateTime(timeZone) ?: 
         Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone)
+    }
 
     var startDate by remember { mutableStateOf(initialDateTime.date) }
     var startTime by remember { mutableStateOf(initialDateTime.time) }

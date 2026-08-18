@@ -74,9 +74,6 @@ fun UserGiftListScreen(
                     }
                 }
             )
-        },
-        bottomBar = {
-            Spacer(Modifier.height(96.dp))
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {

@@ -1,17 +1,22 @@
 package com.remmi.app.core.navigation
 
 import android.util.Log
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
@@ -22,11 +27,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.plugins.PluginMetadata
+import com.remmi.app.core.auth.AuthState
+import com.remmi.app.core.auth.AuthViewModel
+import com.remmi.app.core.screens.AuthScreen
 import com.remmi.app.core.screens.HomeScreen
 import com.remmi.app.core.screens.SettingsScreen
 import com.remmi.app.core.screens.AutomatizationSettingsScreen
-import com.remmi.app.plugins.calendar.CalendarActions
-import com.remmi.app.plugins.calendar.ui.screens.CalendarScreen
 import kotlinx.coroutines.launch
 
 /**
@@ -35,18 +42,9 @@ import kotlinx.coroutines.launch
  */
 sealed class RemmiDestination(val route: String) {
 
-    // ----------------------------------------------------------------------------
-    //                                 CONSTRUCTOR
-    // ----------------------------------------------------------------------------
-
     init {
         Log.d("Remmi", "[Remmi Destination] - Constructor initialized")
     }
-
-
-    // ----------------------------------------------------------------------------
-    //                                  VARIABLES
-    // ----------------------------------------------------------------------------
 
     data object Home : RemmiDestination("home")
     data object Settings : RemmiDestination("settings")
@@ -57,11 +55,7 @@ sealed class RemmiDestination(val route: String) {
         const val SETTINGS_ROUTE = "settings"
         const val AUTOMATIZATION_ROUTE = "automatization"
 
-        /**                                 Plugin Route
-         * Generate a dynamic route for a plugin screen
-         * */
         fun pluginRoute(id: String): String {
-            Log.d("Remmi", "[RemmiDestination] - [pluginRoute] executed")
             return "plugin/$id"
         }
     }
@@ -75,11 +69,36 @@ sealed class RemmiDestination(val route: String) {
 @Composable
 fun AppNavigation(runtime: RemmiController) {
 
-    // ----------------------------------------------------------------------------
-    //                                  VARIABLES
-    // ----------------------------------------------------------------------------
-
     Log.d("Remmi", "[AppNavigation] - [AppNavigation] executed")
+    val authState by runtime.authRepository.sessionStatus.collectAsState(initial = AuthState.Loading)
+
+    when (authState) {
+        AuthState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        AuthState.Unauthenticated -> {
+            val authViewModel = remember { AuthViewModel(runtime.authRepository) }
+            val scope = rememberCoroutineScope()
+            AuthScreen(
+                viewModel = authViewModel,
+                onAuthSuccess = {
+                    scope.launch {
+                        runtime.initializePlugins()
+                    }
+                }
+            )
+        }
+        AuthState.Authenticated -> {
+            MainAppContent(runtime)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainAppContent(runtime: RemmiController) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -97,84 +116,95 @@ fun AppNavigation(runtime: RemmiController) {
     )
     val scope = rememberCoroutineScope()
 
+    // Animation state for switching between Island and Full Menu
+    val targetState = scaffoldState.bottomSheetState.targetValue
+    val fullMenuAlpha by animateFloatAsState(if (targetState == SheetValue.Expanded) 1f else 0f, label = "fullAlpha")
+    val islandAlpha by animateFloatAsState(if (targetState == SheetValue.Expanded) 0f else 1f, label = "islandAlpha")
 
-    // ----------------------------------------------------------------------------
-    //                                CORE FUNCTIONS
-    // ----------------------------------------------------------------------------
+    val horizontalPadding by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 24.dp, label = "hPadding")
+    val bottomPadding by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 24.dp, label = "bPadding")
+    val cornerRadius by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 12.dp, label = "cornerRadius")
+
+    val isEditorActive = runtime.isEditorActive.value
+    val animatedPeekHeight by animateDpAsState(
+        if (isEditorActive) 0.dp else 140.dp,
+        label = "peekHeight"
+    )
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
-        sheetPeekHeight = 96.dp,
+        sheetPeekHeight = animatedPeekHeight,
         sheetDragHandle = null,
+        sheetShape = RoundedCornerShape(0.dp),
+        sheetContainerColor = Color.Transparent,
+        sheetTonalElevation = 0.dp,
+        sheetShadowElevation = 0.dp,
         sheetContent = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.95f) // Reach nearly to the top
-                    .padding(bottom = 16.dp)
-            ) {
-                NavigationBar(
-                    containerColor = Color.Transparent,
-                    modifier = Modifier.height(96.dp).padding(top = 16.dp)
-                ) {
-                    // Home
-                    NavigationBarItem(
-                        selected = currentRoute == RemmiDestination.HOME_ROUTE,
-                        onClick = { 
-                            navController.navigate(RemmiDestination.HOME_ROUTE)
-                            scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-                        },
-                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                        label = { Text("Home") }
-                    )
-
-                    // Dynamic Plugin Items: Calendar and Tasks only
-                    metadata.filter { it.enabled && (it.id == "calendar" || it.id == "tasks") }.forEach { pluginMeta ->
-                        val route = RemmiDestination.pluginRoute(pluginMeta.id)
-                        NavigationBarItem(
-                            selected = currentRoute == route,
-                            onClick = { 
-                                navController.navigate(route)
-                                scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = getIconForName(pluginMeta.icon),
-                                    contentDescription = pluginMeta.name
-                                )
-                            },
-                            label = { Text(pluginMeta.name) }
-                        )
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Large Full Plugin Menu (Square/Full Screen)
+                if (fullMenuAlpha > 0f) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .alpha(fullMenuAlpha),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+                            Text(
+                                text = "All Plugins",
+                                style = MaterialTheme.typography.headlineMedium,
+                                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+                            PluginGrid(
+                                plugins = activePlugins,
+                                onPluginClick = { pluginId ->
+                                    navController.navigate(RemmiDestination.pluginRoute(pluginId))
+                                    scope.launch { scaffoldState.bottomSheetState.partialExpand() }
+                                }
+                            )
+                        }
                     }
-
-                    // Settings
-                    NavigationBarItem(
-                        selected = currentRoute == RemmiDestination.SETTINGS_ROUTE,
-                        onClick = { 
-                            navController.navigate(RemmiDestination.SETTINGS_ROUTE)
-                            scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-                        },
-                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                        label = { Text("Settings") }
-                    )
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                
-                PluginGrid(
-                    plugins = activePlugins,
-                    onPluginClick = { pluginId ->
-                        navController.navigate(RemmiDestination.pluginRoute(pluginId))
-                        scope.launch { scaffoldState.bottomSheetState.partialExpand() }
+                // Small Floating Island Menu (Rectangle)
+                if (islandAlpha > 0f) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter) // Align to top of the peek area
+                            .padding(top = 24.dp) // Gap to match bottom (24dp)
+                            .padding(horizontal = horizontalPadding)
+                            .padding(bottom = bottomPadding)
+                            .fillMaxWidth()
+                            .alpha(islandAlpha),
+                        shape = RoundedCornerShape(cornerRadius),
+                        tonalElevation = 6.dp,
+                        shadowElevation = 6.dp,
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            NavigationBar(
+                                containerColor = Color.Transparent,
+                                modifier = Modifier.fillMaxWidth(),
+                                windowInsets = WindowInsets(0)
+                            ) {
+                                IslandNavigationItems(
+                                    currentRoute = currentRoute,
+                                    navController = navController,
+                                    metadata = metadata,
+                                    onNavigate = { scope.launch { scaffoldState.bottomSheetState.partialExpand() } }
+                                )
+                            }
+                        }
                     }
-                )
+                }
             }
         }
-    ) { paddingValues ->
+    ) { _ ->
         NavHost(
             navController = navController,
             startDestination = RemmiDestination.HOME_ROUTE,
-            modifier = Modifier.fillMaxSize().padding(paddingValues)
+            modifier = Modifier.fillMaxSize()
         ) {
             composable(RemmiDestination.HOME_ROUTE) {
                 HomeScreen(
@@ -185,7 +215,6 @@ fun AppNavigation(runtime: RemmiController) {
                 )
             }
 
-            // Dynamically register enabled plugin routes
             activePlugins.forEach { plugin ->
                 composable(RemmiDestination.pluginRoute(plugin.metadata.id)) {
                     plugin.screen.Content(controller = runtime)
@@ -215,27 +244,78 @@ fun AppNavigation(runtime: RemmiController) {
     }
 }
 
-/**
- * PLUGIN GRID
- * UI component displaying available plugins in a grid layout
- */
+@Composable
+fun RowScope.IslandNavigationItems(
+    currentRoute: String?,
+    navController: androidx.navigation.NavController,
+    metadata: List<PluginMetadata>,
+    onNavigate: () -> Unit
+) {
+    NavigationBarItem(
+        selected = currentRoute == RemmiDestination.HOME_ROUTE,
+        onClick = { 
+            navController.navigate(RemmiDestination.HOME_ROUTE)
+            onNavigate()
+        },
+        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+        label = { Text("Home") }
+    )
+
+    metadata.filter { it.enabled && (it.id == "calendar" || it.id == "tasks") }.forEach { pluginMeta ->
+        val route = RemmiDestination.pluginRoute(pluginMeta.id)
+        NavigationBarItem(
+            selected = currentRoute == route,
+            onClick = { 
+                navController.navigate(route)
+                onNavigate()
+            },
+            icon = {
+                Icon(
+                    imageVector = getIconForName(pluginMeta.icon),
+                    contentDescription = pluginMeta.name
+                )
+            },
+            label = { Text(pluginMeta.name) }
+        )
+    }
+
+    NavigationBarItem(
+        selected = currentRoute == RemmiDestination.SETTINGS_ROUTE,
+        onClick = { 
+            navController.navigate(RemmiDestination.SETTINGS_ROUTE)
+            onNavigate()
+        },
+        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+        label = { Text("Settings") }
+    )
+}
+
+@Composable
+fun ThreeDotsDragHandle() {
+    Row(
+        modifier = Modifier
+            .padding(vertical = 12.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(3) {
+            Surface(
+                modifier = Modifier
+                    .padding(horizontal = 2.dp)
+                    .size(6.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            ) {}
+        }
+    }
+}
+
 @Composable
 fun PluginGrid(
     plugins: List<RemmiPlugin>,
     onPluginClick: (String) -> Unit
 ) {
-
-    // ----------------------------------------------------------------------------
-    //                                  VARIABLES
-    // ----------------------------------------------------------------------------
-
-    Log.d("Remmi", "[AppNavigation] - [PluginGrid] executed")
-
-
-    // ----------------------------------------------------------------------------
-    //                                CORE FUNCTIONS
-    // ----------------------------------------------------------------------------
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -255,27 +335,11 @@ fun PluginGrid(
     }
 }
 
-/**
- * PLUGIN GRID ITEM
- * Individual item within the plugin grid
- */
 @Composable
 fun PluginGridItem(
     plugin: RemmiPlugin,
     onClick: (String) -> Unit
 ) {
-
-    // ----------------------------------------------------------------------------
-    //                                  VARIABLES
-    // ----------------------------------------------------------------------------
-
-    Log.d("Remmi", "[AppNavigation] - [PluginGridItem] executed")
-
-
-    // ----------------------------------------------------------------------------
-    //                                CORE FUNCTIONS
-    // ----------------------------------------------------------------------------
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -306,11 +370,7 @@ fun PluginGridItem(
     }
 }
 
-/**                                 Get Icon for Name
- * Map a string name to a specific ImageVector icon
- * */
 fun getIconForName(name: String?): ImageVector {
-    Log.d("Remmi", "[AppNavigation] - [getIconForName] executed")
     return when (name) {
         "calendar_month" -> Icons.Default.CalendarMonth
         "check_circle" -> Icons.Default.CheckCircle

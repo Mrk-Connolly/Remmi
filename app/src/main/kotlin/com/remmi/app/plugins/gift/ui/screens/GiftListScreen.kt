@@ -45,12 +45,14 @@ fun GiftListScreen(
     var contactToRemove by remember { mutableStateOf<ContactItem?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
 
-    val onRefresh: () -> Unit = {
-        scope.launch {
-            isRefreshing = true
-            contactsInGiftList = contactActions.getAllContacts().filter { it.inGiftList }
-            delay(500)
-            isRefreshing = false
+    val onRefresh: () -> Unit = remember {
+        {
+            scope.launch {
+                isRefreshing = true
+                contactsInGiftList = contactActions.getAllContacts().filter { it.inGiftList }
+                delay(500)
+                isRefreshing = false
+            }
         }
     }
 
@@ -65,32 +67,35 @@ fun GiftListScreen(
             onBack = { selectedContactForGifts = null }
         )
     } else {
-        val filteredContacts = contactsInGiftList.filter {
-            it.name.contains(searchQuery, ignoreCase = true) || 
-            it.surname.contains(searchQuery, ignoreCase = true)
+        val filteredContacts = remember(contactsInGiftList, searchQuery) {
+            contactsInGiftList.filter {
+                it.name.contains(searchQuery, ignoreCase = true) ||
+                        it.surname.contains(searchQuery, ignoreCase = true)
+            }
         }
 
         Scaffold(
             floatingActionButton = {
-                FloatingActionButton(onClick = { showContactPicker = true }) {
+                FloatingActionButton(
+                    onClick = { showContactPicker = true },
+                    modifier = Modifier.padding(bottom = 220.dp)
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Contact")
                 }
             },
             bottomBar = {
-                Column {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        placeholder = { Text("Search gift list...") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        shape = CircleShape,
-                        singleLine = true
-                    )
-                    Spacer(Modifier.height(96.dp))
-                }
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 156.dp),
+                    placeholder = { Text("Search gift list...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    shape = CircleShape,
+                    singleLine = true
+                )
             }
         ) { padding ->
             PullToRefreshBox(

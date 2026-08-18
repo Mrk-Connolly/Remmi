@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.events.RemmiCommand
+import com.remmi.app.core.events.RemmiEvent
 import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
@@ -28,6 +29,7 @@ class GiftPlugin(
     /** Internal storage for initialized components */
     private var _repository: GiftRepository? = null
     private var _actions: GiftActions? = null
+    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for managing Gift ideas data */
     override val repository: GiftRepository
@@ -83,6 +85,7 @@ class GiftPlugin(
         // Initialize Repository via ServiceManager
         val repo = GiftRepository(context.serviceManager.databaseService)
         _repository = repo
+        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = GiftActions(repo).apply {
@@ -96,6 +99,13 @@ class GiftPlugin(
     override suspend fun onCommand(command: RemmiCommand) {
         Log.d("Remmi", "[GiftPlugin] - Received command: ${command::class.simpleName}")
         // Future: Implement gift CRUD commands if needed
+    }
+
+    /**                                   On Event
+     * Handle a system-wide or plugin-specific notification (Fact).
+     * */
+    override suspend fun onEvent(event: RemmiEvent) {
+        // Gift ideas might listen for birthday events etc.
     }
 
     /**                                   On Load

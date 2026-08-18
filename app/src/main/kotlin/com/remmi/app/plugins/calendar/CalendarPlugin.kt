@@ -13,6 +13,7 @@ import com.remmi.app.plugins.calendar.ui.screens.CalendarScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.datetime.*
 
 /**
  * The main entry point for the Calendar plugin.
@@ -29,6 +30,7 @@ class CalendarPlugin(
     /** Internal storage for initialized components */
     private var _repository: CalendarRepository? = null
     private var _actions: CalendarActions? = null
+    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for managing Calendar data */
     override val repository: CalendarRepository
@@ -73,6 +75,7 @@ class CalendarPlugin(
         // Initialize Repository via ServiceManager
         val repo = CalendarRepository(context.serviceManager.databaseService)
         _repository = repo
+        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = CalendarActions(repo).apply {
@@ -86,33 +89,118 @@ class CalendarPlugin(
     override suspend fun onCommand(command: RemmiCommand) {
         Log.d("Remmi", "[CalendarPlugin] - Received command: ${command::class.simpleName}")
         when (command) {
-            is CreateCalendarEventCommand -> actions.addEvent(
-                title = command.title,
-                description = command.description,
-                startingDate = command.startingDate,
-                startingTime = command.startingTime,
-                endingDate = command.endingDate,
-                endingTime = command.endingTime,
-                isPriority = command.isPriority,
-                group = command.group,
-                participants = command.participants,
-                repeat = command.repeat,
-                location = command.location,
-                linkedTasks = command.linkedTasks,
-                linkedAlarm = command.linkedAlarm
-            )
-            is UpdateCalendarEventCommand -> actions.updateEvent(
-                event = command.event
-            )
-            is DeleteCalendarEventCommand -> actions.removeEvent(
-                id = command.eventId
-            )
+            is CreateCalendarEventCommand -> {
+                val now = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+                val eventId = java.util.UUID.randomUUID().toString()
+                val item = CalendarItem(
+                    id = eventId,
+                    created = now,
+                    modified = now,
+                    title = command.title,
+                    description = command.description,
+                    startingDate = command.startingDate,
+                    startingTime = command.startingTime,
+                    endingDate = command.endingDate,
+                    endingTime = command.endingTime,
+                    isPriority = command.isPriority,
+                    group = command.group,
+                    participants = command.participants,
+                    repeat = command.repeat,
+                    location = command.location,
+                    linkedTasks = command.linkedTasks,
+                    linkedAlarm = command.linkedAlarm,
+                    userId = _authRepository?.getCurrentUserId()
+                )
+                
+                // 1. Request Persistence
+                actions.eventBus?.publishCommand(
+                    UpsertDataCommand(
+                        tableName = "calendar",
+                        item = item,
+                        serializer = CalendarItem.serializer(),
+                        source = "calendar"
+                    )
+                )
+
+                // 2. Publish Fact
+                actions.eventBus?.publishEvent(
+                    CalendarEventCreatedEvent(
+                        itemId = item.id,
+                        isPriority = item.isPriority
+                    )
+                )
+
+                // 3. Handle Linked items
+                if (command.createLinkedTask) {
+                    actions.eventBus?.publishCommand(
+                        CreateTaskCommand(
+                            title = "Task for: ${item.title}",
+                            description = item.description,
+                            dueDate = null, // Or derive from event
+                            isPriority = item.isPriority,
+                            group = item.group,
+                            source = "calendar"
+                        )
+                    )
+                }
+                
+                if (command.createLinkedAlarm && item.startingTime != null) {
+                    // Logic for alarm time calculation
+                    val alarmDateTime = kotlinx.datetime.LocalDateTime(item.startingDate, item.startingTime)
+                    val alarmTime = alarmDateTime.toInstant(kotlinx.datetime.TimeZone.currentSystemDefault())
+                    actions.eventBus?.publishCommand(
+                        CreateAlarmCommand(
+                            title = "Alarm: ${item.title}",
+                            description = item.description,
+                            time = alarmTime,
+                            isPriority = item.isPriority,
+                            source = "calendar"
+                        )
+                    )
+                }
+            }
+            
+            is UpdateCalendarEventCommand -> {
+                actions.eventBus?.publishCommand(
+                    UpsertDataCommand(
+                        tableName = "calendar",
+                        item = command.event,
+                        serializer = CalendarItem.serializer(),
+                        source = "calendar"
+                    )
+                )
+                actions.eventBus?.publishEvent(
+                    CalendarEventUpdatedEvent(itemId = command.event.id)
+                )
+            }
+            
+            is DeleteCalendarEventCommand -> {
+                actions.eventBus?.publishCommand(
+                    DeleteDataCommand(
+                        tableName = "calendar",
+                        itemId = command.eventId,
+                        source = "calendar"
+                    )
+                )
+                // Critical: Notify others for cascading delete
+                actions.eventBus?.publishEvent(
+                    CalendarEventDeletedEvent(itemId = command.eventId)
+                )
+            }
+            
             is FetchTodayEventsCommand -> {
                 Log.d("Remmi", "[CalendarPlugin] - Fetching today's events for automation")
                 val events = actions.getTodayEvents()
                 actions.eventBus?.publishEvent(TodayEventsFetchedEvent(events))
             }
         }
+    }
+
+    /**                                   On Event
+     * Handle a system-wide or plugin-specific notification (Fact).
+     * */
+    override suspend fun onEvent(event: RemmiEvent) {
+        // Calendar might listen for other things in future
     }
 
     /**                                   On Load

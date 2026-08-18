@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.events.RemmiCommand
+import com.remmi.app.core.events.RemmiEvent
 import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
@@ -27,6 +28,7 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     /** Internal storage for initialized components */
     private var _repository: ContactRepository? = null
     private var _actions: ContactActions? = null
+    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for managing Contacts data */
     override val repository: ContactRepository
@@ -43,7 +45,7 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content(controller: RemmiController) {
             Log.d("Remmi", "[ContactPlugin] - [Content] executed")
-            ContactScreen(actions)
+            ContactScreen(actions, controller)
         }
     }
 
@@ -70,6 +72,7 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
         // Initialize Repository via ServiceManager
         val repo = ContactRepository(context.serviceManager.databaseService)
         _repository = repo
+        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = ContactActions(repo).apply {
@@ -83,6 +86,13 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     override suspend fun onCommand(command: RemmiCommand) {
         Log.d("Remmi", "[ContactPlugin] - Received command: ${command::class.simpleName}")
         // Future: Implement contact CRUD commands if needed
+    }
+
+    /**                                   On Event
+     * Handle a system-wide or plugin-specific notification (Fact).
+     * */
+    override suspend fun onEvent(event: RemmiEvent) {
+        // Contacts might listen for other things in future
     }
 
     /**                                   On Load
