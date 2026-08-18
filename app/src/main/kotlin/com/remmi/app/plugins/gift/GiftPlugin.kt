@@ -2,6 +2,8 @@ package com.remmi.app.plugins.gift
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.RemmiCommand
 import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
@@ -51,7 +53,7 @@ class GiftPlugin(
 
     /** UI screen for gift management. */
     override val screen: RemmiScreen = object : RemmiScreen {
-        @Composable override fun Content() {
+        @Composable override fun Content(controller: RemmiController) {
             Log.d("Remmi", "[GiftPlugin] - [Content] (screen) executed")
             // GiftListScreen needs contactActions. This should be handled by standardizing UI access.
             // For now, keeping placeholder to fix compilation.
@@ -86,6 +88,14 @@ class GiftPlugin(
         _actions = GiftActions(repo).apply {
             this.eventBus = context.eventBus
         }
+    }
+
+    /**                                   On Command
+     * Handle commands specifically targeted at the Gift plugin.
+     */
+    override suspend fun onCommand(command: RemmiCommand) {
+        Log.d("Remmi", "[GiftPlugin] - Received command: ${command::class.simpleName}")
+        // Future: Implement gift CRUD commands if needed
     }
 
     /**                                   On Load

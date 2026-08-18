@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.DeleteAlarmCommand
 import com.remmi.app.plugins.alarm.AlarmActions
 import com.remmi.app.plugins.alarm.AlarmUiModel
 import kotlinx.coroutines.delay
@@ -27,7 +29,10 @@ import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun AlarmScreen(actions: AlarmActions) {
+fun AlarmScreen(
+    actions: AlarmActions,
+    controller: RemmiController
+) {
     Log.d("Remmi", "[AlarmScreen] - [AlarmScreen] executed")
     val scope = rememberCoroutineScope()
     var alarms by remember { mutableStateOf(emptyList<AlarmUiModel>()) }
@@ -51,6 +56,7 @@ fun AlarmScreen(actions: AlarmActions) {
         AlarmScreenEditor(
             mode = editorMode!!,
             actions = actions,
+            controller = controller,
             onDismiss = { editorMode = null },
             onSave = {
                 scope.launch {
@@ -103,7 +109,9 @@ fun AlarmScreen(actions: AlarmActions) {
                                     },
                                     onDelete = {
                                         scope.launch {
-                                            actions.deleteAlarm(uiModel.alarm.id)
+                                            controller.eventBus.publishCommand(
+                                                DeleteAlarmCommand(alarmId = uiModel.alarm.id)
+                                            )
                                             alarms = actions.getAllAlarms()
                                         }
                                     },

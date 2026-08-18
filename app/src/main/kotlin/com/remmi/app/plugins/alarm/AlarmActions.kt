@@ -1,9 +1,7 @@
 package com.remmi.app.plugins.alarm
 
 import android.util.Log
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.events.EventType
-import com.remmi.app.core.events.PluginEvent
+import com.remmi.app.core.events.*
 import com.remmi.app.core.plugins.actions.RemmiAction
 import com.remmi.app.core.service.android.AlarmService
 import kotlin.time.Instant
@@ -114,11 +112,7 @@ class AlarmActions(
             // Publish Fact
             Log.i("Remmi", "[AlarmActions] - Successfully created alarm: ${alarm.id}. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "alarm",
-                    type = EventType.CREATED,
-                    itemId = alarm.id
-                )
+                AlarmCreatedEvent(alarmId = alarm.id)
             )
             
             true
@@ -150,11 +144,7 @@ class AlarmActions(
             // Publish Fact
             Log.i("Remmi", "[AlarmActions] - Successfully updated alarm: ${alarm.id}. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "alarm",
-                    type = EventType.UPDATED,
-                    itemId = alarm.id
-                )
+                AlarmUpdatedEvent(alarmId = alarm.id)
             )
             
             true
@@ -180,11 +170,7 @@ class AlarmActions(
             // Publish Fact
             Log.i("Remmi", "[AlarmActions] - Successfully deleted alarm: $id. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "alarm",
-                    type = EventType.DELETED,
-                    itemId = id
-                )
+                AlarmDeletedEvent(alarmId = id)
             )
             
             true

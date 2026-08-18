@@ -27,6 +27,14 @@
 
         <receiver android:name="com.remmi.app.plugins.alarm.AlarmReceiver" android:exported="false" />
 
+        <receiver
+            android:name="com.remmi.app.core.automation.DailyBriefingReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
         <activity
             android:name="com.remmi.app.MainActivity"
             android:exported="true">

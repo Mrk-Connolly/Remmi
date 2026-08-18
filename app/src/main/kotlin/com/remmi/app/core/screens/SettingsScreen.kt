@@ -8,8 +8,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -19,9 +21,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.plugins.PluginMetadata
+import com.remmi.app.core.navigation.RemmiDestination
 import com.remmi.app.core.navigation.getIconForName
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.navigation.NavHostController
 
 /**
  * SETTINGS SCREEN
@@ -31,6 +35,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     runtime: RemmiController,
+    navController: NavHostController,
     onBack: () -> Unit
 ) {
 
@@ -112,9 +117,35 @@ fun SettingsScreen(
             ) {
                 item {
                     Text(
-                        text = "Plugin Management",
+                        text = "System Features",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { navController.navigate(RemmiDestination.AUTOMATIZATION_ROUTE) }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Schedule, contentDescription = null)
+                            Spacer(Modifier.width(12.dp))
+                            Text(text = "Daily Briefing & Automations", modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ChevronRight, contentDescription = null)
+                        }
+                    }
+                }
+
+                item {
+                    Text(
+                        text = "Plugin Management",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
 

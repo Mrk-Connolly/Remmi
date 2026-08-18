@@ -2,6 +2,8 @@ package com.remmi.app.plugins.contacts
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.RemmiCommand
 import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
@@ -39,7 +41,7 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
 
     /** UI screen for contact management. */
     override val screen: RemmiScreen = object : RemmiScreen {
-        @Composable override fun Content() {
+        @Composable override fun Content(controller: RemmiController) {
             Log.d("Remmi", "[ContactPlugin] - [Content] executed")
             ContactScreen(actions)
         }
@@ -73,6 +75,14 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
         _actions = ContactActions(repo).apply {
             this.eventBus = context.eventBus
         }
+    }
+
+    /**                                   On Command
+     * Handle commands specifically targeted at the Contact plugin.
+     */
+    override suspend fun onCommand(command: RemmiCommand) {
+        Log.d("Remmi", "[ContactPlugin] - Received command: ${command::class.simpleName}")
+        // Future: Implement contact CRUD commands if needed
     }
 
     /**                                   On Load

@@ -7,6 +7,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.CreateAlarmCommand
+import com.remmi.app.core.events.UpdateAlarmCommand
 import com.remmi.app.core.screens.components.RemmiEditorScaffold
 import com.remmi.app.core.screens.components.RemmiPrioritySwitch
 import com.remmi.app.core.screens.components.RemmiTitleDescriptionGroup
@@ -28,6 +31,7 @@ sealed class AlarmEditorMode {
 fun AlarmScreenEditor(
     mode: AlarmEditorMode,
     actions: AlarmActions,
+    controller: RemmiController,
     onDismiss: () -> Unit,
     onSave: () -> Unit
 ) {
@@ -82,8 +86,21 @@ fun AlarmScreenEditor(
                 val custom = if (repeatMode == "Custom") customDays.toList() else emptyList()
 
                 if (initialAlarm != null) {
-                    actions.updateAlarm(
-                        initialAlarm.copy(
+                    controller.eventBus.publishCommand(
+                        UpdateAlarmCommand(
+                            alarm = initialAlarm.copy(
+                                title = title,
+                                description = description,
+                                time = triggerTime,
+                                isPriority = isPriority,
+                                repeatable = repeatable,
+                                custom = custom
+                            )
+                        )
+                    )
+                } else {
+                    controller.eventBus.publishCommand(
+                        CreateAlarmCommand(
                             title = title,
                             description = description,
                             time = triggerTime,
@@ -91,15 +108,6 @@ fun AlarmScreenEditor(
                             repeatable = repeatable,
                             custom = custom
                         )
-                    )
-                } else {
-                    actions.addAlarm(
-                        title = title,
-                        description = description,
-                        time = triggerTime,
-                        isPriority = isPriority,
-                        repeatable = repeatable,
-                        custom = custom
                     )
                 }
                 onSave()

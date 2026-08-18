@@ -1,9 +1,7 @@
 package com.remmi.app.plugins.calendar
 
 import android.util.Log
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.events.EventType
-import com.remmi.app.core.events.PluginEvent
+import com.remmi.app.core.events.*
 import com.remmi.app.core.plugins.actions.RemmiAction
 import kotlinx.datetime.*
 import java.util.UUID
@@ -92,10 +90,9 @@ class CalendarActions(
             // Publish Fact
             Log.i("Remmi", "[CalendarActions] - Successfully created event: ${item.id}. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "calendar",
-                    type = EventType.CREATED,
-                    itemId = item.id
+                CalendarEventCreatedEvent(
+                    itemId = item.id,
+                    isPriority = item.isPriority
                 )
             )
 
@@ -117,11 +114,7 @@ class CalendarActions(
             // Publish Fact
             Log.i("Remmi", "[CalendarActions] - Successfully deleted event: $id. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "calendar",
-                    type = EventType.DELETED,
-                    itemId = id
-                )
+                CalendarEventDeletedEvent(itemId = id)
             )
 
             true
@@ -143,11 +136,7 @@ class CalendarActions(
             // Publish Fact
             Log.i("Remmi", "[CalendarActions] - Successfully updated event: ${event.id}. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "calendar",
-                    type = EventType.UPDATED,
-                    itemId = event.id
-                )
+                CalendarEventUpdatedEvent(itemId = event.id)
             )
 
             true

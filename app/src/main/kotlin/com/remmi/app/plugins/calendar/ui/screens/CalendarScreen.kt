@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.DeleteCalendarEventCommand
 import com.remmi.app.plugins.calendar.CalendarActions
 import com.remmi.app.plugins.calendar.CalendarItem
 import io.github.boguszpawlowski.composecalendar.SelectableCalendar
@@ -224,7 +225,9 @@ fun CalendarScreen(
             onDismiss = { selectedEvent = null },
             onDelete = {
                 scope.launch {
-                    actions.removeEvent(selectedEvent!!.id)
+                    controller.eventBus.publishCommand(
+                        DeleteCalendarEventCommand(eventId = selectedEvent!!.id)
+                    )
                     events = actions.getAllEvents()
                     selectedEvent = null
                 }

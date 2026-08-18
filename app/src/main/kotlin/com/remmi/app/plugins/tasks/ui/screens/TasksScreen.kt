@@ -1,8 +1,5 @@
 package com.remmi.app.plugins.tasks.ui.screens
 
-import com.remmi.app.plugins.tasks.TasksActions
-import com.remmi.app.plugins.tasks.TaskItem
-
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
@@ -24,6 +21,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.DeleteTaskCommand
+import com.remmi.app.plugins.tasks.TasksActions
+import com.remmi.app.plugins.tasks.TaskItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
@@ -33,7 +34,10 @@ import kotlinx.datetime.*
  */
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun TasksScreen(actions: TasksActions) {
+fun TasksScreen(
+    actions: TasksActions,
+    controller: RemmiController
+) {
     Log.d("Remmi", "[TasksScreen] - [TasksScreen] executed")
     val scope = rememberCoroutineScope()
     var tasks by remember { mutableStateOf(emptyList<TaskItem>()) }
@@ -69,6 +73,7 @@ fun TasksScreen(actions: TasksActions) {
         TasksEditorScreen(
             mode = editorMode!!,
             actions = actions,
+            controller = controller,
             onDismiss = { editorMode = null },
             onSave = {
                 scope.launch {
@@ -183,7 +188,9 @@ fun TasksScreen(actions: TasksActions) {
                 TextButton(
                     onClick = {
                         scope.launch {
-                            actions.deleteTask(taskToManage!!.id)
+                            controller.eventBus.publishCommand(
+                                DeleteTaskCommand(taskId = taskToManage!!.id)
+                            )
                             tasks = actions.getAllTasks()
                             taskToManage = null
                         }

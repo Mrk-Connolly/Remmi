@@ -11,6 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.CreateTaskCommand
+import com.remmi.app.core.events.UpdateTaskCommand
 import com.remmi.app.core.plugins.model.components.RepeatRule
 import com.remmi.app.core.plugins.model.components.RepeatType
 import com.remmi.app.core.screens.components.*
@@ -30,6 +33,7 @@ sealed class TaskEditorMode {
 fun TasksEditorScreen(
     mode: TaskEditorMode,
     actions: TasksActions,
+    controller: RemmiController,
     onDismiss: () -> Unit,
     onSave: () -> Unit
 ) {
@@ -100,24 +104,29 @@ fun TasksEditorScreen(
 
             scope.launch {
                 if (initialTask != null) {
-                    actions.updateTask(initialTask.copy(
-                        modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
-                        title = title,
-                        description = description,
-                        dueDate = finalDueDate,
-                        isPriority = isPriority,
-                        group = group,
-                        repeat = repeatRule
-                    ))
+                    controller.eventBus.publishCommand(
+                        UpdateTaskCommand(
+                            task = initialTask.copy(
+                                modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
+                                title = title,
+                                description = description,
+                                dueDate = finalDueDate,
+                                isPriority = isPriority,
+                                group = group,
+                                repeat = repeatRule
+                            )
+                        )
+                    )
                 } else {
-                    actions.createTask(
-                        title = title,
-                        description = description,
-                        dueDate = finalDueDate,
-                        isPriority = isPriority,
-                        group = group,
-                        repeat = repeatRule
-                        // Note: addToCalendar and addToAlarm are handled by future automation facts
+                    controller.eventBus.publishCommand(
+                        CreateTaskCommand(
+                            title = title,
+                            description = description,
+                            dueDate = finalDueDate,
+                            isPriority = isPriority,
+                            group = group,
+                            repeat = repeatRule
+                        )
                     )
                 }
                 onSave()

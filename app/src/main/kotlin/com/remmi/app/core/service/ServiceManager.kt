@@ -7,6 +7,7 @@ import com.remmi.app.core.events.RemmiCommand
 import com.remmi.app.core.events.SaveDataCommand
 import com.remmi.app.core.service.android.*
 import com.remmi.app.core.service.android.implementations.AndroidAlarmService
+import com.remmi.app.core.service.android.implementations.AndroidWeatherService
 import com.remmi.app.core.service.database.DatabaseService
 import com.remmi.app.core.service.database.SupabaseService
 import com.remmi.app.core.service.file.AndroidFileService
@@ -32,6 +33,7 @@ class ServiceManager(private val androidContext: Context) : CommandListener {
     /** Specialized Android Services */
     val alarmService: AlarmService = AndroidAlarmService(androidContext)
     val notificationService: NotificationService = AndroidAlarmService(androidContext)
+    val weatherService: WeatherService = AndroidWeatherService()
 
 
     // ----------------------------------------------------------------------------

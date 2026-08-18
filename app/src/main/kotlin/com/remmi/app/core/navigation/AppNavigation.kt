@@ -24,6 +24,7 @@ import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.screens.HomeScreen
 import com.remmi.app.core.screens.SettingsScreen
+import com.remmi.app.core.screens.AutomatizationSettingsScreen
 import com.remmi.app.plugins.calendar.CalendarActions
 import com.remmi.app.plugins.calendar.ui.screens.CalendarScreen
 import kotlinx.coroutines.launch
@@ -49,10 +50,12 @@ sealed class RemmiDestination(val route: String) {
 
     data object Home : RemmiDestination("home")
     data object Settings : RemmiDestination("settings")
+    data object Automatization : RemmiDestination("automatization")
 
     companion object {
         const val HOME_ROUTE = "home"
         const val SETTINGS_ROUTE = "settings"
+        const val AUTOMATIZATION_ROUTE = "automatization"
 
         /**                                 Plugin Route
          * Generate a dynamic route for a plugin screen
@@ -185,25 +188,26 @@ fun AppNavigation(runtime: RemmiController) {
             // Dynamically register enabled plugin routes
             activePlugins.forEach { plugin ->
                 composable(RemmiDestination.pluginRoute(plugin.metadata.id)) {
-                    // Inject controller specifically for Calendar as it has cross-plugin needs
-                    if (plugin.metadata.id == "calendar") {
-                        CalendarScreen(
-                            actions = plugin.actions as CalendarActions,
-                            controller = runtime
-                        )
-                    } else {
-                        plugin.screen.Content()
-                    }
+                    plugin.screen.Content(controller = runtime)
                 }
             }
 
             composable(RemmiDestination.SETTINGS_ROUTE) {
                 SettingsScreen(
                     runtime = runtime,
+                    navController = navController,
                     onBack = {
                         navController.navigate(RemmiDestination.HOME_ROUTE) {
-                            popUpTo(RemmiDestination.HOME_ROUTE) { inclusive = true }
-                        }
+                            popUpTo(RemmiDestination.HOME_ROUTE) { inclusive = true } }
+                    }
+                )
+            }
+
+            composable(RemmiDestination.AUTOMATIZATION_ROUTE) {
+                AutomatizationSettingsScreen(
+                    controller = runtime,
+                    onBack = {
+                        navController.popBackStack()
                     }
                 )
             }

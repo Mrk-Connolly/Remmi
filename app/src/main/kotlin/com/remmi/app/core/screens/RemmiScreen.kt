@@ -1,6 +1,7 @@
 package com.remmi.app.core.screens
 
 import androidx.compose.runtime.Composable
+import com.remmi.app.core.controller.RemmiController
 
 /**
  * Interface for full-screen UI views provided by plugins.
@@ -18,5 +19,5 @@ interface RemmiScreen {
      * The UI content of the screen, defined as a Composable function.
      */
     @Composable
-    fun Content()
+    fun Content(controller: RemmiController)
 }

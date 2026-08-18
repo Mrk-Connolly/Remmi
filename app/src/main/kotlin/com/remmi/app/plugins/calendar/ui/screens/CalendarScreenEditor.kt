@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.*
 import com.remmi.app.core.screens.components.*
 import com.remmi.app.core.screens.popups.LocationDialog
 import com.remmi.app.core.screens.popups.ContactsSelectionDialog
@@ -108,36 +109,42 @@ fun CalendarEditorScreen(
             
             scope.launch {
                 if (initialEvent != null) {
-                    actions.updateEvent(initialEvent.copy(
-                        modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
-                        title = title,
-                        description = description,
-                        startingDate = finalStartDate,
-                        startingTime = startTime,
-                        endingDate = endDate,
-                        endingTime = endTime,
-                        isPriority = isPriority,
-                        group = group,
-                        repeat = repeatList,
-                        linkedTasks = linkedTaskIds.toList(),
-                        location = locations.toList(),
-                        participants = participants.toList()
-                    ))
+                    controller.eventBus.publishCommand(
+                        UpdateCalendarEventCommand(
+                            event = initialEvent.copy(
+                                modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
+                                title = title,
+                                description = description,
+                                startingDate = finalStartDate,
+                                startingTime = startTime,
+                                endingDate = endDate,
+                                endingTime = endTime,
+                                isPriority = isPriority,
+                                group = group,
+                                repeat = repeatList,
+                                linkedTasks = linkedTaskIds.toList(),
+                                location = locations.toList(),
+                                participants = participants.toList()
+                            )
+                        )
+                    )
                 } else {
-                    actions.addEvent(
-                        id = currentEventId,
-                        title = title,
-                        description = description,
-                        startingDate = finalStartDate,
-                        startingTime = startTime,
-                        endingDate = endDate,
-                        endingTime = endTime,
-                        isPriority = isPriority,
-                        group = group,
-                        repeat = repeatList,
-                        linkedTasks = linkedTaskIds.toList(),
-                        location = locations.toList(),
-                        participants = participants.toList()
+                    controller.eventBus.publishCommand(
+                        CreateCalendarEventCommand(
+                            title = title,
+                            description = description,
+                            startingDate = finalStartDate,
+                            startingTime = startTime,
+                            endingDate = endDate,
+                            endingTime = endTime,
+                            isPriority = isPriority,
+                            group = group,
+                            participants = participants.toList(),
+                            repeat = repeatList,
+                            location = locations.toList(),
+                            linkedTasks = linkedTaskIds.toList(),
+                            linkedAlarm = null
+                        )
                     )
                 }
                 onSave()
@@ -349,15 +356,16 @@ fun CalendarEditorScreen(
             onDismiss = { showTaskDialog = false },
             onSave = { t, d, s, p, r ->
                 scope.launch {
-                    tasksActions?.createTask(
-                        title = t,
-                        description = d,
-                        dueDate = s,
-                        isPriority = p,
-                        group = group,
-                        repeat = r
+                    controller.eventBus.publishCommand(
+                        CreateTaskCommand(
+                            title = t,
+                            description = d,
+                            dueDate = s,
+                            isPriority = p,
+                            group = group,
+                            repeat = r
+                        )
                     )
-                    // Note: linkedCalendar logic would be handled by AutomationEngine fact check
                     showTaskDialog = false
                 }
             }
@@ -374,11 +382,13 @@ fun CalendarEditorScreen(
             onSave = { t, d, time, p ->
                 scope.launch {
                     val alarmTime = startDate.atTime(time).toInstant(timeZone)
-                    alarmActions?.addAlarm(
-                        title = t,
-                        description = d,
-                        time = alarmTime,
-                        isPriority = p
+                    controller.eventBus.publishCommand(
+                        CreateAlarmCommand(
+                            title = t,
+                            description = d,
+                            time = alarmTime,
+                            isPriority = p
+                        )
                     )
                     showAlarmConfirmation = false
                 }

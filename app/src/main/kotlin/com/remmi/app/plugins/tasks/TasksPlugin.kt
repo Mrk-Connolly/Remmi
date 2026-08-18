@@ -2,6 +2,8 @@ package com.remmi.app.plugins.tasks
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.*
 import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
@@ -41,9 +43,9 @@ class TasksPlugin(
 
     /** UI screen for task management. */
     override val screen: RemmiScreen = object : RemmiScreen {
-        @Composable override fun Content() {
+        @Composable override fun Content(controller: RemmiController) {
             Log.d("Remmi", "[TasksPlugin] - [Content] executed")
-            TasksScreen(actions)
+            TasksScreen(actions, controller)
         }
     }
 
@@ -74,6 +76,34 @@ class TasksPlugin(
         // Initialize Actions
         _actions = TasksActions(repo).apply {
             this.eventBus = context.eventBus
+        }
+    }
+
+    /**                                   On Command
+     * Handle commands specifically targeted at the Tasks plugin.
+     */
+    override suspend fun onCommand(command: RemmiCommand) {
+        Log.d("Remmi", "[TasksPlugin] - Received command: ${command::class.simpleName}")
+        when (command) {
+            is CreateTaskCommand -> actions.createTask(
+                title = command.title,
+                description = command.description,
+                dueDate = command.dueDate,
+                isPriority = command.isPriority,
+                group = command.group,
+                repeat = command.repeat
+            )
+            is UpdateTaskCommand -> actions.updateTask(
+                task = command.task
+            )
+            is DeleteTaskCommand -> actions.deleteTask(
+                id = command.taskId
+            )
+            is FetchTodayTasksCommand -> {
+                Log.d("Remmi", "[TasksPlugin] - Fetching today's tasks for automation")
+                val tasks = actions.getTodayTasks()
+                actions.eventBus?.publishEvent(TodayTasksFetchedEvent(tasks))
+            }
         }
     }
 

@@ -2,6 +2,11 @@ package com.remmi.app.plugins.alarm
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.CreateAlarmCommand
+import com.remmi.app.core.events.DeleteAlarmCommand
+import com.remmi.app.core.events.RemmiCommand
+import com.remmi.app.core.events.UpdateAlarmCommand
 import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
@@ -43,9 +48,9 @@ class AlarmPlugin(
 
     /** UI screen for detailed alarm management. */
     override val screen: RemmiScreen = object : RemmiScreen {
-        @Composable override fun Content() {
+        @Composable override fun Content(controller: RemmiController) {
             Log.d("Remmi", "[AlarmPlugin] - [Content] executed")
-            AlarmScreen(actions)
+            AlarmScreen(actions, controller)
         }
     }
 
@@ -77,6 +82,31 @@ class AlarmPlugin(
         _actions = AlarmActions(repo).apply {
             this.eventBus = context.eventBus
             this.alarmService = context.serviceManager.alarmService
+        }
+    }
+
+    /**                                   On Command
+     * Handle commands specifically targeted at the Alarm plugin.
+     */
+    override suspend fun onCommand(command: RemmiCommand) {
+        Log.d("Remmi", "[AlarmPlugin] - Received command: ${command::class.simpleName}")
+        when (command) {
+            is CreateAlarmCommand -> actions.addAlarm(
+                title = command.title,
+                description = command.description,
+                time = command.time,
+                isPriority = command.isPriority,
+                repeatable = command.repeatable,
+                custom = command.custom,
+                syncToSystem = command.syncToSystem
+            )
+            is UpdateAlarmCommand -> actions.updateAlarm(
+                alarm = command.alarm,
+                syncToSystem = command.syncToSystem
+            )
+            is DeleteAlarmCommand -> actions.deleteAlarm(
+                id = command.alarmId
+            )
         }
     }
 

@@ -2,6 +2,8 @@ package com.remmi.app.plugins.calendar
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.events.*
 import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginMetadata
 import com.remmi.app.core.plugins.RemmiPlugin
@@ -42,9 +44,9 @@ class CalendarPlugin(
     /** UI screen for calendar management. */
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable
-        override fun Content() {
+        override fun Content(controller: RemmiController) {
             Log.d("Remmi", "[CalendarPlugin] - [Content] executed")
-            // Screen dependencies should be handled via standard navigation.
+            CalendarScreen(actions, controller)
         }
     }
 
@@ -75,6 +77,41 @@ class CalendarPlugin(
         // Initialize Actions
         _actions = CalendarActions(repo).apply {
             this.eventBus = context.eventBus
+        }
+    }
+
+    /**                                   On Command
+     * Handle commands specifically targeted at the Calendar plugin.
+     */
+    override suspend fun onCommand(command: RemmiCommand) {
+        Log.d("Remmi", "[CalendarPlugin] - Received command: ${command::class.simpleName}")
+        when (command) {
+            is CreateCalendarEventCommand -> actions.addEvent(
+                title = command.title,
+                description = command.description,
+                startingDate = command.startingDate,
+                startingTime = command.startingTime,
+                endingDate = command.endingDate,
+                endingTime = command.endingTime,
+                isPriority = command.isPriority,
+                group = command.group,
+                participants = command.participants,
+                repeat = command.repeat,
+                location = command.location,
+                linkedTasks = command.linkedTasks,
+                linkedAlarm = command.linkedAlarm
+            )
+            is UpdateCalendarEventCommand -> actions.updateEvent(
+                event = command.event
+            )
+            is DeleteCalendarEventCommand -> actions.removeEvent(
+                id = command.eventId
+            )
+            is FetchTodayEventsCommand -> {
+                Log.d("Remmi", "[CalendarPlugin] - Fetching today's events for automation")
+                val events = actions.getTodayEvents()
+                actions.eventBus?.publishEvent(TodayEventsFetchedEvent(events))
+            }
         }
     }
 

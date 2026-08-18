@@ -1,9 +1,7 @@
 package com.remmi.app.plugins.tasks
 
 import android.util.Log
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.events.EventType
-import com.remmi.app.core.events.PluginEvent
+import com.remmi.app.core.events.*
 import com.remmi.app.core.plugins.actions.RemmiAction
 import com.remmi.app.core.plugins.model.components.RepeatRule
 import kotlinx.datetime.*
@@ -83,10 +81,10 @@ class TasksActions(
             // Publish Fact
             Log.i("Remmi", "[TasksActions] - Successfully created task: ${task.id}. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "tasks",
-                    type = EventType.CREATED,
-                    itemId = task.id
+                TaskCreatedEvent(
+                    taskId = task.id,
+                    priority = task.isPriority,
+                    group = task.group
                 )
             )
 
@@ -109,11 +107,7 @@ class TasksActions(
             // Publish Fact
             Log.i("Remmi", "[TasksActions] - Successfully updated task: ${task.id}. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "tasks",
-                    type = EventType.UPDATED,
-                    itemId = task.id
-                )
+                TaskUpdatedEvent(taskId = task.id)
             )
 
             true
@@ -134,11 +128,7 @@ class TasksActions(
             // Publish Fact
             Log.i("Remmi", "[TasksActions] - Successfully deleted task: $id. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "tasks",
-                    type = EventType.DELETED,
-                    itemId = id
-                )
+                TaskDeletedEvent(taskId = id)
             )
 
             true
@@ -168,6 +158,14 @@ class TasksActions(
             Log.e(TAG, "Failed to retrieve tasks", e)
             emptyList()
         }
+    }
+
+    /**                                 Get Task
+     * Retrieve a specific task by ID
+     * */
+    suspend fun getTask(id: String): TaskItem? {
+        Log.d("Remmi", "[TasksActions] - [getTask] executed")
+        return repository.get(id)
     }
 
     /**                                 Sync

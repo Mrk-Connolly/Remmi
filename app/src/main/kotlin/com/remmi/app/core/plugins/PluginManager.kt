@@ -1,10 +1,7 @@
 package com.remmi.app.core.plugins
 
-import android.content.Context
 import android.util.Log
-import com.remmi.app.core.events.CommandListener
-import com.remmi.app.core.events.DeleteAlarmCommand
-import com.remmi.app.core.events.RemmiCommand
+import com.remmi.app.core.events.*
 import com.remmi.app.core.service.file.FileService
 import com.remmi.app.plugins.alarm.AlarmPlugin
 import com.remmi.app.plugins.calendar.CalendarPlugin
@@ -86,10 +83,27 @@ class PluginManager : CommandListener {
         Log.i("Remmi", "[PluginManager] - RECEIVED COMMAND: [${command::class.simpleName}] from [${command.source}]")
         
         when (command) {
-            is DeleteAlarmCommand -> {
-                Log.i("Remmi", "[PluginManager] - Routing DeleteAlarmCommand to AlarmsPlugin for ID: ${command.alarmId}")
-                val alarmPlugin = plugins["alarm"] as? AlarmPlugin
-                alarmPlugin?.actions?.deleteAlarm(command.alarmId)
+            // Alarm Commands
+            is CreateAlarmCommand, is UpdateAlarmCommand, is DeleteAlarmCommand -> {
+                Log.i("Remmi", "[PluginManager] - Routing command to AlarmPlugin")
+                plugins["alarm"]?.onCommand(command)
+            }
+
+            // Calendar Commands
+            is CreateCalendarEventCommand, is UpdateCalendarEventCommand, is DeleteCalendarEventCommand -> {
+                Log.i("Remmi", "[PluginManager] - Routing command to CalendarPlugin")
+                plugins["calendar"]?.onCommand(command)
+            }
+
+            // Task Commands
+            is CreateTaskCommand, is UpdateTaskCommand, is DeleteTaskCommand -> {
+                Log.i("Remmi", "[PluginManager] - Routing command to TasksPlugin")
+                plugins["tasks"]?.onCommand(command)
+            }
+            
+            // Future command routing can be added here
+            else -> {
+                Log.w("Remmi", "[PluginManager] - Unrecognized command: ${command::class.simpleName}")
             }
         }
     }
