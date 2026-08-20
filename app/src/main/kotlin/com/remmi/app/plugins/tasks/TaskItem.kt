@@ -46,7 +46,10 @@ data class TaskItem(
 
     val reminders: List<String> = emptyList(),
 
-    val relationships: List<String> = emptyList()
+    val relationships: List<String> = emptyList(),
+
+    @SerialName("user_id")
+    override val userId: String? = null
 
 ) : RemmiModel {
     init {

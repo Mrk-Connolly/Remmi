@@ -4,7 +4,7 @@ import android.util.Log
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import com.remmi.app.core.plugins.model.models.RemmiModel
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
@@ -54,7 +54,10 @@ data class CalendarItem(
     val linkedTasks: List<String> = emptyList(),
 
     @SerialName("linked_alarm")
-    val linkedAlarm: String? = null
+    val linkedAlarm: String? = null,
+
+    @SerialName("user_id")
+    override val userId: String? = null
 
 ) : RemmiModel {
     init {

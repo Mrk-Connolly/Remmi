@@ -1,6 +1,6 @@
 package com.remmi.app.core.plugins.model.models
 
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 
 /**
  * Base interface for all data models that can be managed by a [RemmiRepository].
@@ -22,4 +22,7 @@ interface RemmiModel {
 
     /** Last modification timestamp */
     var modified: Instant
+
+    /** Owner of the data item */
+    val userId: String?
 }

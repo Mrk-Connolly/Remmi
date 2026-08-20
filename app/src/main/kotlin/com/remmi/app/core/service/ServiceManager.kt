@@ -79,6 +79,18 @@ class ServiceManager(private val androidContext: Context) : CommandListener {
                 Log.i("Remmi", "[ServiceManager] - Executing global save requested by ${command.source}")
                 // TODO: Trigger Supabase sync or local DB backup
             }
+            
+            is com.remmi.app.core.events.UpsertDataCommand<*> -> {
+                Log.i("Remmi", "[ServiceManager] - Upserting item into ${command.tableName}")
+                @Suppress("UNCHECKED_CAST")
+                val typedCommand = command as com.remmi.app.core.events.UpsertDataCommand<com.remmi.app.core.plugins.model.models.RemmiModel>
+                databaseService.update(typedCommand.tableName, typedCommand.item, typedCommand.serializer)
+            }
+            
+            is com.remmi.app.core.events.DeleteDataCommand -> {
+                Log.i("Remmi", "[ServiceManager] - Deleting item ${command.itemId} from ${command.tableName}")
+                databaseService.delete(command.tableName, command.itemId)
+            }
         }
     }
 }

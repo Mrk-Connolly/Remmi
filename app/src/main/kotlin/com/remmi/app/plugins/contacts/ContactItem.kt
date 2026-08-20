@@ -28,7 +28,10 @@ data class ContactItem(
     @SerialName("is_favorite")
     val isFavorite: Boolean = false,
     @SerialName("in_gift_list")
-    val inGiftList: Boolean = false
+    val inGiftList: Boolean = false,
+
+    @SerialName("user_id")
+    override val userId: String? = null
 ) : RemmiModel {
     init {
         Log.d("Remmi", "[ContactItem] - [constructor] executed")

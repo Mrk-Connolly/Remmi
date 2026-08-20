@@ -22,7 +22,10 @@ data class GiftIdea(
     val description: String? = null,
     val link: String? = null,
     val price: Double? = null,
-    val event: GiftEvent? = null
+    val event: GiftEvent? = null,
+
+    @SerialName("user_id")
+    override val userId: String? = null
 ) : RemmiModel {
     init {
         Log.d("Remmi", "[GiftIdea] - [constructor] executed")

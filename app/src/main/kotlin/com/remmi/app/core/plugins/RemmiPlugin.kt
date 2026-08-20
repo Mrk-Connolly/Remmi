@@ -1,6 +1,7 @@
 package com.remmi.app.core.plugins
 
 import com.remmi.app.core.events.RemmiCommand
+import com.remmi.app.core.events.RemmiEvent
 import com.remmi.app.core.plugins.actions.RemmiAction
 import com.remmi.app.core.plugins.model.models.RemmiModel
 import com.remmi.app.core.plugins.repository.RemmiRepository
@@ -50,6 +51,11 @@ interface RemmiPlugin {
      * Handle a command specifically targeted at this plugin.
      * */
     suspend fun onCommand(command: RemmiCommand)
+
+    /**                                   On Event
+     * Handle a system-wide or plugin-specific notification (Fact).
+     * */
+    suspend fun onEvent(event: RemmiEvent)
 
     /**                                   Load
      * Load plugin items and prepare for execution.
