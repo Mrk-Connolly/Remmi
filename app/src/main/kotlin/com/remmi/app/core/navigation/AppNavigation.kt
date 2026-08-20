@@ -28,6 +28,7 @@ import androidx.navigation.compose.rememberNavController
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.plugins.PluginMetadata
+import com.remmi.app.core.Users.UserViewModel
 import com.remmi.app.core.auth.AuthState
 import com.remmi.app.core.auth.AuthViewModel
 import com.remmi.app.core.screens.AuthScreen
@@ -80,18 +81,34 @@ fun AppNavigation(runtime: RemmiController) {
         }
         AuthState.Unauthenticated -> {
             val authViewModel = remember { AuthViewModel(runtime.authRepository) }
+            val userViewModel = remember { UserViewModel(runtime.userRepository, runtime.authRepository) }
             val scope = rememberCoroutineScope()
             AuthScreen(
                 viewModel = authViewModel,
                 onAuthSuccess = {
+                    val userName = authViewModel.name
+                    val isNewUser = authViewModel.isSignUpMode
                     scope.launch {
+                        // Plugin initialization is mostly local and fast; run it
+                        // first so the home screen appears immediately. The profile
+                        // round trip happens in the background, without blocking UI.
+                        launch { userViewModel.ensureProfile(userName, isNewUser) }
                         runtime.initializePlugins()
                     }
                 }
             )
         }
         AuthState.Authenticated -> {
-            MainAppContent(runtime)
+            // Wait for plugin initialization before composing the UI.
+            // HomeScreen (and plugin screens) access actions/widgets that throw
+            // if the plugin has not been initialized yet.
+            if (runtime.isInitialized.value) {
+                MainAppContent(runtime)
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
         }
     }
 }

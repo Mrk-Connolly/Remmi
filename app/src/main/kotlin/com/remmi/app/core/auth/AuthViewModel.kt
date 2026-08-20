@@ -20,6 +20,7 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
 
     var email by mutableStateOf("")
     var password by mutableStateOf("")
+    var name by mutableStateOf("")
     
     var isLoading by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
@@ -65,5 +66,6 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     fun toggleMode() {
         isSignUpMode = !isSignUpMode
         errorMessage = null
+        name = ""
     }
 }
