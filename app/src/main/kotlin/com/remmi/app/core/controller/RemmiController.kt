@@ -3,6 +3,7 @@ package com.remmi.app.core.controller
 import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
+import com.remmi.app.core.Users.UserRepository
 import com.remmi.app.core.auth.AuthRepository
 import com.remmi.app.core.auth.AuthState
 import com.remmi.app.core.automation.AutomationEngine
@@ -12,6 +13,11 @@ import com.remmi.app.core.plugins.PluginContext
 import com.remmi.app.core.plugins.PluginManager
 import com.remmi.app.core.service.ServiceManager
 import com.remmi.app.core.service.android.implementations.AndroidAutomationScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * REMMI CONTROLLER
@@ -31,6 +37,7 @@ class RemmiController(val androidContext: Context) {
     /** Core System Managers */
     val authRepository = AuthRepository()
     val serviceManager = ServiceManager(androidContext)
+    val userRepository = UserRepository(serviceManager.databaseService)
     val pluginManager = PluginManager()
     val automationEngine = AutomationEngine(eventBus, serviceManager)
 
@@ -39,6 +46,12 @@ class RemmiController(val androidContext: Context) {
 
     /** UI State Tracking */
     val isEditorActive = mutableStateOf(false)
+
+    /** Whether plugins and services are ready for the current session */
+    val isInitialized = mutableStateOf(false)
+
+    /** Scope for long-running runtime tasks (e.g., reacting to auth state) */
+    private val controllerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
 
     // ----------------------------------------------------------------------------
@@ -74,13 +87,24 @@ class RemmiController(val androidContext: Context) {
         
         eventBus.subscribeEvent(pluginManager)
 
-        // 4. Check Authentication Status
-        val currentUser = authRepository.getCurrentUser()
-        if (currentUser != null) {
-            Log.i("Remmi", "[RemmiController] - User authenticated: ${currentUser.email}. Loading user data.")
-            initializePlugins()
-        } else {
-            Log.i("Remmi", "[RemmiController] - No authenticated user. Awaiting login.")
+        // 4. Initialize plugins whenever an authenticated session becomes available.
+        //    On app relaunch the session is restored asynchronously, so instead of a
+        //    one-shot check we react to the auth state and gate the UI on readiness.
+        controllerScope.launch {
+            authRepository.sessionStatus.collect { state ->
+                when (state) {
+                    AuthState.Authenticated -> {
+                        if (!isInitialized.value) {
+                            Log.i("Remmi", "[RemmiController] - User authenticated. Loading user data.")
+                            initializePlugins()
+                            isInitialized.value = true
+                        }
+                    }
+                    else -> {
+                        isInitialized.value = false
+                    }
+                }
+            }
         }
     }
 
@@ -119,6 +143,9 @@ class RemmiController(val androidContext: Context) {
 
         // 3. Clear plugin memory caches
         pluginManager.clearAllCaches()
+
+        // 4. Mark system as uninitialized so the next sign-in re-initializes everything
+        isInitialized.value = false
         
         Log.i("Remmi", "[RemmiController] - Sign out complete")
     }
@@ -152,5 +179,8 @@ class RemmiController(val androidContext: Context) {
 
         // 3. Unload Plugins
         pluginManager.stop()
+
+        // 4. Cancel runtime tasks
+        controllerScope.cancel()
     }
 }

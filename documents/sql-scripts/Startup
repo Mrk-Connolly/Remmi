@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS tasks CASCADE;
 DROP TABLE IF EXISTS calendar CASCADE;
 DROP TABLE IF EXISTS gift_ideas CASCADE;
 DROP TABLE IF EXISTS contacts CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
 
 -- ============================================================
@@ -738,3 +739,56 @@ VALUES (
     129.00,
     'Christmas'
 );
+
+
+-- ============================================================
+-- 17. USERS
+-- ============================================================
+
+CREATE TABLE users (
+
+    id              TEXT PRIMARY KEY,
+
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+
+    name            TEXT NOT NULL DEFAULT '',
+    email           TEXT,
+
+    user_id         TEXT
+
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE users
+TO anon;
+
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "users_select"
+ON users
+FOR SELECT
+TO anon
+USING (true);
+
+CREATE POLICY "users_insert"
+ON users
+FOR INSERT
+TO anon
+WITH CHECK (true);
+
+CREATE POLICY "users_update"
+ON users
+FOR UPDATE
+TO anon
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "users_delete"
+ON users
+FOR DELETE
+TO anon
+USING (true);
+
+INSERT INTO users (id, created, modified, name, email, user_id)
+VALUES ('user_001', now(), now(), 'Example', 'example@remmi.app', 'user_001');
