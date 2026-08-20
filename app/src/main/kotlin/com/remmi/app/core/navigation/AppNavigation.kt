@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
@@ -90,12 +91,14 @@ fun AppNavigation(runtime: RemmiController) {
     val islandAlpha by animateFloatAsState(if (targetState == SheetValue.Expanded) 0f else 1f, label = "islandAlpha")
 
     val horizontalPadding by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 24.dp, label = "hPadding")
-    val bottomPadding by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 24.dp, label = "bPadding")
+    val bottomPadding by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 48.dp, label = "bPadding")
     val cornerRadius by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 12.dp, label = "cornerRadius")
 
     val isEditorActive = runtime.isEditorActive.value
+    val isMenuVisible = runtime.isMenuVisible.value
+    
     val animatedPeekHeight by animateDpAsState(
-        if (isEditorActive) 0.dp else 140.dp,
+        if (isEditorActive || !isMenuVisible) 0.dp else 160.dp,
         label = "peekHeight"
     )
 
@@ -108,71 +111,78 @@ fun AppNavigation(runtime: RemmiController) {
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
         sheetContent = {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Large Full Plugin Menu (Square/Full Screen)
-                if (fullMenuAlpha > 0f) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .alpha(fullMenuAlpha),
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-                            Text(
-                                text = "All Plugins",
-                                style = MaterialTheme.typography.headlineMedium,
-                                modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                                textAlign = TextAlign.Center
-                            )
-                            PluginGrid(
-                                plugins = activePlugins,
-                                onPluginClick = { pluginId ->
-                                    navController.navigate(RemmiDestination.pluginRoute(pluginId))
-                                    scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Small Floating Island Menu (Rectangle)
-                if (islandAlpha > 0f) {
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter) // Align to top of the peek area
-                            .padding(top = 24.dp) // Gap to match bottom (24dp)
-                            .padding(horizontal = horizontalPadding)
-                            .padding(bottom = bottomPadding)
-                            .fillMaxWidth()
-                            .alpha(islandAlpha),
-                        shape = RoundedCornerShape(cornerRadius),
-                        tonalElevation = 6.dp,
-                        shadowElevation = 6.dp,
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            NavigationBar(
-                                containerColor = Color.Transparent,
-                                modifier = Modifier.fillMaxWidth(),
-                                windowInsets = WindowInsets(0)
-                            ) {
-                                IslandNavigationItems(
-                                    currentRoute = currentRoute,
-                                    navController = navController,
-                                    metadata = metadata,
-                                    onNavigate = { scope.launch { scaffoldState.bottomSheetState.partialExpand() } }
+            if (animatedPeekHeight > 0.dp) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Large Full Plugin Menu (Square/Full Screen)
+                    if (fullMenuAlpha > 0f) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .alpha(fullMenuAlpha),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+                                Text(
+                                    text = "All Plugins",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+                                PluginGrid(
+                                    plugins = activePlugins,
+                                    onPluginClick = { pluginId ->
+                                        navController.navigate(RemmiDestination.pluginRoute(pluginId))
+                                        scope.launch { scaffoldState.bottomSheetState.partialExpand() }
+                                    }
                                 )
                             }
                         }
                     }
+
+                    // Small Floating Island Menu (Rectangle)
+                    if (islandAlpha > 0f) {
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter) // Align to top of the peek area
+                                .padding(top = 24.dp) // Gap to match bottom (24dp)
+                                .padding(horizontal = horizontalPadding)
+                                .padding(bottom = bottomPadding)
+                                .fillMaxWidth()
+                                .alpha(islandAlpha),
+                            shape = RoundedCornerShape(cornerRadius),
+                            tonalElevation = 6.dp,
+                            shadowElevation = 6.dp,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                NavigationBar(
+                                    containerColor = Color.Transparent,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    windowInsets = WindowInsets(0)
+                                ) {
+                                    IslandNavigationItems(
+                                        currentRoute = currentRoute,
+                                        navController = navController,
+                                        metadata = metadata,
+                                        onNavigate = { scope.launch { scaffoldState.bottomSheetState.partialExpand() } }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
+            } else {
+                // Return an empty box when hidden to prevent touch interception
+                Box(Modifier.size(0.dp))
             }
         }
-    ) { _ ->
+    ) { padding ->
         NavHost(
             navController = navController,
             startDestination = RemmiDestination.HOME_ROUTE,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = padding.calculateTopPadding())
         ) {
             composable(RemmiDestination.HOME_ROUTE) {
                 HomeScreen(

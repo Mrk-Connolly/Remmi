@@ -22,6 +22,7 @@ import com.remmi.app.plugins.tasks.TaskItem
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
 import kotlinx.coroutines.launch
+import androidx.compose.material3.MenuAnchorType
 
 sealed class TaskEditorMode {
     data object Create : TaskEditorMode()
@@ -158,7 +159,7 @@ fun TasksEditorScreen(
                     readOnly = true,
                     label = { Text("Group") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                 )
                 ExposedDropdownMenu(
                     expanded = isGroupExpanded,

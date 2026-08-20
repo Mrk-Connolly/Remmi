@@ -43,6 +43,12 @@ fun AlarmScreen(
         controller.isEditorActive.value = editorMode != null
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            controller.isEditorActive.value = false
+        }
+    }
+
     var isRefreshing by remember { mutableStateOf(false) }
 
     val onRefresh: () -> Unit = remember {
@@ -78,7 +84,7 @@ fun AlarmScreen(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { editorMode = AlarmEditorMode.Create },
-                    modifier = Modifier.padding(bottom = 156.dp)
+                    modifier = Modifier.padding(bottom = 176.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Alarm")
                 }
@@ -90,7 +96,6 @@ fun AlarmScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .statusBarsPadding()
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize()
@@ -98,7 +103,7 @@ fun AlarmScreen(
                     Text(
                         text = "My Alarms",
                         style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
                     )
 
                     if (alarms.isEmpty()) {
@@ -106,7 +111,10 @@ fun AlarmScreen(
                             Text("No alarms yet. Tap + to add one.")
                         }
                     } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 180.dp)
+                        ) {
                             items(alarms, key = { it.alarm.id }) { uiModel ->
                                 AlarmRow(
                                     uiModel = uiModel,

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,7 +18,6 @@ import com.remmi.app.core.screens.popups.LocationDialog
 import com.remmi.app.core.screens.popups.ContactsSelectionDialog
 import com.remmi.app.plugins.calendar.CalendarActions
 import com.remmi.app.plugins.calendar.CalendarItem
-import com.remmi.app.plugins.calendar.ui.popups.*
 import com.remmi.app.plugins.alarm.AlarmActions
 import com.remmi.app.plugins.tasks.TasksActions
 import com.remmi.app.plugins.contacts.ContactActions
@@ -25,9 +25,15 @@ import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
 import kotlinx.coroutines.launch
 import java.util.UUID
+import androidx.compose.material3.MenuAnchorType
 
 sealed class EditorMode {
-    data class Create(val initialDate: LocalDate? = null) : EditorMode()
+    data class Create(
+        val initialDate: LocalDate? = null,
+        val initialTime: LocalTime? = null,
+        val initialEndDate: LocalDate? = null,
+        val initialEndTime: LocalTime? = null
+    ) : EditorMode()
     data class Edit(val event: CalendarItem) : EditorMode()
 }
 
@@ -51,17 +57,11 @@ fun CalendarEditorScreen(
     val initialDate = remember(initialEvent, mode) {
         initialEvent?.startingDate ?: (mode as? EditorMode.Create)?.initialDate ?: Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone).date
     }
-    val initialTime = remember(initialEvent) {
-        initialEvent?.startingTime ?: LocalTime(0, 0)
+    val initialTime = remember(initialEvent, mode) {
+        initialEvent?.startingTime ?: (mode as? EditorMode.Create)?.initialTime ?: LocalTime(0, 0)
     }
 
-    var day by remember { mutableStateOf(initialDate.dayOfMonth.toString()) }
-    var month by remember { mutableStateOf(initialDate.monthNumber.toString()) }
-    var year by remember { mutableStateOf(initialDate.year.toString()) }
-    
-    var isPriority by remember { mutableStateOf(initialEvent?.isPriority ?: false) }
     var group by remember { mutableStateOf(initialEvent?.group) }
-    var isAdvancedExpanded by remember { mutableStateOf(false) }
 
     var existingGroups by remember { mutableStateOf(emptyList<String>()) }
     var isGroupExpanded by remember { mutableStateOf(false) }
@@ -78,79 +78,123 @@ fun CalendarEditorScreen(
         contacts = contactActions?.getAllContacts() ?: emptyList()
     }
 
-    var isRepeatable by remember { mutableStateOf(initialEvent?.repeat?.isNotEmpty() == true) }
     var repeatList by remember { mutableStateOf(initialEvent?.repeat ?: emptyList<String>()) }
     var showRepeatDaysDialog by remember { mutableStateOf(false) }
 
     var startDate by remember { mutableStateOf(initialDate) }
     var startTime by remember { mutableStateOf(initialTime) }
-    var endDate by remember { mutableStateOf(initialEvent?.endingDate ?: initialDate) }
-    var endTime by remember { 
-        mutableStateOf(initialEvent?.endingTime ?: LocalTime(23, 59)) 
+    var endDate by remember { 
+        mutableStateOf(initialEvent?.endingDate ?: (mode as? EditorMode.Create)?.initialEndDate ?: initialDate) 
     }
+    var endTime by remember { 
+        mutableStateOf(initialEvent?.endingTime ?: (mode as? EditorMode.Create)?.initialEndTime ?: LocalTime(23, 59)) 
+    }
+    
+    val linkedTaskIds = remember { mutableStateListOf<String>().apply { addAll(initialEvent?.linkedTasks ?: emptyList()) } }
 
+    var isPriority by remember { mutableStateOf(initialEvent?.isPriority ?: false) }
+    
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
     var showEndTimePicker by remember { mutableStateOf(false) }
     
-    var showTaskDialog by remember { mutableStateOf(false) }
-    val linkedTaskIds = remember { mutableStateListOf<String>().apply { addAll(initialEvent?.linkedTasks ?: emptyList()) } }
-    val currentEventId = remember { initialEvent?.id ?: UUID.randomUUID().toString() }
+    var autoCreateTask by remember { mutableStateOf(false) }
+    var autoCreateAlarm by remember { mutableStateOf(false) }
     
     var showLocationDialog by remember { mutableStateOf(false) }
     val locations = remember { mutableStateListOf<String>().apply { addAll(initialEvent?.location ?: emptyList()) } }
     var showParticipantsDialog by remember { mutableStateOf(false) }
     val participants = remember { mutableStateListOf<String>().apply { addAll(initialEvent?.participants ?: emptyList()) } }
     
-    var showAlarmConfirmation by remember { mutableStateOf(false) }
+    val isEndDateGreyedOut = remember(startDate, endDate) { startDate == endDate }
 
     RemmiEditorScaffold(
         title = if (initialEvent == null) "New Event" else "Edit Event",
         onBack = onDismiss,
         onSave = {
-            val finalStartDate = try { LocalDate(year.toInt(), month.toInt(), day.toInt()) } catch (e: Exception) { startDate }
-            
             scope.launch {
-                if (initialEvent != null) {
-                    controller.eventBus.publishCommand(
-                        UpdateCalendarEventCommand(
-                            event = initialEvent.copy(
-                                modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
-                                title = title,
-                                description = description,
-                                startingDate = finalStartDate,
-                                startingTime = startTime,
-                                endingDate = endDate,
-                                endingTime = endTime,
-                                isPriority = isPriority,
-                                group = group,
-                                repeat = repeatList,
-                                linkedTasks = linkedTaskIds.toList(),
-                                location = locations.toList(),
-                                participants = participants.toList()
-                            )
-                        )
+                val finalEvent = if (initialEvent != null) {
+                    initialEvent.copy(
+                        modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
+                        title = title,
+                        description = description,
+                        startingDate = startDate,
+                        startingTime = startTime,
+                        endingDate = endDate,
+                        endingTime = endTime,
+                        isPriority = isPriority,
+                        group = group,
+                        repeat = repeatList,
+                        linkedTasks = linkedTaskIds.toList(),
+                        location = locations.toList(),
+                        participants = participants.toList()
                     )
+                } else {
+                    CalendarItem(
+                        id = UUID.randomUUID().toString(),
+                        created = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
+                        modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
+                        title = title,
+                        description = description,
+                        startingDate = startDate,
+                        startingTime = startTime,
+                        endingDate = endDate,
+                        endingTime = endTime,
+                        isPriority = isPriority,
+                        group = group,
+                        participants = participants.toList(),
+                        repeat = repeatList,
+                        location = locations.toList(),
+                        linkedTasks = linkedTaskIds.toList()
+                    )
+                }
+
+                if (initialEvent != null) {
+                    controller.eventBus.publishCommand(UpdateCalendarEventCommand(event = finalEvent))
                 } else {
                     controller.eventBus.publishCommand(
                         CreateCalendarEventCommand(
-                            title = title,
-                            description = description,
-                            startingDate = finalStartDate,
-                            startingTime = startTime,
-                            endingDate = endDate,
-                            endingTime = endTime,
-                            isPriority = isPriority,
-                            group = group,
-                            participants = participants.toList(),
-                            repeat = repeatList,
-                            location = locations.toList(),
-                            linkedTasks = linkedTaskIds.toList(),
-                            linkedAlarm = null
+                            title = finalEvent.title,
+                            description = finalEvent.description,
+                            startingDate = finalEvent.startingDate,
+                            startingTime = finalEvent.startingTime,
+                            endingDate = finalEvent.endingDate,
+                            endingTime = finalEvent.endingTime,
+                            isPriority = finalEvent.isPriority,
+                            group = finalEvent.group,
+                            participants = finalEvent.participants,
+                            repeat = finalEvent.repeat,
+                            location = finalEvent.location,
+                            linkedTasks = finalEvent.linkedTasks
                         )
                     )
                 }
+
+                if (autoCreateTask) {
+                    controller.eventBus.publishCommand(
+                        CreateTaskCommand(
+                            title = "Task: $title",
+                            description = description,
+                            dueDate = startDate.atTime(startTime).toInstant(timeZone),
+                            isPriority = isPriority,
+                            group = group
+                        )
+                    )
+                }
+
+                if (autoCreateAlarm) {
+                    val alarmTime = startDate.atTime(startTime).toInstant(timeZone)
+                    controller.eventBus.publishCommand(
+                        CreateAlarmCommand(
+                            title = "Alarm: $title",
+                            description = description,
+                            time = alarmTime,
+                            isPriority = isPriority
+                        )
+                    )
+                }
+
                 onSave()
             }
         },
@@ -163,18 +207,63 @@ fun CalendarEditorScreen(
             onDescriptionChange = { description = it }
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(value = day, onValueChange = { day = it }, label = { Text("Day") }, modifier = Modifier.weight(1f))
-            OutlinedTextField(value = month, onValueChange = { month = it }, label = { Text("Month") }, modifier = Modifier.weight(1f))
-            OutlinedTextField(value = year, onValueChange = { year = it }, label = { Text("Year") }, modifier = Modifier.weight(2f))
+        // Date and Time Grid
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = startDate.toString(),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Start Date") },
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = startTime.toString().substring(0, 5),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Start Time") },
+                    modifier = Modifier.weight(0.6f).clickable { showStartTimePicker = true }
+                )
+                IconButton(onClick = { showStartDatePicker = true }) {
+                    Icon(Icons.Default.CalendarMonth, "Select Date Range")
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val textColor = if (isEndDateGreyedOut) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurface
+                OutlinedTextField(
+                    value = endDate.toString(),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("End Date") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = textColor,
+                        unfocusedTextColor = textColor
+                    ),
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = endTime.toString().substring(0, 5),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("End Time") },
+                    modifier = Modifier.weight(0.6f).clickable { showEndTimePicker = true }
+                )
+                IconButton(onClick = { showEndDatePicker = true }) {
+                    Icon(Icons.Default.CalendarMonth, "Select End Date")
+                }
+            }
         }
 
-        RemmiPrioritySwitch(
-            isPriority = isPriority,
-            onPriorityChange = { isPriority = it },
-            label = "Priority Event"
-        )
-
+        // Group Selection
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -190,7 +279,7 @@ fun CalendarEditorScreen(
                     readOnly = true,
                     label = { Text("Group") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                 )
                 ExposedDropdownMenu(
                     expanded = isGroupExpanded,
@@ -213,65 +302,56 @@ fun CalendarEditorScreen(
             }
         }
 
-        Text("Quick Add", style = MaterialTheme.typography.titleSmall)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            IconButton(onClick = { showTaskDialog = true }) { Icon(Icons.Default.CheckCircle, "Task") }
-            IconButton(onClick = { showAlarmConfirmation = true }) { Icon(Icons.Default.Alarm, "Alarm") }
-            IconButton(onClick = { showParticipantsDialog = true }) { Icon(Icons.Default.Person, "Participants") }
-            IconButton(onClick = { showLocationDialog = true }) { Icon(Icons.Default.LocationOn, "Location") }
-        }
+        RemmiPrioritySwitch(
+            isPriority = isPriority,
+            onPriorityChange = { isPriority = it },
+            label = "Priority Event"
+        )
 
+        // Action Buttons Row (Consolidated)
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().clickable { isAdvancedExpanded = !isAdvancedExpanded }
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Advanced Options", style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.weight(1f))
-            Icon(if (isAdvancedExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null)
-        }
+            // Task Toggle
+            IconButton(
+                onClick = { autoCreateTask = !autoCreateTask }
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Assignment,
+                    contentDescription = "Add Task",
+                    tint = if (autoCreateTask) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-        if (isAdvancedExpanded) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = isRepeatable, onCheckedChange = { isRepeatable = it })
-                    Text("Repeatable")
-                }
-                if (isRepeatable) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            listOf("DAILY", "WEEKLY", "MONTHLY", "YEARLY").forEach { type ->
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    RadioButton(selected = repeatList.contains(type), onClick = { repeatList = listOf(type) })
-                                    Text(
-                                        text = type.lowercase().replaceFirstChar { it.uppercase() },
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                            }
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            RadioButton(selected = repeatList.size > 1 || (repeatList.isNotEmpty() && !listOf("DAILY", "WEEKLY", "MONTHLY", "YEARLY").contains(repeatList[0])), onClick = { 
-                                showRepeatDaysDialog = true
-                            })
-                            Text("Optional")
-                        }
-                    }
-                }
+            // Alarm Toggle
+            IconButton(
+                onClick = { autoCreateAlarm = !autoCreateAlarm }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Alarm,
+                    contentDescription = "Add Alarm",
+                    tint = if (autoCreateAlarm) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Start Date", style = MaterialTheme.typography.labelMedium)
-                        TextButton(onClick = { showStartDatePicker = true }) { Text(startDate.toString()) }
-                        Text("Start Time", style = MaterialTheme.typography.labelMedium)
-                        TextButton(onClick = { showStartTimePicker = true }) { Text(startTime.toString().substring(0, 5)) }
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("End Date", style = MaterialTheme.typography.labelMedium)
-                        TextButton(onClick = { showEndDatePicker = true }) { Text(endDate.toString()) }
-                        Text("End Time", style = MaterialTheme.typography.labelMedium)
-                        TextButton(onClick = { showEndTimePicker = true }) { Text(endTime.toString().substring(0, 5)) }
-                    }
-                }
+            // Participants
+            IconButton(onClick = { showParticipantsDialog = true }) {
+                Icon(
+                    imageVector = Icons.Default.Group,
+                    contentDescription = "Participants",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Location
+            IconButton(onClick = { showLocationDialog = true }) {
+                Icon(
+                    imageVector = Icons.Default.Place,
+                    contentDescription = "Location",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -309,25 +389,15 @@ fun CalendarEditorScreen(
         )
     }
 
-    if (showStartDatePicker) {
-        RemmiDatePickerDialog(
-            initialDate = startDate,
-            onDismiss = { showStartDatePicker = false },
-            onDateSelected = { newDate ->
-                startDate = newDate
-                day = newDate.dayOfMonth.toString()
-                month = newDate.monthNumber.toString()
-                year = newDate.year.toString()
-            }
-        )
-    }
 
-    if (showStartTimePicker) {
-        RemmiTimePickerDialog(
-            initialTime = startTime,
-            onDismiss = { showStartTimePicker = false },
-            onTimeSelected = { time ->
-                startTime = time
+    if (showStartDatePicker) {
+        RemmiDateRangePickerDialog(
+            initialStartDate = startDate,
+            initialEndDate = endDate,
+            onDismiss = { showStartDatePicker = false },
+            onRangeSelected = { start, end ->
+                startDate = start
+                endDate = end
             }
         )
     }
@@ -342,60 +412,22 @@ fun CalendarEditorScreen(
         )
     }
 
+    if (showStartTimePicker) {
+        RemmiTimePickerDialog(
+            initialTime = startTime,
+            onDismiss = { showStartTimePicker = false },
+            onTimeSelected = { time ->
+                startTime = time
+            }
+        )
+    }
+
     if (showEndTimePicker) {
         RemmiTimePickerDialog(
             initialTime = endTime,
             onDismiss = { showEndTimePicker = false },
             onTimeSelected = { time ->
                 endTime = time
-            }
-        )
-    }
-
-    if (showTaskDialog) {
-        TaskDialog(
-            initialTitle = title,
-            initialDescription = description,
-            initialDate = startDate,
-            onDismiss = { showTaskDialog = false },
-            onSave = { t, d, s, p, r ->
-                scope.launch {
-                    controller.eventBus.publishCommand(
-                        CreateTaskCommand(
-                            title = t,
-                            description = d,
-                            dueDate = s,
-                            isPriority = p,
-                            group = group,
-                            repeat = r
-                        )
-                    )
-                    showTaskDialog = false
-                }
-            }
-        )
-    }
-
-    if (showAlarmConfirmation) {
-        AlarmDialog(
-            initialTitle = title,
-            initialDescription = description,
-            initialDate = startDate,
-            initialIsPriority = isPriority,
-            onDismiss = { showAlarmConfirmation = false },
-            onSave = { t, d, time, p ->
-                scope.launch {
-                    val alarmTime = startDate.atTime(time).toInstant(timeZone)
-                    controller.eventBus.publishCommand(
-                        CreateAlarmCommand(
-                            title = t,
-                            description = d,
-                            time = alarmTime,
-                            isPriority = p
-                        )
-                    )
-                    showAlarmConfirmation = false
-                }
             }
         )
     }

@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.remmi.app"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.remmi.app"
@@ -51,7 +51,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.2")
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.compose.material:material-icons-extended")
-    implementation(platform("androidx.compose:compose-bom:2025.07.00"))
+    implementation(platform("androidx.compose:compose-bom:2026.08.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -65,6 +65,12 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:postgrest-kt:3.2.2")
     implementation("io.github.jan-tennert.supabase:auth-kt:3.2.2")
     implementation("io.ktor:ktor-client-android:3.1.1")
+    
+    // Google Maps & Location
+    implementation("com.google.maps.android:maps-compose:8.4.0")
+    implementation("com.google.android.gms:play-services-maps:20.0.0")
+    implementation("com.google.android.gms:play-services-location:21.4.0")
+
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     testImplementation("junit:junit:4.13.2")
 

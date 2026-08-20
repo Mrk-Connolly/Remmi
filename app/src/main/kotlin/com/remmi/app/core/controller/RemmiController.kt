@@ -36,6 +36,7 @@ class RemmiController(val androidContext: Context) {
 
     /** UI State Tracking */
     val isEditorActive = mutableStateOf(false)
+    val isMenuVisible = mutableStateOf(true)
 
 
     // ----------------------------------------------------------------------------

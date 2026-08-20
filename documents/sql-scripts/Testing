@@ -1,47 +1,35 @@
 -- ============================================================
 -- REMMI TEST DATABASE
--- Creates:
---   - test_calendar
---   - test_tasks
--- Includes sample data.
+-- Aligned with Kotlin Models
 -- ============================================================
 
----------------------------------------------------------------
--- Remove old test tables
----------------------------------------------------------------
-
-DROP TABLE IF EXISTS test_calendar CASCADE;
+DROP TABLE IF EXISTS test_gift_ideas CASCADE;
+DROP TABLE IF EXISTS test_contacts CASCADE;
+DROP TABLE IF EXISTS test_alarms CASCADE;
 DROP TABLE IF EXISTS test_tasks CASCADE;
+DROP TABLE IF EXISTS test_calendar CASCADE;
 
 ---------------------------------------------------------------
 -- TEST CALENDAR
 ---------------------------------------------------------------
 
 CREATE TABLE test_calendar (
-
     id              TEXT PRIMARY KEY,
-
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,
-
     title           TEXT NOT NULL,
     description     TEXT,
-
-    starting_time   TIMESTAMPTZ,
-    ending_time     TIMESTAMPTZ,
-
-    priority        TEXT NOT NULL,
-
-    participants    JSONB,
-    repeat          JSONB,
-    reminders       JSONB,
-    location        JSONB,
-
-    linked_tasks    JSONB,
-    linked_alarm    TEXT,
-
-    relationships   JSONB
-
+    starting_date   DATE NOT NULL,
+    starting_time   TIME,
+    ending_date     DATE,
+    ending_time     TIME,
+    is_priority     BOOLEAN NOT NULL DEFAULT FALSE,
+    group_name      TEXT,
+    participants    TEXT[] NOT NULL DEFAULT '{}',
+    repeat          TEXT[] NOT NULL DEFAULT '{}',
+    location        TEXT[] NOT NULL DEFAULT '{}',
+    linked_tasks    TEXT[] NOT NULL DEFAULT '{}',
+    linked_alarm    TEXT
 );
 
 ---------------------------------------------------------------
@@ -49,279 +37,65 @@ CREATE TABLE test_calendar (
 ---------------------------------------------------------------
 
 CREATE TABLE test_tasks (
-
     id              TEXT PRIMARY KEY,
-
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,
-
     title           TEXT NOT NULL,
     description     TEXT,
-
     completed       BOOLEAN NOT NULL DEFAULT FALSE,
-
     due_date        TIMESTAMPTZ,
-
-    priority        TEXT NOT NULL,
-
+    is_priority     BOOLEAN NOT NULL DEFAULT FALSE,
+    group_name      TEXT,
     parent_task     TEXT,
-
     linked_calendar TEXT,
-
-    reminders       JSONB,
-
-    relationships   JSONB
-
+    repeat          JSONB,
+    reminders       TEXT[] NOT NULL DEFAULT '{}',
+    relationships   TEXT[] NOT NULL DEFAULT '{}'
 );
 
 ---------------------------------------------------------------
--- Permissions
+-- TEST ALARMS
 ---------------------------------------------------------------
 
-GRANT SELECT, INSERT, UPDATE, DELETE
-ON TABLE test_calendar
-TO anon;
-
-GRANT SELECT, INSERT, UPDATE, DELETE
-ON TABLE test_tasks
-TO anon;
+CREATE TABLE test_alarms (
+    id                    TEXT PRIMARY KEY,
+    created               TIMESTAMPTZ NOT NULL,
+    modified              TIMESTAMPTZ NOT NULL,
+    title                 TEXT NOT NULL,
+    description           TEXT,
+    is_priority           BOOLEAN NOT NULL DEFAULT FALSE,
+    linked_calendar_event TEXT,
+    linked_task           TEXT,
+    time                  TIMESTAMPTZ NOT NULL,
+    repeatable            TEXT[] NOT NULL DEFAULT '{}',
+    custom                TEXT[] NOT NULL DEFAULT '{}'
+);
 
 ---------------------------------------------------------------
--- Enable RLS
+-- Permissions & RLS
 ---------------------------------------------------------------
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE test_calendar TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE test_tasks TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE test_alarms TO anon;
 
 ALTER TABLE test_calendar ENABLE ROW LEVEL SECURITY;
 ALTER TABLE test_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE test_alarms ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "test_calendar_all" ON test_calendar FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "test_tasks_all" ON test_tasks FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "test_alarms_all" ON test_alarms FOR ALL TO anon USING (true) WITH CHECK (true);
 
 ---------------------------------------------------------------
--- Calendar Policies
+-- Sample Data
 ---------------------------------------------------------------
 
-CREATE POLICY "test_calendar_select"
-ON test_calendar
-FOR SELECT
-TO anon
-USING (true);
+INSERT INTO test_calendar (id, created, modified, title, starting_date, is_priority)
+VALUES ('test_cal_001', now(), now(), 'Test Meeting', CURRENT_DATE, TRUE);
 
-CREATE POLICY "test_calendar_insert"
-ON test_calendar
-FOR INSERT
-TO anon
-WITH CHECK (true);
+INSERT INTO test_tasks (id, created, modified, title, is_priority)
+VALUES ('test_task_001', now(), now(), 'Test Task', FALSE);
 
-CREATE POLICY "test_calendar_update"
-ON test_calendar
-FOR UPDATE
-TO anon
-USING (true)
-WITH CHECK (true);
-
-CREATE POLICY "test_calendar_delete"
-ON test_calendar
-FOR DELETE
-TO anon
-USING (true);
-
----------------------------------------------------------------
--- Task Policies
----------------------------------------------------------------
-
-CREATE POLICY "test_tasks_select"
-ON test_tasks
-FOR SELECT
-TO anon
-USING (true);
-
-CREATE POLICY "test_tasks_insert"
-ON test_tasks
-FOR INSERT
-TO anon
-WITH CHECK (true);
-
-CREATE POLICY "test_tasks_update"
-ON test_tasks
-FOR UPDATE
-TO anon
-USING (true)
-WITH CHECK (true);
-
-CREATE POLICY "test_tasks_delete"
-ON test_tasks
-FOR DELETE
-TO anon
-USING (true);
-
----------------------------------------------------------------
--- Calendar Sample Data
----------------------------------------------------------------
-
-INSERT INTO test_calendar VALUES
-(
-'cal_001',
-now(),
-now(),
-'Doctor Appointment',
-'Annual health check',
-now() + interval '1 day',
-now() + interval '1 day 1 hour',
-'HIGH',
-'[]',
-NULL,
-'[]',
-NULL,
-'["task_003"]',
-NULL,
-'[]'
-),
-
-(
-'cal_002',
-now(),
-now(),
-'Lunch with Sarah',
-'Italian restaurant',
-now() + interval '2 day 12 hour',
-now() + interval '2 day 13 hour',
-'NORMAL',
-'[]',
-NULL,
-'[]',
-NULL,
-'[]',
-NULL,
-'[]'
-),
-
-(
-'cal_003',
-now(),
-now(),
-'Gym',
-'Leg day',
-now() + interval '3 day 18 hour',
-now() + interval '3 day 19 hour',
-'LOW',
-'[]',
-NULL,
-'[]',
-NULL,
-'[]',
-NULL,
-'[]'
-),
-
-(
-'cal_004',
-now(),
-now(),
-'Project Meeting',
-'Sprint planning',
-now() + interval '4 day 9 hour',
-now() + interval '4 day 10 hour',
-'HIGH',
-'[]',
-NULL,
-'[]',
-NULL,
-'["task_001"]',
-NULL,
-'[]'
-),
-
-(
-'cal_005',
-now(),
-now(),
-'Weekend Trip',
-'Mountain hiking',
-now() + interval '7 day',
-now() + interval '8 day',
-'NORMAL',
-'[]',
-NULL,
-'[]',
-NULL,
-'[]',
-NULL,
-'[]'
-);
-
----------------------------------------------------------------
--- Task Sample Data
----------------------------------------------------------------
-
-INSERT INTO test_tasks VALUES
-(
-'task_001',
-now(),
-now(),
-'Finish Calendar Plugin',
-'Implement database sync',
-false,
-now() + interval '2 day',
-'HIGH',
-NULL,
-'cal_004',
-'[]',
-'[]'
-),
-
-(
-'task_002',
-now(),
-now(),
-'Buy groceries',
-'Milk, eggs, pasta',
-false,
-now() + interval '1 day',
-'NORMAL',
-NULL,
-NULL,
-'[]',
-'[]'
-),
-
-(
-'task_003',
-now(),
-now(),
-'Prepare medical documents',
-'Insurance card and reports',
-false,
-now() + interval '20 hour',
-'HIGH',
-NULL,
-'cal_001',
-'[]',
-'[]'
-),
-
-(
-'task_004',
-now(),
-now(),
-'Clean desk',
-'Organize workspace',
-true,
-NULL,
-'LOW',
-NULL,
-NULL,
-'[]',
-'[]'
-),
-
-(
-'task_005',
-now(),
-now(),
-'Read Kotlin docs',
-'Coroutines and Flow',
-false,
-now() + interval '5 day',
-'NORMAL',
-NULL,
-NULL,
-'[]',
-'[]'
-);
+INSERT INTO test_alarms (id, created, modified, title, time)
+VALUES ('test_alarm_001', now(), now(), 'Test Alarm', now() + interval '1 hour');

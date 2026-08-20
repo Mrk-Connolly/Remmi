@@ -49,6 +49,12 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
         controller.isEditorActive.value = editorMode != null || selectedContact != null
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            controller.isEditorActive.value = false
+        }
+    }
+
     var isRefreshing by remember { mutableStateOf(false) }
 
     val onRefresh: () -> Unit = remember {
@@ -103,13 +109,12 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .statusBarsPadding()
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Text(
                     text = "My Contacts",
                     style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp).fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
 
@@ -118,7 +123,10 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
                         Text("No contacts found.")
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 180.dp)
+                    ) {
                         items(filteredContacts, key = { it.id }) { contact ->
                             ContactRow(
                                 contact = contact,

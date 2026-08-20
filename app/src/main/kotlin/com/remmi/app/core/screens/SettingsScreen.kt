@@ -106,7 +106,6 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .statusBarsPadding()
         ) {
             LazyColumn(
                 modifier = Modifier
