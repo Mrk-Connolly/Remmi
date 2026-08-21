@@ -29,7 +29,6 @@ class TasksPlugin(
     /** Internal storage for initialized components */
     private var _repository: TasksRepository? = null
     private var _actions: TasksActions? = null
-    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for managing Tasks data */
     override val repository: TasksRepository
@@ -71,9 +70,8 @@ class TasksPlugin(
         Log.d("Remmi", "[TasksPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = TasksRepository(context.serviceManager.databaseService)
+        val repo = TasksRepository(context.databaseManager.service)
         _repository = repo
-        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = TasksActions(repo).apply {
@@ -101,7 +99,7 @@ class TasksPlugin(
                     group = command.group,
                     repeat = command.repeat,
                     linkedCalendar = if (command.source == "calendar") "event_key" else null, // TODO: Use real ID if available
-                    userId = _authRepository?.getCurrentUserId()
+                    userId = null
                 )
                 
                 actions.eventBus?.publishCommand(

@@ -31,7 +31,6 @@ class AlarmPlugin(
     /** Internal storage for initialized components */
     private var _repository: AlarmRepository? = null
     private var _actions: AlarmActions? = null
-    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for persistent alarm data. */
     override val repository: AlarmRepository
@@ -73,14 +72,13 @@ class AlarmPlugin(
         Log.d("Remmi", "[AlarmPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = AlarmRepository(context.serviceManager.databaseService)
+        val repo = AlarmRepository(context.databaseManager.service)
         _repository = repo
-        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = AlarmActions(repo).apply {
             this.eventBus = context.eventBus
-            this.alarmService = context.serviceManager.alarmService
+            this.alarmService = context.androidManager.alarmService
         }
     }
 
@@ -106,7 +104,7 @@ class AlarmPlugin(
                     useSound = command.useSound,
                     useVibration = command.useVibration,
                     linkedCalendarEvent = if (command.source == "calendar") "event_key" else null, // Placeholder
-                    userId = _authRepository?.getCurrentUserId()
+                    userId = null
                 )
                 
                 actions.eventBus?.publishCommand(

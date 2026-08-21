@@ -45,6 +45,16 @@ data class DeleteDataCommand(
     override val source: String = "system"
 ) : RemmiCommand
 
+/**
+ * SYNC PLUGIN DATA COMMAND
+ * Request a specific plugin to synchronize or load its data.
+ */
+data class SyncPluginDataCommand(
+    val pluginId: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system"
+) : RemmiCommand
+
 // ----------------------------------------------------------------------------
 //                               AUTOMATION COMMANDS
 // ----------------------------------------------------------------------------

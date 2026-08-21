@@ -29,7 +29,6 @@ class GiftPlugin(
     /** Internal storage for initialized components */
     private var _repository: GiftRepository? = null
     private var _actions: GiftActions? = null
-    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for managing Gift ideas data */
     override val repository: GiftRepository
@@ -83,9 +82,8 @@ class GiftPlugin(
         Log.d("Remmi", "[GiftPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = GiftRepository(context.serviceManager.databaseService)
+        val repo = GiftRepository(context.databaseManager.service)
         _repository = repo
-        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = GiftActions(repo).apply {

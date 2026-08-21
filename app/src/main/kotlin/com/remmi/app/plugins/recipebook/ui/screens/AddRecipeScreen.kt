@@ -54,6 +54,15 @@ fun AddRecipeScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    
+    // Manage Global Menu Visibility
+    DisposableEffect(Unit) {
+        controller.isEditorActive.value = true
+        onDispose {
+            controller.isEditorActive.value = false
+        }
+    }
+
     val ingredientPlugin = controller.pluginManager.plugins["ingredient_stock"]
     val ingredientActions = ingredientPlugin?.actions as? IngredientActions
     
@@ -81,64 +90,86 @@ fun AddRecipeScreen(
         imageUri = uri
     }
 
+    val onSave = {
+        // SAVE LOGIC
+        val id = UUID.randomUUID().toString()
+        val now = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+        
+        // Handle Image Save
+        var savedImagePath: String? = null
+        imageUri?.let { uri ->
+            try {
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                if (bytes != null) {
+                    savedImagePath = controller.fileManager.service.saveImage(
+                        bytes,
+                        "DCIM/Remmi/RecipeBook",
+                        "recipe_$id.jpg"
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("Remmi", "Failed to save recipe image", e)
+            }
+        }
+
+        val recipe = RecipeItem(
+            id = id,
+            created = now,
+            modified = now,
+            title = title,
+            description = description,
+            imagePath = savedImagePath,
+            servings = servings,
+            prepTime = prepTime,
+            cookingTime = cookingTime,
+            ovenTime = ovenTime,
+            restingTime = restingTime,
+            totalIngredientIds = selectedIngredients.map { it.metadata.id },
+            steps = steps,
+            mealType = MealType.OTHER // Simplified for now
+        )
+        
+        scope.launch {
+            actions.addRecipe(recipe)
+            onBack()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New Recipe") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                title = { Text("New Recipe") }
+            )
+        },
+        bottomBar = {
+            Surface(
+                tonalElevation = 8.dp,
+                shadowElevation = 8.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .navigationBarsPadding(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onBack,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Cancel")
                     }
-                },
-                actions = {
-                    TextButton(onClick = {
-                        // SAVE LOGIC
-                        val id = UUID.randomUUID().toString()
-                        val now = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-                        
-                        // Handle Image Save
-                        var savedImagePath: String? = null
-                        imageUri?.let { uri ->
-                            try {
-                                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                                if (bytes != null) {
-                                    savedImagePath = controller.serviceManager.fileService.saveImage(
-                                        bytes,
-                                        "DCIM/Remmi/RecipeBook",
-                                        "recipe_$id.jpg"
-                                    )
-                                }
-                            } catch (e: Exception) {
-                                Log.e("Remmi", "Failed to save recipe image", e)
-                            }
-                        }
-
-                        val recipe = RecipeItem(
-                            id = id,
-                            created = now,
-                            modified = now,
-                            title = title,
-                            description = description,
-                            imagePath = savedImagePath,
-                            servings = servings,
-                            prepTime = prepTime,
-                            cookingTime = cookingTime,
-                            ovenTime = ovenTime,
-                            restingTime = restingTime,
-                            totalIngredientIds = selectedIngredients.map { it.metadata.id },
-                            steps = steps,
-                            mealType = MealType.OTHER // Simplified for now
-                        )
-                        
-                        scope.launch {
-                            actions.addRecipe(recipe)
-                            onBack()
-                        }
-                    }) {
-                        Text("Save", fontWeight = FontWeight.Bold)
+                    Button(
+                        onClick = { onSave() },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Save Recipe")
                     }
                 }
-            )
+            }
         }
     ) { padding ->
         LazyColumn(

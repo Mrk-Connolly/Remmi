@@ -12,7 +12,6 @@ class IngredientActions(
     private val metadataRepo: MetadataRepository,
     private val stockRepo: StockRepository,
     private val batchRepo: BatchRepository,
-    private val authRepository: com.remmi.app.core.auth.AuthRepository,
     override val id: String = "ingredient_actions",
     override val name: String = "Ingredient Actions"
 ) : RemmiAction {
@@ -22,8 +21,6 @@ class IngredientActions(
     init {
         Log.d("Remmi", "[IngredientActions] - Constructor initialized")
     }
-
-    private fun getCurrentUserId() = authRepository.getCurrentUserId()
 
     /**
      * Get all inventory items for the UI
@@ -54,14 +51,13 @@ class IngredientActions(
         storageLocation: StorageLocation = StorageLocation.PANTRY
     ) {
         val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-        val userId = getCurrentUserId()
         
         // 1. Create Metadata
         val meta = IngredientMetadata(
             id = UUID.randomUUID().toString(),
             created = now,
             modified = now,
-            userId = userId,
+            userId = null,
             name = name,
             foodGroup = foodGroup,
             brand = brand,
@@ -74,7 +70,7 @@ class IngredientActions(
             id = UUID.randomUUID().toString(),
             created = now,
             modified = now,
-            userId = userId,
+            userId = null,
             metadataId = meta.id,
             primaryUnit = unit,
             storageLocation = storageLocation
@@ -87,7 +83,7 @@ class IngredientActions(
                 id = UUID.randomUUID().toString(),
                 created = now,
                 modified = now,
-                userId = userId,
+                userId = null,
                 stockId = stock.id,
                 quantity = initialQuantity,
                 purchaseDate = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date,
@@ -105,7 +101,6 @@ class IngredientActions(
     suspend fun adjustStock(stockId: String, delta: Double, expiryDate: LocalDate? = null) {
         if (delta == 0.0) return
         val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-        val userId = getCurrentUserId()
 
         if (delta > 0) {
             // Increase: Create new batch
@@ -113,7 +108,7 @@ class IngredientActions(
                 id = UUID.randomUUID().toString(),
                 created = now,
                 modified = now,
-                userId = userId,
+                userId = null,
                 stockId = stockId,
                 quantity = delta,
                 purchaseDate = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date,

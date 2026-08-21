@@ -24,9 +24,17 @@ class IngredientPlugin(
 
     private var _actions: IngredientActions? = null
     private var _metadataRepo: MetadataRepository? = null
+    private var _stockRepo: StockRepository? = null
+    private var _batchRepo: BatchRepository? = null
 
     override val repository: MetadataRepository
         get() = _metadataRepo ?: throw IllegalStateException("IngredientPlugin not initialized")
+
+    val repositoryStock: StockRepository
+        get() = _stockRepo ?: throw IllegalStateException("IngredientPlugin not initialized")
+
+    val repositoryBatch: BatchRepository
+        get() = _batchRepo ?: throw IllegalStateException("IngredientPlugin not initialized")
 
     override val actions: IngredientActions
         get() = _actions ?: throw IllegalStateException("IngredientPlugin not initialized")
@@ -45,13 +53,15 @@ class IngredientPlugin(
     }
 
     override suspend fun initialize(context: PluginContext) {
-        val db = context.serviceManager.databaseService
+        val db = context.databaseManager.service
         val mRepo = MetadataRepository(db)
         val sRepo = StockRepository(db)
         val bRepo = BatchRepository(db)
         
         _metadataRepo = mRepo
-        _actions = IngredientActions(mRepo, sRepo, bRepo, context.authRepository).apply {
+        _stockRepo = sRepo
+        _batchRepo = bRepo
+        _actions = IngredientActions(mRepo, sRepo, bRepo).apply {
             this.eventBus = context.eventBus
         }
     }
