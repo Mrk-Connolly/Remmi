@@ -13,7 +13,6 @@ import com.remmi.app.plugins.alarm.ui.screens.AlarmScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 
 /**
  * Entry point for the Alarm plugin.
@@ -92,7 +91,7 @@ class AlarmPlugin(
         Log.d("Remmi", "[AlarmPlugin] - Received command: ${command::class.simpleName}")
         when (command) {
             is CreateAlarmCommand -> {
-                val now = kotlinx.datetime.Clock.System.now()
+                val now = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
                 val alarmId = java.util.UUID.randomUUID().toString()
                 val item = AlarmItem(
                     id = alarmId,
@@ -104,6 +103,8 @@ class AlarmPlugin(
                     isPriority = command.isPriority,
                     repeatable = command.repeatable,
                     custom = command.custom,
+                    useSound = command.useSound,
+                    useVibration = command.useVibration,
                     linkedCalendarEvent = if (command.source == "calendar") "event_key" else null, // Placeholder
                     userId = _authRepository?.getCurrentUserId()
                 )
@@ -119,7 +120,7 @@ class AlarmPlugin(
                 
                 // If syncToSystem is true, also notify the Android system via AlarmService
                 if (command.syncToSystem) {
-                    actions.alarmService?.setAlarm(item.id, item.title, item.time.toEpochMilliseconds())
+                    actions.alarmService?.setAlarm(item.id, item.title, item.time.toEpochMilliseconds(), item.useSound, item.useVibration)
                     actions.alarmService?.syncToSystemClock(item.title, item.time.toEpochMilliseconds())
                 }
 

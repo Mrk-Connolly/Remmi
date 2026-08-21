@@ -65,6 +65,7 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:postgrest-kt:3.2.2")
     implementation("io.github.jan-tennert.supabase:auth-kt:3.2.2")
     implementation("io.ktor:ktor-client-android:3.1.1")
+    implementation("io.coil-kt:coil-compose:2.7.0")
     
     // Google Maps & Location
     implementation("com.google.maps.android:maps-compose:8.4.0")

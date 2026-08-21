@@ -88,6 +88,8 @@ data class CreateAlarmCommand(
     val repeatable: List<String> = emptyList(),
     val custom: List<String> = emptyList(),
     val syncToSystem: Boolean = true,
+    val useSound: Boolean = true,
+    val useVibration: Boolean = true,
     override val commandId: String = UUID.randomUUID().toString(),
     override val source: String = "system"
 ) : RemmiCommand

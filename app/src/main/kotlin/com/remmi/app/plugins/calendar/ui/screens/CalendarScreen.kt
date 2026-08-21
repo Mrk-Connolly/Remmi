@@ -222,7 +222,7 @@ fun CalendarScreen(
                         onClick = {
                             editorMode = EditorMode.Create(activeDate)
                         },
-                        modifier = Modifier.padding(bottom = 176.dp)
+                        modifier = Modifier.padding(bottom = 168.dp)
                     ) {
                         Icon(Icons.Default.Add, contentDescription = "Add Event")
                     }
@@ -772,21 +772,54 @@ fun WeekScheduleView(
         ) {
             days.forEach { date ->
                 val allDayOnDay = allDayEvents.filter { it.startingDate <= date && (it.endingDate ?: it.startingDate) >= date }
+                val (multiDay, singleDay) = allDayOnDay.partition { it.endingDate != null && it.endingDate!! > it.startingDate }
+                
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(2.dp)
+                        .padding(horizontal = 0.dp, vertical = 2.dp)
                 ) {
-                    allDayOnDay.forEach { event ->
+                    // Multi-day events first (continuous line effect)
+                    multiDay.forEach { event ->
+                        val connectsL = event.startingDate < date
+                        val connectsR = (event.endingDate ?: event.startingDate) > date
+                        val shape = when {
+                            !connectsL && connectsR -> RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp)
+                            connectsL && !connectsR -> RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp)
+                            connectsL && connectsR -> androidx.compose.ui.graphics.RectangleShape
+                            else -> RoundedCornerShape(4.dp)
+                        }
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 1.dp)
-                                .clickable { onEventClick(event) },
+                                .padding(vertical = 1.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (event.isPriority) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer
                             ),
-                            shape = RoundedCornerShape(2.dp)
+                            shape = shape,
+                            onClick = { onEventClick(event) }
+                        ) {
+                            Text(
+                                text = event.title,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 8.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                        }
+                    }
+                    // Single-day all-day events below
+                    singleDay.forEach { event ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 2.dp, vertical = 1.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (event.isPriority) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer
+                            ),
+                            shape = RoundedCornerShape(2.dp),
+                            onClick = { onEventClick(event) }
                         ) {
                             Text(
                                 text = event.title,
@@ -850,11 +883,11 @@ fun WeekScheduleView(
 
                 Row(modifier = Modifier.fillMaxSize()) {
                     // Time Column
-                    Column(modifier = Modifier.width(48.dp).fillMaxHeight()) {
+                    Column(modifier = Modifier.width(48.dp).fillMaxHeight().padding(start = 8.dp)) {
                         repeat(24) { hour ->
                             Box(
                                 modifier = Modifier.height(hourHeight),
-                                contentAlignment = Alignment.TopCenter
+                                contentAlignment = Alignment.TopStart
                             ) {
                                 Text(
                                     text = "%02d:00".format(hour),

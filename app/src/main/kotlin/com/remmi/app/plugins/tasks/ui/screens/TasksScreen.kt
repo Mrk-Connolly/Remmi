@@ -154,16 +154,15 @@ fun TasksScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         IconButton(
-                            onClick = { onlyImportant = !onlyImportant },
-                            modifier = Modifier.padding(end = 8.dp)
+                            onClick = { onlyImportant = !onlyImportant }
                         ) {
                             Icon(
-                                imageVector = if (onlyImportant) Icons.Default.Star else Icons.Default.StarBorder,
+                                imageVector = if (onlyImportant) Icons.Default.PriorityHigh else Icons.Default.PriorityHigh,
                                 contentDescription = "Filter Important",
-                                tint = if (onlyImportant) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = if (onlyImportant) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                             )
                         }
                         Box {

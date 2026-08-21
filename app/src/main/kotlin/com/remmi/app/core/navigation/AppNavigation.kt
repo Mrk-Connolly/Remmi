@@ -79,19 +79,8 @@ fun AppNavigation(runtime: RemmiController) {
                 CircularProgressIndicator()
             }
         }
-        AuthState.Unauthenticated -> {
-            val authViewModel = remember { AuthViewModel(runtime.authRepository) }
-            val scope = rememberCoroutineScope()
-            AuthScreen(
-                viewModel = authViewModel,
-                onAuthSuccess = {
-                    scope.launch {
-                        runtime.initializePlugins()
-                    }
-                }
-            )
-        }
-        AuthState.Authenticated -> {
+        else -> {
+            // Bypass Auth for Testing
             MainAppContent(runtime)
         }
     }
@@ -126,11 +115,14 @@ fun MainAppContent(runtime: RemmiController) {
     val bottomPadding by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 48.dp, label = "bPadding")
     val cornerRadius by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 12.dp, label = "cornerRadius")
 
+    val isCalendarRoute = currentRoute?.contains("calendar") == true
+    val isSettingsRoute = currentRoute == RemmiDestination.SETTINGS_ROUTE
+
     val isEditorActive = runtime.isEditorActive.value
     val isMenuVisible = runtime.isMenuVisible.value
     
     val animatedPeekHeight by animateDpAsState(
-        if (isEditorActive || !isMenuVisible) 0.dp else 160.dp,
+        if (isEditorActive || !isMenuVisible || isSettingsRoute) 0.dp else 160.dp,
         label = "peekHeight"
     )
 
@@ -261,6 +253,7 @@ fun RowScope.IslandNavigationItems(
     metadata: List<PluginMetadata>,
     onNavigate: () -> Unit
 ) {
+    // Hardcoded Island Menu Items (Home, Calendar, Tasks, Settings)
     NavigationBarItem(
         selected = currentRoute == RemmiDestination.HOME_ROUTE,
         onClick = { 
@@ -271,23 +264,25 @@ fun RowScope.IslandNavigationItems(
         label = { Text("Home") }
     )
 
-    metadata.filter { it.enabled && (it.id == "calendar" || it.id == "tasks") }.forEach { pluginMeta ->
-        val route = RemmiDestination.pluginRoute(pluginMeta.id)
-        NavigationBarItem(
-            selected = currentRoute == route,
-            onClick = { 
-                navController.navigate(route)
-                onNavigate()
-            },
-            icon = {
-                Icon(
-                    imageVector = getIconForName(pluginMeta.icon),
-                    contentDescription = pluginMeta.name
-                )
-            },
-            label = { Text(pluginMeta.name) }
-        )
-    }
+    NavigationBarItem(
+        selected = currentRoute?.contains("calendar") == true,
+        onClick = { 
+            navController.navigate(RemmiDestination.pluginRoute("calendar"))
+            onNavigate()
+        },
+        icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Calendar") },
+        label = { Text("Calendar") }
+    )
+
+    NavigationBarItem(
+        selected = currentRoute?.contains("tasks") == true,
+        onClick = { 
+            navController.navigate(RemmiDestination.pluginRoute("tasks"))
+            onNavigate()
+        },
+        icon = { Icon(Icons.Default.CheckCircle, contentDescription = "Tasks") },
+        label = { Text("Tasks") }
+    )
 
     NavigationBarItem(
         selected = currentRoute == RemmiDestination.SETTINGS_ROUTE,
@@ -389,6 +384,8 @@ fun getIconForName(name: String?): ImageVector {
         "home" -> Icons.Default.Home
         "person" -> Icons.Default.Person
         "card_giftcard" -> Icons.Default.CardGiftcard
+        "restaurant" -> Icons.Default.Restaurant
+        "kitchen" -> Icons.Default.Kitchen
         else -> Icons.Default.Extension
     }
 }

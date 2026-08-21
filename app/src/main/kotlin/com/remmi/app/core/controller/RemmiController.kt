@@ -75,14 +75,9 @@ class RemmiController(val androidContext: Context) {
         
         eventBus.subscribeEvent(pluginManager)
 
-        // 4. Check Authentication Status
-        val currentUser = authRepository.getCurrentUser()
-        if (currentUser != null) {
-            Log.i("Remmi", "[RemmiController] - User authenticated: ${currentUser.email}. Loading user data.")
-            initializePlugins()
-        } else {
-            Log.i("Remmi", "[RemmiController] - No authenticated user. Awaiting login.")
-        }
+        // 4. Force Initialization (Bypass Login for Testing)
+        Log.i("Remmi", "[RemmiController] - Bypassing authentication for testing. Initializing plugins.")
+        initializePlugins()
     }
 
     /**                                 Initialize Plugins

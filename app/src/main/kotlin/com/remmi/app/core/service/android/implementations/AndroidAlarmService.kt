@@ -38,7 +38,7 @@ class AndroidAlarmService(private val context: Context) : AlarmService, Notifica
     //                                ACTION FUNCTIONS
     // ----------------------------------------------------------------------------
 
-    override fun setAlarm(id: String, title: String, timeMillis: Long) {
+    override fun setAlarm(id: String, title: String, timeMillis: Long, useSound: Boolean, useVibration: Boolean) {
         Log.d("Remmi", "[AndroidAlarmService] - [setAlarm] executed")
         
         val now = System.currentTimeMillis()
@@ -59,6 +59,8 @@ class AndroidAlarmService(private val context: Context) : AlarmService, Notifica
             val intent = Intent(context, AlarmReceiver::class.java).apply {
                 putExtra("ALARM_ID", id)
                 putExtra("ALARM_TITLE", title)
+                putExtra("USE_SOUND", useSound)
+                putExtra("USE_VIBRATION", useVibration)
                 action = "com.remmi.app.plugins.alarm.ACTION_TRIGGER_$id"
             }
             
@@ -121,6 +123,25 @@ class AndroidAlarmService(private val context: Context) : AlarmService, Notifica
             context.startActivity(intent)
         } catch (e: Exception) {
             Log.e("AndroidAlarmService", "Failed to sync to system clock app: ${e.message}")
+        }
+    }
+
+    override fun removeFromSystemClock(title: String, timeMillis: Long) {
+        Log.d("Remmi", "[AndroidAlarmService] - [removeFromSystemClock] executed")
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = timeMillis
+        }
+        val intent = Intent(AlarmClock.ACTION_DISMISS_ALARM).apply {
+            putExtra(AlarmClock.EXTRA_ALARM_SEARCH_MODE, AlarmClock.ALARM_SEARCH_MODE_TIME)
+            putExtra(AlarmClock.EXTRA_HOUR, calendar.get(Calendar.HOUR_OF_DAY))
+            putExtra(AlarmClock.EXTRA_MINUTES, calendar.get(Calendar.MINUTE))
+            putExtra(AlarmClock.EXTRA_SKIP_UI, true)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Log.e("AndroidAlarmService", "Failed to remove alarm from system clock app: ${e.message}")
         }
     }
 
@@ -199,7 +220,7 @@ class AndroidAlarmService(private val context: Context) : AlarmService, Notifica
         }
     }
 
-    override fun postNotification(title: String, content: String) {
+    override fun postNotification(title: String, content: String, useSound: Boolean, useVibration: Boolean) {
         Log.d("Remmi", "[AndroidAlarmService] - [postNotification] executed")
 
         try {
@@ -211,7 +232,12 @@ class AndroidAlarmService(private val context: Context) : AlarmService, Notifica
                     channelId,
                     "Remmi Alarms",
                     NotificationManager.IMPORTANCE_HIGH
-                )
+                ).apply {
+                    enableVibration(useVibration)
+                    if (!useSound) {
+                        setSound(null, null)
+                    }
+                }
                 notificationManager.createNotificationChannel(channel)
             }
 
@@ -221,6 +247,13 @@ class AndroidAlarmService(private val context: Context) : AlarmService, Notifica
                 .setContentText(content)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
+
+            if (!useSound) {
+                builder.setSound(null)
+            }
+            if (!useVibration) {
+                builder.setVibrate(longArrayOf(0L))
+            }
 
             notificationManager.notify(System.currentTimeMillis().toInt(), builder.build())
         } catch (e: Exception) {

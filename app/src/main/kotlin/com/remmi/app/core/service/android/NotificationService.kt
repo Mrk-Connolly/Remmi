@@ -14,5 +14,5 @@ interface NotificationService {
     /**                                 Post Notification
      * Display a system notification.
      * */
-    fun postNotification(title: String, content: String)
+    fun postNotification(title: String, content: String, useSound: Boolean = true, useVibration: Boolean = true)
 }

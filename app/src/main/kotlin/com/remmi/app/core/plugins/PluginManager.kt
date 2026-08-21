@@ -7,6 +7,8 @@ import com.remmi.app.plugins.alarm.AlarmPlugin
 import com.remmi.app.plugins.calendar.CalendarPlugin
 import com.remmi.app.plugins.contacts.ContactPlugin
 import com.remmi.app.plugins.gift.GiftPlugin
+import com.remmi.app.plugins.ingredients.IngredientPlugin
+import com.remmi.app.plugins.recipebook.RecipePlugin
 import com.remmi.app.plugins.tasks.TasksPlugin
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -118,25 +120,52 @@ class PluginManager : CommandListener, EventListener {
 
     /**                               READ PLUGINS
      * Discover plugins from the configuration file.
+     * Implements a merge strategy to ensure new plugins from assets are discovered
+     * while preserving user settings for existing plugins.
      * */
     fun readPlugins(fileService: FileService) {
         Log.d("Remmi", "[PluginManager] - [readPlugins] executed")
 
         val fileName = "plugins.json"
-        val jsonString = if (fileService.exists(fileName)) {
-            fileService.readText(fileName)
-        } else {
-            val fromAssets = fileService.readText(fileName, useAssets = true)
-            fileService.writeText(fileName, fromAssets)
-            fromAssets
+        
+        // 1. Read default plugin list from Assets
+        val defaultJson = fileService.readText(fileName, useAssets = true)
+        val defaultMetadata = try {
+            jsonConfig.decodeFromString<List<PluginMetadata>>(defaultJson)
+        } catch (e: Exception) {
+            Log.e("Remmi", "[PluginManager] - Error parsing assets/plugins.json: ${e.message}")
+            emptyList<PluginMetadata>()
         }
 
-        try {
-            val metadata = jsonConfig.decodeFromString<List<PluginMetadata>>(jsonString)
-            _pluginMetadata.value = metadata
-        } catch (e: Exception) {
-            Log.e("Remmi", "[PluginManager] - Error reading plugins: ${e.message}")
+        // 2. Read existing user settings from Storage
+        val userMetadata = if (fileService.exists(fileName)) {
+            val userJson = fileService.readText(fileName)
+            try {
+                jsonConfig.decodeFromString<List<PluginMetadata>>(userJson)
+            } catch (e: Exception) {
+                Log.e("Remmi", "[PluginManager] - Error parsing user storage plugins.json: ${e.message}")
+                emptyList<PluginMetadata>()
+            }
+        } else {
+            emptyList()
         }
+
+        // 3. Merge: Assets are the source of truth for available plugins,
+        // user settings are the source of truth for enabled/visible states.
+        val mergedMetadata = defaultMetadata.map { default ->
+            userMetadata.find { it.id == default.id }?.let { user ->
+                // Preserving settings while updating structural metadata from assets
+                default.copy(
+                    enabled = user.enabled,
+                    showInNavigation = user.showInNavigation,
+                    showWidget = user.showWidget
+                )
+            } ?: default // It's a new plugin!
+        }
+
+        // 4. Update memory and persist merged list
+        _pluginMetadata.value = mergedMetadata
+        savePlugins(fileService, mergedMetadata)
     }
 
     /**                               UPDATE SETTINGS
@@ -172,6 +201,8 @@ class PluginManager : CommandListener, EventListener {
                 "alarm" -> AlarmPlugin(metadata)
                 "contacts" -> ContactPlugin(metadata)
                 "gift" -> GiftPlugin(metadata)
+                "recipe_book" -> RecipePlugin(metadata)
+                "ingredient_stock" -> IngredientPlugin(metadata)
                 else -> null
             }
 

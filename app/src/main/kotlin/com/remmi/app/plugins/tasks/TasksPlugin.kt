@@ -13,7 +13,6 @@ import com.remmi.app.plugins.tasks.ui.screens.TasksScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 
 /**
  * Entry point for the Tasks plugin.
@@ -89,7 +88,7 @@ class TasksPlugin(
         Log.d("Remmi", "[TasksPlugin] - Received command: ${command::class.simpleName}")
         when (command) {
             is CreateTaskCommand -> {
-                val now = kotlinx.datetime.Clock.System.now()
+                val now = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
                 val taskId = java.util.UUID.randomUUID().toString()
                 val item = TaskItem(
                     id = taskId,

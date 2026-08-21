@@ -30,4 +30,13 @@ interface FileService {
      * @param fileName The name of the file to check.
      * */
     fun exists(fileName: String): Boolean
+
+    /**
+     * Save an image to a specific directory.
+     * @param bytes The image data.
+     * @param folder The folder name (e.g., "DCIM/Remmi/RecipeBook").
+     * @param fileName The name of the image file.
+     * @return The absolute path of the saved image.
+     */
+    fun saveImage(bytes: ByteArray, folder: String, fileName: String): String?
 }
