@@ -68,5 +68,15 @@
     "showInNavigation": true,
     "showWidget": false,
     "icon": "kitchen"
+  },
+  {
+    "id": "weather",
+    "name": "Weather",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "icon": "wb_sunny"
   }
 ]

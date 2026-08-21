@@ -360,6 +360,7 @@ fun getIconForName(name: String?): ImageVector {
         "card_giftcard" -> Icons.Default.CardGiftcard
         "restaurant" -> Icons.Default.Restaurant
         "kitchen" -> Icons.Default.Kitchen
+        "wb_sunny" -> Icons.Default.WbSunny
         else -> Icons.Default.Extension
     }
 }

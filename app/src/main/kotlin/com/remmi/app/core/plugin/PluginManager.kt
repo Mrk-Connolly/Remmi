@@ -223,6 +223,7 @@ class PluginManager : CommandListener, EventListener {
                 "gift" -> GiftPlugin(metadata)
                 "recipe_book" -> RecipePlugin(metadata)
                 "ingredient_stock" -> IngredientPlugin(metadata)
+                "weather" -> com.remmi.app.plugins.weather.WeatherPlugin(metadata)
                 else -> null
             }
 
