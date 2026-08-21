@@ -4,7 +4,7 @@ import android.util.Log
 import com.remmi.app.core.events.EventBus
 import com.remmi.app.core.events.EventType
 import com.remmi.app.core.events.PluginEvent
-import com.remmi.app.core.plugins.actions.RemmiAction
+import com.remmi.app.core.plugin.actions.RemmiAction
 import kotlin.time.Instant
 import java.util.UUID
 

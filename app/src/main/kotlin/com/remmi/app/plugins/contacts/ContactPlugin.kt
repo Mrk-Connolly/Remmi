@@ -3,13 +3,13 @@ package com.remmi.app.plugins.contacts
 import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.RemmiCommand
-import com.remmi.app.core.events.RemmiEvent
-import com.remmi.app.core.plugins.PluginContext
-import com.remmi.app.core.plugins.PluginMetadata
-import com.remmi.app.core.plugins.RemmiPlugin
+import com.remmi.app.core.events.commands.RemmiCommand
+import com.remmi.app.core.events.events.RemmiEvent
+import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.plugin.PluginMetadata
+import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.plugins.widgets.RemmiWidget
+import com.remmi.app.core.plugin.widgets.RemmiWidget
 import com.remmi.app.plugins.contacts.ui.screens.ContactScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +28,6 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     /** Internal storage for initialized components */
     private var _repository: ContactRepository? = null
     private var _actions: ContactActions? = null
-    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for managing Contacts data */
     override val repository: ContactRepository
@@ -70,9 +69,8 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
         Log.d("Remmi", "[ContactPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = ContactRepository(context.serviceManager.databaseService)
+        val repo = ContactRepository(context.databaseManager.service)
         _repository = repo
-        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = ContactActions(repo).apply {

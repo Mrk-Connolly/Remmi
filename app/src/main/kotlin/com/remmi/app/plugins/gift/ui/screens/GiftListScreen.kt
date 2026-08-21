@@ -78,7 +78,7 @@ fun GiftListScreen(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { showContactPicker = true },
-                    modifier = Modifier.padding(bottom = 220.dp)
+                    modifier = Modifier.padding(bottom = 240.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Contact")
                 }
@@ -90,7 +90,7 @@ fun GiftListScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
-                        .padding(bottom = 156.dp),
+                        .padding(bottom = 160.dp),
                     placeholder = { Text("Search gift list...") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     shape = CircleShape,

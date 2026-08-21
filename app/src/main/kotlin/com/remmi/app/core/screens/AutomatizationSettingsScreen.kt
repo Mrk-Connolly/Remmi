@@ -15,7 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.automation.AutomationSettingsRepository
-import com.remmi.app.core.automation.DailyBriefingSettings
+import com.remmi.app.core.automation.dailyBriefing.DailyBriefingSettings
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.screens.components.RemmiTimePickerDialog
 import com.remmi.app.core.service.android.implementations.AndroidAutomationScheduler

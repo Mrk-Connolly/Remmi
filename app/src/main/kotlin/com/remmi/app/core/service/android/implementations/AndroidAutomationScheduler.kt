@@ -6,8 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.remmi.app.core.automation.AutomationScheduler
-import com.remmi.app.core.automation.DailyBriefingSettings
-import com.remmi.app.core.automation.DailyBriefingReceiver
+import com.remmi.app.core.automation.dailyBriefing.DailyBriefingSettings
+import com.remmi.app.core.automation.dailyBriefing.DailyBriefingReceiver
 import java.util.Calendar
 
 /**

@@ -3,7 +3,7 @@ package com.remmi.app.plugins.alarm
 import android.util.Log
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
-import com.remmi.app.core.plugins.model.models.RemmiModel
+import com.remmi.app.core.plugin.model.models.RemmiModel
 import kotlinx.datetime.Instant
 
 /**
@@ -38,6 +38,12 @@ data class AlarmItem(
     val repeatable: List<String> = emptyList(),
 
     val custom: List<String> = emptyList(),
+
+    @SerialName("use_sound")
+    val useSound: Boolean = true,
+
+    @SerialName("use_vibration")
+    val useVibration: Boolean = true,
 
     @SerialName("user_id")
     override val userId: String? = null

@@ -1,5 +1,7 @@
 package com.remmi.app.core.automation
 
+import com.remmi.app.core.automation.dailyBriefing.DailyBriefingSettings
+
 /**
  * AUTOMATION SCHEDULER
  *

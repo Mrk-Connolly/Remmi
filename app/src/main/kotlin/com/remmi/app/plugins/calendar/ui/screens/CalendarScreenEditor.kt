@@ -11,7 +11,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.*
+import com.remmi.app.core.events.commands.CreateAlarmCommand
+import com.remmi.app.core.events.commands.CreateCalendarEventCommand
+import com.remmi.app.core.events.commands.CreateTaskCommand
+import com.remmi.app.core.events.commands.UpdateCalendarEventCommand
 import com.remmi.app.core.screens.components.*
 import com.remmi.app.core.screens.popups.LocationDialog
 import com.remmi.app.core.screens.popups.ContactsSelectionDialog
@@ -27,7 +30,12 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 sealed class EditorMode {
-    data class Create(val initialDate: LocalDate? = null) : EditorMode()
+    data class Create(
+        val initialDate: LocalDate? = null,
+        val initialTime: LocalTime? = null,
+        val initialEndDate: LocalDate? = null,
+        val initialEndTime: LocalTime? = null
+    ) : EditorMode()
     data class Edit(val event: CalendarItem) : EditorMode()
 }
 
@@ -119,7 +127,7 @@ fun CalendarEditorScreen(
                     controller.eventBus.publishCommand(
                         UpdateCalendarEventCommand(
                             event = initialEvent.copy(
-                                modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
+                                modified = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
                                 title = title,
                                 description = description,
                                 startingDate = finalStartDate,

@@ -1,6 +1,6 @@
 package com.remmi.app.core.service.database
 
-import com.remmi.app.core.plugins.model.models.RemmiModel
+import com.remmi.app.core.plugin.model.models.RemmiModel
 import kotlinx.serialization.KSerializer
 
 interface DatabaseService {

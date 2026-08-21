@@ -8,8 +8,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.CreateAlarmCommand
-import com.remmi.app.core.events.UpdateAlarmCommand
+import com.remmi.app.core.events.commands.CreateAlarmCommand
+import com.remmi.app.core.events.commands.UpdateAlarmCommand
 import com.remmi.app.core.screens.components.RemmiEditorScaffold
 import com.remmi.app.core.screens.components.RemmiPrioritySwitch
 import com.remmi.app.core.screens.components.RemmiTitleDescriptionGroup
@@ -42,6 +42,8 @@ fun AlarmScreenEditor(
     var title by remember { mutableStateOf(initialAlarm?.title ?: "") }
     var description by remember { mutableStateOf(initialAlarm?.description ?: "") }
     var isPriority by remember { mutableStateOf(initialAlarm?.isPriority ?: false) }
+    var useSound by remember { mutableStateOf(initialAlarm?.useSound ?: true) }
+    var useVibration by remember { mutableStateOf(initialAlarm?.useVibration ?: true) }
     
     val timeZone = remember { TimeZone.currentSystemDefault() }
     val initialDateTime = remember(initialAlarm) {
@@ -96,7 +98,9 @@ fun AlarmScreenEditor(
                                 time = triggerTime,
                                 isPriority = isPriority,
                                 repeatable = repeatable,
-                                custom = custom
+                                custom = custom,
+                                useSound = useSound,
+                                useVibration = useVibration
                             )
                         )
                     )
@@ -108,7 +112,8 @@ fun AlarmScreenEditor(
                             time = triggerTime,
                             isPriority = isPriority,
                             repeatable = repeatable,
-                            custom = custom
+                            custom = custom,
+                            syncToSystem = true // Could be linked to a toggle if needed
                         )
                     )
                 }
@@ -130,6 +135,26 @@ fun AlarmScreenEditor(
             label = "Priority Alarm"
         )
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(checked = useSound, onCheckedChange = { useSound = it })
+                Text("Sound", style = MaterialTheme.typography.bodyMedium)
+            }
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(checked = useVibration, onCheckedChange = { useVibration = it })
+                Text("Vibration", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+
         Card(
             onClick = { showTimePicker = true },
             modifier = Modifier.fillMaxWidth()
@@ -150,7 +175,7 @@ fun AlarmScreenEditor(
         Text("Repeat", style = MaterialTheme.typography.titleSmall)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             listOf("None", "Daily", "Weekly", "Custom").forEach { mode ->
                 FilterChip(
@@ -159,7 +184,8 @@ fun AlarmScreenEditor(
                         repeatMode = mode
                         if (mode == "Custom") showDaysDialog = true
                     },
-                    label = { Text(mode) }
+                    label = { Text(mode, modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center) },
+                    modifier = Modifier.weight(1f)
                 )
             }
         }

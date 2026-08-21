@@ -12,16 +12,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.CreateTaskCommand
-import com.remmi.app.core.events.UpdateTaskCommand
-import com.remmi.app.core.plugins.model.components.RepeatRule
-import com.remmi.app.core.plugins.model.components.RepeatType
+import com.remmi.app.core.events.commands.CreateTaskCommand
+import com.remmi.app.core.events.commands.UpdateTaskCommand
+import com.remmi.app.core.plugin.model.components.RepeatRule
+import com.remmi.app.core.plugin.model.components.RepeatType
 import com.remmi.app.core.screens.components.*
 import com.remmi.app.plugins.tasks.TasksActions
 import com.remmi.app.plugins.tasks.TaskItem
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
 import kotlinx.coroutines.launch
+import androidx.compose.material3.MenuAnchorType
 
 sealed class TaskEditorMode {
     data object Create : TaskEditorMode()
@@ -109,7 +110,7 @@ fun TasksEditorScreen(
                     controller.eventBus.publishCommand(
                         UpdateTaskCommand(
                             task = initialTask.copy(
-                                modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()),
+                                modified = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
                                 title = title,
                                 description = description,
                                 dueDate = finalDueDate,
@@ -158,7 +159,7 @@ fun TasksEditorScreen(
                     readOnly = true,
                     label = { Text("Group") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                 )
                 ExposedDropdownMenu(
                     expanded = isGroupExpanded,

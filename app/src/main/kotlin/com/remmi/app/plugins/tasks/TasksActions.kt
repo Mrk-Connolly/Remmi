@@ -2,8 +2,11 @@ package com.remmi.app.plugins.tasks
 
 import android.util.Log
 import com.remmi.app.core.events.*
-import com.remmi.app.core.plugins.actions.RemmiAction
-import com.remmi.app.core.plugins.model.components.RepeatRule
+import com.remmi.app.core.events.events.TaskCreatedEvent
+import com.remmi.app.core.events.events.TaskDeletedEvent
+import com.remmi.app.core.events.events.TaskUpdatedEvent
+import com.remmi.app.core.plugin.actions.RemmiAction
+import com.remmi.app.core.plugin.model.components.RepeatRule
 import kotlinx.datetime.*
 import java.util.UUID
 
@@ -153,10 +156,23 @@ class TasksActions(
     suspend fun getAllTasks(): List<TaskItem> {
         Log.d("Remmi", "[TasksActions] - [getAllTasks] executed")
         return try {
+            cleanupOldFinishedTasks()
             repository.getAll().sortedByDescending { it.created }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to retrieve tasks", e)
             emptyList()
+        }
+    }
+
+    private suspend fun cleanupOldFinishedTasks() {
+        val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+        
+        repository.getAll().filter { task ->
+            task.completed && task.modified.toLocalDateTime(TimeZone.currentSystemDefault()).date < today
+        }.forEach { task ->
+            Log.d(TAG, "Cleaning up old finished task: ${task.id}")
+            repository.delete(task.id)
         }
     }
 

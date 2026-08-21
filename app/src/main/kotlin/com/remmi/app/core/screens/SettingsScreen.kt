@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
@@ -21,9 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.plugins.PluginMetadata
-import com.remmi.app.core.navigation.RemmiDestination
-import com.remmi.app.core.navigation.getIconForName
+import com.remmi.app.core.plugin.PluginMetadata
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
@@ -89,7 +86,7 @@ fun SettingsScreen(
             if (hasChanges) {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        pluginManager.updateAllPluginSettings(runtime.serviceManager.fileService, pendingMetadata)
+                        pluginManager.updateAllPluginSettings(runtime.fileManager.service, pendingMetadata)
                         pluginManager.loadPlugins()
                         onBack()
                     },
@@ -107,7 +104,6 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .statusBarsPadding()
         ) {
             LazyColumn(
                 modifier = Modifier
@@ -136,46 +132,6 @@ fun SettingsScreen(
                             Spacer(Modifier.width(12.dp))
                             Text(text = "Daily Briefing & Automations", modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ChevronRight, contentDescription = null)
-                        }
-                    }
-                }
-
-                item {
-                    Text(
-                        text = "Account",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-                        ),
-                        onClick = {
-                            scope.launch {
-                                runtime.signOut()
-                            }
-                        }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Logout,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                text = "Sign Out",
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.weight(1f)
-                            )
                         }
                     }
                 }

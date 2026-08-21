@@ -3,17 +3,26 @@ package com.remmi.app.plugins.alarm
 import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.*
-import com.remmi.app.core.plugins.PluginContext
-import com.remmi.app.core.plugins.PluginMetadata
-import com.remmi.app.core.plugins.RemmiPlugin
+import com.remmi.app.core.events.commands.CreateAlarmCommand
+import com.remmi.app.core.events.commands.DeleteAlarmCommand
+import com.remmi.app.core.events.commands.DeleteDataCommand
+import com.remmi.app.core.events.commands.RemmiCommand
+import com.remmi.app.core.events.commands.UpdateAlarmCommand
+import com.remmi.app.core.events.commands.UpsertDataCommand
+import com.remmi.app.core.events.events.AlarmCreatedEvent
+import com.remmi.app.core.events.events.AlarmDeletedEvent
+import com.remmi.app.core.events.events.AlarmUpdatedEvent
+import com.remmi.app.core.events.events.CalendarEventDeletedEvent
+import com.remmi.app.core.events.events.RemmiEvent
+import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.plugin.PluginMetadata
+import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.plugins.widgets.RemmiWidget
+import com.remmi.app.core.plugin.widgets.RemmiWidget
 import com.remmi.app.plugins.alarm.ui.screens.AlarmScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 
 /**
  * Entry point for the Alarm plugin.
@@ -32,7 +41,6 @@ class AlarmPlugin(
     /** Internal storage for initialized components */
     private var _repository: AlarmRepository? = null
     private var _actions: AlarmActions? = null
-    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for persistent alarm data. */
     override val repository: AlarmRepository
@@ -74,14 +82,13 @@ class AlarmPlugin(
         Log.d("Remmi", "[AlarmPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = AlarmRepository(context.serviceManager.databaseService)
+        val repo = AlarmRepository(context.databaseManager.service)
         _repository = repo
-        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = AlarmActions(repo).apply {
             this.eventBus = context.eventBus
-            this.alarmService = context.serviceManager.alarmService
+            this.alarmService = context.androidManager.alarmService
         }
     }
 
@@ -92,7 +99,7 @@ class AlarmPlugin(
         Log.d("Remmi", "[AlarmPlugin] - Received command: ${command::class.simpleName}")
         when (command) {
             is CreateAlarmCommand -> {
-                val now = kotlinx.datetime.Clock.System.now()
+                val now = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
                 val alarmId = java.util.UUID.randomUUID().toString()
                 val item = AlarmItem(
                     id = alarmId,
@@ -104,8 +111,10 @@ class AlarmPlugin(
                     isPriority = command.isPriority,
                     repeatable = command.repeatable,
                     custom = command.custom,
+                    useSound = command.useSound,
+                    useVibration = command.useVibration,
                     linkedCalendarEvent = if (command.source == "calendar") "event_key" else null, // Placeholder
-                    userId = _authRepository?.getCurrentUserId()
+                    userId = null
                 )
                 
                 actions.eventBus?.publishCommand(
@@ -119,7 +128,7 @@ class AlarmPlugin(
                 
                 // If syncToSystem is true, also notify the Android system via AlarmService
                 if (command.syncToSystem) {
-                    actions.alarmService?.setAlarm(item.id, item.title, item.time.toEpochMilliseconds())
+                    actions.alarmService?.setAlarm(item.id, item.title, item.time.toEpochMilliseconds(), item.useSound, item.useVibration)
                     actions.alarmService?.syncToSystemClock(item.title, item.time.toEpochMilliseconds())
                 }
 

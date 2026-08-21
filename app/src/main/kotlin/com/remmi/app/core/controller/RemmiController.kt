@@ -9,15 +9,12 @@ import com.remmi.app.core.auth.AuthState
 import com.remmi.app.core.automation.AutomationEngine
 import com.remmi.app.core.automation.AutomationSettingsRepository
 import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.plugins.PluginContext
-import com.remmi.app.core.plugins.PluginManager
-import com.remmi.app.core.service.ServiceManager
+import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.plugin.PluginManager
+import com.remmi.app.core.service.database.DatabaseServiceManager
+import com.remmi.app.core.service.file.FileServiceManager
+import com.remmi.app.core.service.android.AndroidServiceManager
 import com.remmi.app.core.service.android.implementations.AndroidAutomationScheduler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 
 /**
  * REMMI CONTROLLER
@@ -35,17 +32,19 @@ class RemmiController(val androidContext: Context) {
     val eventBus = EventBus()
 
     /** Core System Managers */
-    val authRepository = AuthRepository()
-    val serviceManager = ServiceManager(androidContext)
-    val userRepository = UserRepository(serviceManager.databaseService)
+    val databaseManager = DatabaseServiceManager()
+    val fileManager = FileServiceManager(androidContext)
+    val androidManager = AndroidServiceManager(androidContext, eventBus)
+
     val pluginManager = PluginManager()
-    val automationEngine = AutomationEngine(eventBus, serviceManager)
+    val automationEngine = AutomationEngine(eventBus)
 
     /** Shared Plugin Context */
-    private val pluginContext = PluginContext(serviceManager, eventBus, authRepository)
+    private val pluginContext = PluginContext(databaseManager, fileManager, androidManager, eventBus)
 
     /** UI State Tracking */
     val isEditorActive = mutableStateOf(false)
+    val isMenuVisible = mutableStateOf(true)
 
     /** Whether plugins and services are ready for the current session */
     val isInitialized = mutableStateOf(false)
@@ -77,42 +76,26 @@ class RemmiController(val androidContext: Context) {
         eventBus.start()
 
         // 2. Discover Plugins using FileService
-        pluginManager.readPlugins(serviceManager.fileService)
-        pluginManager.loadPlugins()
+        pluginManager.readPlugins(fileManager.service)
 
         // 3. Subscribe Command and Event Listeners
         eventBus.subscribeCommand(pluginManager)
-        eventBus.subscribeCommand(serviceManager)
+        eventBus.subscribeCommand(databaseManager)
+        eventBus.subscribeCommand(androidManager)
         eventBus.subscribeCommand(automationEngine)
-        
         eventBus.subscribeEvent(pluginManager)
 
-        // 4. Initialize plugins whenever an authenticated session becomes available.
-        //    On app relaunch the session is restored asynchronously, so instead of a
-        //    one-shot check we react to the auth state and gate the UI on readiness.
-        controllerScope.launch {
-            authRepository.sessionStatus.collect { state ->
-                when (state) {
-                    AuthState.Authenticated -> {
-                        if (!isInitialized.value) {
-                            Log.i("Remmi", "[RemmiController] - User authenticated. Loading user data.")
-                            initializePlugins()
-                            isInitialized.value = true
-                        }
-                    }
-                    else -> {
-                        isInitialized.value = false
-                    }
-                }
-            }
-        }
+        // 4. Load plugins
+        pluginManager.loadPlugins()
+
+        initializePlugins()
     }
 
     /**                                 Initialize Plugins
-     * Complete the startup sequence once a user is authenticated.
+     * Complete the startup sequence.
      */
     suspend fun initializePlugins() {
-        Log.d("Remmi", "[RemmiController] - Initializing plugins for user")
+        Log.d("Remmi", "[RemmiController] - Initializing plugins")
         
         // 1. Initialize Plugins with Shared Context
         pluginManager.initializeAll(pluginContext)
@@ -121,7 +104,7 @@ class RemmiController(val androidContext: Context) {
         pluginManager.loadAll()
 
         // 3. Start Engines and Services
-        serviceManager.start()
+        androidManager.start()
         automationEngine.start()
 
         // 4. Check and ensure Daily Briefing Schedule
@@ -133,7 +116,7 @@ class RemmiController(val androidContext: Context) {
      */
     suspend fun signOut() {
         Log.i("Remmi", "[RemmiController] - User signing out. Cleaning up environment.")
-        
+
         // 1. Terminate Supabase session
         authRepository.signOut()
 
@@ -146,7 +129,7 @@ class RemmiController(val androidContext: Context) {
 
         // 4. Mark system as uninitialized so the next sign-in re-initializes everything
         isInitialized.value = false
-        
+
         Log.i("Remmi", "[RemmiController] - Sign out complete")
     }
 
@@ -170,12 +153,13 @@ class RemmiController(val androidContext: Context) {
 
         // 2. Stop Core Services and Command Channel
         eventBus.unsubscribeCommand(pluginManager)
-        eventBus.unsubscribeCommand(serviceManager)
+        eventBus.unsubscribeCommand(databaseManager)
+        eventBus.unsubscribeCommand(androidManager)
         eventBus.unsubscribeCommand(automationEngine)
-        eventBus.unsubscribeEvent(pluginManager)
+        eventBus.subscribeEvent(pluginManager)
         eventBus.stop()
         
-        serviceManager.stop()
+        androidManager.stop()
 
         // 3. Unload Plugins
         pluginManager.stop()

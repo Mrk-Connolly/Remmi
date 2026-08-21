@@ -3,12 +3,25 @@ package com.remmi.app.plugins.calendar
 import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.*
-import com.remmi.app.core.plugins.PluginContext
-import com.remmi.app.core.plugins.PluginMetadata
-import com.remmi.app.core.plugins.RemmiPlugin
+import com.remmi.app.core.events.commands.CreateAlarmCommand
+import com.remmi.app.core.events.commands.CreateCalendarEventCommand
+import com.remmi.app.core.events.commands.CreateTaskCommand
+import com.remmi.app.core.events.commands.DeleteCalendarEventCommand
+import com.remmi.app.core.events.commands.DeleteDataCommand
+import com.remmi.app.core.events.commands.FetchTodayEventsCommand
+import com.remmi.app.core.events.commands.RemmiCommand
+import com.remmi.app.core.events.commands.UpdateCalendarEventCommand
+import com.remmi.app.core.events.commands.UpsertDataCommand
+import com.remmi.app.core.events.events.CalendarEventCreatedEvent
+import com.remmi.app.core.events.events.CalendarEventDeletedEvent
+import com.remmi.app.core.events.events.CalendarEventUpdatedEvent
+import com.remmi.app.core.events.events.RemmiEvent
+import com.remmi.app.core.events.events.TodayEventsFetchedEvent
+import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.plugin.PluginMetadata
+import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.plugins.widgets.RemmiWidget
+import com.remmi.app.core.plugin.widgets.RemmiWidget
 import com.remmi.app.plugins.calendar.ui.screens.CalendarScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +43,6 @@ class CalendarPlugin(
     /** Internal storage for initialized components */
     private var _repository: CalendarRepository? = null
     private var _actions: CalendarActions? = null
-    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for managing Calendar data */
     override val repository: CalendarRepository
@@ -73,9 +85,8 @@ class CalendarPlugin(
         Log.d("Remmi", "[CalendarPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = CalendarRepository(context.serviceManager.databaseService)
+        val repo = CalendarRepository(context.databaseManager.service)
         _repository = repo
-        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = CalendarActions(repo).apply {
@@ -109,7 +120,7 @@ class CalendarPlugin(
                     location = command.location,
                     linkedTasks = command.linkedTasks,
                     linkedAlarm = command.linkedAlarm,
-                    userId = _authRepository?.getCurrentUserId()
+                    userId = null
                 )
                 
                 // 1. Request Persistence

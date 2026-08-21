@@ -14,8 +14,10 @@ class AlarmReceiver : BroadcastReceiver() {
         
         val alarmId = intent.getStringExtra("ALARM_ID")
         val alarmTitle = intent.getStringExtra("ALARM_TITLE") ?: "Alarm"
+        val useSound = intent.getBooleanExtra("USE_SOUND", true)
+        val useVibration = intent.getBooleanExtra("USE_VIBRATION", true)
         
-        Log.d("AlarmReceiver", "Processing broadcast for ID: $alarmId, Title: $alarmTitle")
+        Log.d("AlarmReceiver", "Processing broadcast for ID: $alarmId, Title: $alarmTitle, Sound: $useSound, Vibration: $useVibration")
         
         if (alarmId == null) {
             Log.e("AlarmReceiver", "Abort onReceive: Missing ALARM_ID extra.")
@@ -23,7 +25,7 @@ class AlarmReceiver : BroadcastReceiver() {
         }
         
         val service = AndroidAlarmService(context)
-        service.postNotification(alarmTitle, "Your alarm is ringing!")
+        service.postNotification(alarmTitle, "Your alarm is ringing!", useSound, useVibration)
         Log.d("AlarmReceiver", "Notification posted for alarm: $alarmId")
     }
 }
