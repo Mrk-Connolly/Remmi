@@ -153,10 +153,23 @@ class TasksActions(
     suspend fun getAllTasks(): List<TaskItem> {
         Log.d("Remmi", "[TasksActions] - [getAllTasks] executed")
         return try {
+            cleanupOldFinishedTasks()
             repository.getAll().sortedByDescending { it.created }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to retrieve tasks", e)
             emptyList()
+        }
+    }
+
+    private suspend fun cleanupOldFinishedTasks() {
+        val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+        
+        repository.getAll().filter { task ->
+            task.completed && task.modified.toLocalDateTime(TimeZone.currentSystemDefault()).date < today
+        }.forEach { task ->
+            Log.d(TAG, "Cleaning up old finished task: ${task.id}")
+            repository.delete(task.id)
         }
     }
 

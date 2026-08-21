@@ -6,7 +6,7 @@ import android.content.Intent
 import android.util.Log
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.remmi.app.core.service.android.implementations.AndroidAutomationScheduler
+import com.remmi.app.core.android.implementations.AndroidAutomationScheduler
 
 /**
  * DAILY BRIEFING RECEIVER

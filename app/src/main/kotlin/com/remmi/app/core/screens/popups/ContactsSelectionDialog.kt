@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.plugins.contacts.ContactItem
+import androidx.compose.material3.MenuAnchorType
 
 /**
  * CONTACTS SELECTION DIALOG
@@ -72,7 +73,7 @@ fun ContactsSelectionDialog(
                         readOnly = true,
                         label = { Text("Group") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupDropdownExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = isGroupDropdownExpanded,

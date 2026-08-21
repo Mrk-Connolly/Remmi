@@ -27,7 +27,12 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 sealed class EditorMode {
-    data class Create(val initialDate: LocalDate? = null) : EditorMode()
+    data class Create(
+        val initialDate: LocalDate? = null,
+        val initialTime: LocalTime? = null,
+        val initialEndDate: LocalDate? = null,
+        val initialEndTime: LocalTime? = null
+    ) : EditorMode()
     data class Edit(val event: CalendarItem) : EditorMode()
 }
 

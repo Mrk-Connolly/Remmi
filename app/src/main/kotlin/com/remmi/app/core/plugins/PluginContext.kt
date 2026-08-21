@@ -1,8 +1,9 @@
 package com.remmi.app.core.plugins
 
-import com.remmi.app.core.auth.AuthRepository
 import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.service.ServiceManager
+import com.remmi.app.core.database.DatabaseServiceManager
+import com.remmi.app.core.file.FileServiceManager
+import com.remmi.app.core.android.AndroidServiceManager
 
 /**
  * PLUGIN CONTEXT
@@ -11,7 +12,8 @@ import com.remmi.app.core.service.ServiceManager
  * Centralizes access to system-level managers.
  */
 data class PluginContext(
-    val serviceManager: ServiceManager,
-    val eventBus: EventBus,
-    val authRepository: AuthRepository
+    val databaseManager: DatabaseServiceManager,
+    val fileManager: FileServiceManager,
+    val androidManager: AndroidServiceManager,
+    val eventBus: EventBus
 )

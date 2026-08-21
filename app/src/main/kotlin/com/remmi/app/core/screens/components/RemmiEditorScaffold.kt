@@ -32,6 +32,7 @@ fun RemmiEditorScaffold(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .navigationBarsPadding()
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
@@ -57,7 +58,9 @@ fun RemmiEditorScaffold(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .imePadding()
+                .padding(horizontal = 16.dp)
+                .padding(top = 4.dp, bottom = 16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

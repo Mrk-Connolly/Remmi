@@ -14,11 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -40,6 +36,7 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
     val scope = rememberCoroutineScope()
     var contacts by remember { mutableStateOf(emptyList<ContactItem>()) }
     var searchQuery by remember { mutableStateOf("") }
+    var selectedGroupFilter by remember { mutableStateOf("All") }
     
     var selectedContact by remember { mutableStateOf<ContactItem?>(null) }
     var editorMode by remember { mutableStateOf<ContactEditorMode?>(null) }
@@ -47,6 +44,12 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
     // Track editor state for hiding bottom menu
     LaunchedEffect(editorMode, selectedContact) {
         controller.isEditorActive.value = editorMode != null || selectedContact != null
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            controller.isEditorActive.value = false
+        }
     }
 
     var isRefreshing by remember { mutableStateOf(false) }
@@ -66,10 +69,15 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
         contacts = actions.getAllContacts()
     }
 
-    val filteredContacts = remember(contacts, searchQuery) {
+    val existingGroups = remember(contacts) {
+        listOf("All") + contacts.map { it.group }.distinct().sorted()
+    }
+
+    val filteredContacts = remember(contacts, searchQuery, selectedGroupFilter) {
         contacts.filter {
-            it.name.contains(searchQuery, ignoreCase = true) ||
-                    it.surname.contains(searchQuery, ignoreCase = true)
+            (selectedGroupFilter == "All" || it.group == selectedGroupFilter) &&
+            (it.name.contains(searchQuery, ignoreCase = true) ||
+                    it.surname.contains(searchQuery, ignoreCase = true))
         }
     }
 
@@ -77,7 +85,7 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { editorMode = ContactEditorMode.Create },
-                modifier = Modifier.padding(bottom = 220.dp) // Above search and menu
+                modifier = Modifier.padding(bottom = 224.dp) // Above search and menu
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Contact")
             }
@@ -89,7 +97,7 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 156.dp), // Above island menu
+                    .padding(bottom = 160.dp), // Above island menu
                 placeholder = { Text("Search by name...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 shape = CircleShape,
@@ -103,22 +111,48 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .statusBarsPadding()
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Text(
-                    text = "My Contacts",
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "My Contacts",
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .align(Alignment.Center)
+                    )
+                    
+                    var isFilterExpanded by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)) {
+                        IconButton(onClick = { isFilterExpanded = true }) {
+                            Icon(Icons.Default.FilterList, contentDescription = "Filter")
+                        }
+                        DropdownMenu(
+                            expanded = isFilterExpanded,
+                            onDismissRequest = { isFilterExpanded = false }
+                        ) {
+                            existingGroups.forEach { group ->
+                                DropdownMenuItem(
+                                    text = { Text(group) },
+                                    onClick = {
+                                        selectedGroupFilter = group
+                                        isFilterExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
 
                 if (filteredContacts.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text("No contacts found.")
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 180.dp)
+                    ) {
                         items(filteredContacts, key = { it.id }) { contact ->
                             ContactRow(
                                 contact = contact,
@@ -169,6 +203,7 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ContactRow(
     contact: ContactItem,
@@ -181,30 +216,20 @@ fun ContactRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable { onClick() }
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onEdit
+            )
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon with 2-second hold to edit
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onPress = {
-                                val startTime = System.currentTimeMillis()
-                                tryAwaitRelease()
-                                val duration = System.currentTimeMillis() - startTime
-                                if (duration >= 2000) {
-                                    onEdit()
-                                }
-                            }
-                        )
-                    },
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

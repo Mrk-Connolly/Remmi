@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
@@ -28,9 +29,6 @@ import androidx.navigation.compose.rememberNavController
 import com.remmi.app.core.plugins.RemmiPlugin
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.plugins.PluginMetadata
-import com.remmi.app.core.auth.AuthState
-import com.remmi.app.core.auth.AuthViewModel
-import com.remmi.app.core.screens.AuthScreen
 import com.remmi.app.core.screens.HomeScreen
 import com.remmi.app.core.screens.SettingsScreen
 import com.remmi.app.core.screens.AutomatizationSettingsScreen
@@ -68,37 +66,6 @@ sealed class RemmiDestination(val route: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(runtime: RemmiController) {
-
-    Log.d("Remmi", "[AppNavigation] - [AppNavigation] executed")
-    val authState by runtime.authRepository.sessionStatus.collectAsState(initial = AuthState.Loading)
-
-    when (authState) {
-        AuthState.Loading -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        }
-        AuthState.Unauthenticated -> {
-            val authViewModel = remember { AuthViewModel(runtime.authRepository) }
-            val scope = rememberCoroutineScope()
-            AuthScreen(
-                viewModel = authViewModel,
-                onAuthSuccess = {
-                    scope.launch {
-                        runtime.initializePlugins()
-                    }
-                }
-            )
-        }
-        AuthState.Authenticated -> {
-            MainAppContent(runtime)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MainAppContent(runtime: RemmiController) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -122,12 +89,17 @@ fun MainAppContent(runtime: RemmiController) {
     val islandAlpha by animateFloatAsState(if (targetState == SheetValue.Expanded) 0f else 1f, label = "islandAlpha")
 
     val horizontalPadding by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 24.dp, label = "hPadding")
-    val bottomPadding by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 24.dp, label = "bPadding")
+    val bottomPadding by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 48.dp, label = "bPadding")
     val cornerRadius by animateDpAsState(if (targetState == SheetValue.Expanded) 0.dp else 12.dp, label = "cornerRadius")
 
+    val isCalendarRoute = currentRoute?.contains("calendar") == true
+    val isSettingsRoute = currentRoute == RemmiDestination.SETTINGS_ROUTE
+
     val isEditorActive = runtime.isEditorActive.value
+    val isMenuVisible = runtime.isMenuVisible.value
+    
     val animatedPeekHeight by animateDpAsState(
-        if (isEditorActive) 0.dp else 140.dp,
+        if (isEditorActive || !isMenuVisible || isSettingsRoute) 0.dp else 160.dp,
         label = "peekHeight"
     )
 
@@ -140,71 +112,78 @@ fun MainAppContent(runtime: RemmiController) {
         sheetTonalElevation = 0.dp,
         sheetShadowElevation = 0.dp,
         sheetContent = {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Large Full Plugin Menu (Square/Full Screen)
-                if (fullMenuAlpha > 0f) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .alpha(fullMenuAlpha),
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-                            Text(
-                                text = "All Plugins",
-                                style = MaterialTheme.typography.headlineMedium,
-                                modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                                textAlign = TextAlign.Center
-                            )
-                            PluginGrid(
-                                plugins = activePlugins,
-                                onPluginClick = { pluginId ->
-                                    navController.navigate(RemmiDestination.pluginRoute(pluginId))
-                                    scope.launch { scaffoldState.bottomSheetState.partialExpand() }
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Small Floating Island Menu (Rectangle)
-                if (islandAlpha > 0f) {
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter) // Align to top of the peek area
-                            .padding(top = 24.dp) // Gap to match bottom (24dp)
-                            .padding(horizontal = horizontalPadding)
-                            .padding(bottom = bottomPadding)
-                            .fillMaxWidth()
-                            .alpha(islandAlpha),
-                        shape = RoundedCornerShape(cornerRadius),
-                        tonalElevation = 6.dp,
-                        shadowElevation = 6.dp,
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            NavigationBar(
-                                containerColor = Color.Transparent,
-                                modifier = Modifier.fillMaxWidth(),
-                                windowInsets = WindowInsets(0)
-                            ) {
-                                IslandNavigationItems(
-                                    currentRoute = currentRoute,
-                                    navController = navController,
-                                    metadata = metadata,
-                                    onNavigate = { scope.launch { scaffoldState.bottomSheetState.partialExpand() } }
+            if (animatedPeekHeight > 0.dp) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Large Full Plugin Menu (Square/Full Screen)
+                    if (fullMenuAlpha > 0f) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .alpha(fullMenuAlpha),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
+                                Text(
+                                    text = "All Plugins",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+                                PluginGrid(
+                                    plugins = activePlugins,
+                                    onPluginClick = { pluginId ->
+                                        navController.navigate(RemmiDestination.pluginRoute(pluginId))
+                                        scope.launch { scaffoldState.bottomSheetState.partialExpand() }
+                                    }
                                 )
                             }
                         }
                     }
+
+                    // Small Floating Island Menu (Rectangle)
+                    if (islandAlpha > 0f) {
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter) // Align to top of the peek area
+                                .padding(top = 24.dp) // Gap to match bottom (24dp)
+                                .padding(horizontal = horizontalPadding)
+                                .padding(bottom = bottomPadding)
+                                .fillMaxWidth()
+                                .alpha(islandAlpha),
+                            shape = RoundedCornerShape(cornerRadius),
+                            tonalElevation = 6.dp,
+                            shadowElevation = 6.dp,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                NavigationBar(
+                                    containerColor = Color.Transparent,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    windowInsets = WindowInsets(0)
+                                ) {
+                                    IslandNavigationItems(
+                                        currentRoute = currentRoute,
+                                        navController = navController,
+                                        metadata = metadata,
+                                        onNavigate = { scope.launch { scaffoldState.bottomSheetState.partialExpand() } }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
+            } else {
+                // Return an empty box when hidden to prevent touch interception
+                Box(Modifier.size(0.dp))
             }
         }
-    ) { _ ->
+    ) { padding ->
         NavHost(
             navController = navController,
             startDestination = RemmiDestination.HOME_ROUTE,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = padding.calculateTopPadding())
         ) {
             composable(RemmiDestination.HOME_ROUTE) {
                 HomeScreen(
@@ -251,6 +230,7 @@ fun RowScope.IslandNavigationItems(
     metadata: List<PluginMetadata>,
     onNavigate: () -> Unit
 ) {
+    // Hardcoded Island Menu Items (Home, Calendar, Tasks, Settings)
     NavigationBarItem(
         selected = currentRoute == RemmiDestination.HOME_ROUTE,
         onClick = { 
@@ -261,23 +241,25 @@ fun RowScope.IslandNavigationItems(
         label = { Text("Home") }
     )
 
-    metadata.filter { it.enabled && (it.id == "calendar" || it.id == "tasks") }.forEach { pluginMeta ->
-        val route = RemmiDestination.pluginRoute(pluginMeta.id)
-        NavigationBarItem(
-            selected = currentRoute == route,
-            onClick = { 
-                navController.navigate(route)
-                onNavigate()
-            },
-            icon = {
-                Icon(
-                    imageVector = getIconForName(pluginMeta.icon),
-                    contentDescription = pluginMeta.name
-                )
-            },
-            label = { Text(pluginMeta.name) }
-        )
-    }
+    NavigationBarItem(
+        selected = currentRoute?.contains("calendar") == true,
+        onClick = { 
+            navController.navigate(RemmiDestination.pluginRoute("calendar"))
+            onNavigate()
+        },
+        icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Calendar") },
+        label = { Text("Calendar") }
+    )
+
+    NavigationBarItem(
+        selected = currentRoute?.contains("tasks") == true,
+        onClick = { 
+            navController.navigate(RemmiDestination.pluginRoute("tasks"))
+            onNavigate()
+        },
+        icon = { Icon(Icons.Default.CheckCircle, contentDescription = "Tasks") },
+        label = { Text("Tasks") }
+    )
 
     NavigationBarItem(
         selected = currentRoute == RemmiDestination.SETTINGS_ROUTE,
@@ -379,6 +361,8 @@ fun getIconForName(name: String?): ImageVector {
         "home" -> Icons.Default.Home
         "person" -> Icons.Default.Person
         "card_giftcard" -> Icons.Default.CardGiftcard
+        "restaurant" -> Icons.Default.Restaurant
+        "kitchen" -> Icons.Default.Kitchen
         else -> Icons.Default.Extension
     }
 }

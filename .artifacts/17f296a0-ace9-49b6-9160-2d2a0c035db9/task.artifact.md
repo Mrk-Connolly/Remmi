@@ -1,0 +1,9 @@
+- [x] Update dependencies for Google Maps and Location
+- [x] Configure permissions and API key placeholder in `AndroidManifest.xml`
+- [x] Implement "Today" highlight and placeholder in `CalendarScreen`
+- [x] Reposition "Add Event" FAB in `CalendarScreen`
+- [x] Implement `RemmiDateRangePickerDialog` in `RemmiPickers.kt`
+- [x] Overhaul `LocationDialog` with Google Maps integration
+- [x] Redesign `CalendarScreenEditor` layout (Date/Time grid, Toggles, etc.)
+- [x] Implement automatic Task/Alarm creation logic in `CalendarScreenEditor`
+- [x] Verify build and project consistency

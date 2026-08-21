@@ -61,6 +61,52 @@ fun RemmiDatePickerDialog(
     }
 }
 
+/**                                 Date Range Picker Dialog
+ * Shared Material 3 Date Range Picker interface
+ * */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RemmiDateRangePickerDialog(
+    initialStartDate: LocalDate,
+    initialEndDate: LocalDate,
+    onDismiss: () -> Unit,
+    onRangeSelected: (LocalDate, LocalDate) -> Unit
+) {
+    val timeZone = TimeZone.currentSystemDefault()
+    val dateRangePickerState = rememberDateRangePickerState(
+        initialSelectedStartDateMillis = initialStartDate.atTime(0, 0).toInstant(timeZone).toEpochMilliseconds(),
+        initialSelectedEndDateMillis = initialEndDate.atTime(0, 0).toInstant(timeZone).toEpochMilliseconds()
+    )
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                val start = dateRangePickerState.selectedStartDateMillis?.let {
+                    Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date
+                }
+                val end = dateRangePickerState.selectedEndDateMillis?.let {
+                    Instant.fromEpochMilliseconds(it).toLocalDateTime(timeZone).date
+                }
+                if (start != null && end != null) {
+                    onRangeSelected(start, end)
+                } else if (start != null) {
+                    onRangeSelected(start, start)
+                }
+                onDismiss()
+            }) { Text("OK") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    ) {
+        DateRangePicker(
+            state = dateRangePickerState,
+            modifier = Modifier.height(500.dp)
+        )
+    }
+}
+
 /**                                 Time Picker Dialog
  * Shared Material 3 Time Picker interface (Clock)
  * */

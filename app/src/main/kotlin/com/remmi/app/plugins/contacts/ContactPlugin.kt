@@ -28,7 +28,6 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     /** Internal storage for initialized components */
     private var _repository: ContactRepository? = null
     private var _actions: ContactActions? = null
-    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for managing Contacts data */
     override val repository: ContactRepository
@@ -70,9 +69,8 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
         Log.d("Remmi", "[ContactPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = ContactRepository(context.serviceManager.databaseService)
+        val repo = ContactRepository(context.databaseManager.service)
         _repository = repo
-        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = ContactActions(repo).apply {

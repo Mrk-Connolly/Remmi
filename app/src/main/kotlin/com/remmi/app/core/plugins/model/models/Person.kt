@@ -2,6 +2,7 @@ package com.remmi.app.core.plugins.model.models
 
 import android.util.Log
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import com.remmi.app.core.plugins.model.components.ContactInfo
 import com.remmi.app.core.plugins.model.components.Location
 import com.remmi.app.core.plugins.model.components.PersonName
@@ -28,7 +29,10 @@ data class Person(
 
     val address: Location? = null,
 
-    val notes: String = ""
+    val notes: String = "",
+
+    @SerialName("user_id")
+    override val userId: String? = null
 
 ) : RemmiModel {
     init {

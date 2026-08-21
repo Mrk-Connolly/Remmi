@@ -48,10 +48,17 @@ fun TasksScreen(
         controller.isEditorActive.value = editorMode != null
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            controller.isEditorActive.value = false
+        }
+    }
+
     var taskToManage by remember { mutableStateOf<TaskItem?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
 
     var selectedGroupFilter by remember { mutableStateOf("All") }
+    var onlyImportant by remember { mutableStateOf(false) }
     var existingGroups by remember { mutableStateOf(emptyList<String>()) }
 
     val onRefresh: () -> Unit = remember {
@@ -72,9 +79,16 @@ fun TasksScreen(
         existingGroups = actions.getAllGroups()
     }
 
-    val filteredTasks = remember(tasks, selectedGroupFilter) {
-        if (selectedGroupFilter == "All") tasks
+    val filteredTasks = remember(tasks, selectedGroupFilter, onlyImportant) {
+        val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+        val baseFiltered = if (selectedGroupFilter == "All") tasks
         else tasks.filter { it.group == selectedGroupFilter }
+        
+        if (onlyImportant) {
+            baseFiltered.filter { it.isPriority || (it.dueDate != null && !it.completed && it.dueDate < now) }
+        } else {
+            baseFiltered
+        }
     }
 
     if (editorMode != null) {
@@ -96,14 +110,31 @@ fun TasksScreen(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { editorMode = TaskEditorMode.Create },
-                    modifier = Modifier.padding(bottom = 156.dp)
+                    modifier = Modifier.padding(bottom = 176.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Task")
                 }
             }
         ) { padding ->
-            val groupedByGroup = remember(filteredTasks) {
-                filteredTasks.groupBy { it.group ?: "No Group" }
+            val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+            val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
+            
+            val taskSections = remember(filteredTasks) {
+                val ongoing = filteredTasks.filter { it.dueDate == null }.sortedByDescending { it.created }
+                val daily = filteredTasks.filter { 
+                    it.dueDate != null && 
+                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date == today 
+                }.sortedBy { it.dueDate }
+                val upcoming = filteredTasks.filter { 
+                    it.dueDate != null && 
+                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date > today 
+                }.sortedBy { it.dueDate }
+                
+                listOf(
+                    "Ongoing" to ongoing,
+                    "Daily" to daily,
+                    "Upcoming" to upcoming
+                ).filter { it.second.isNotEmpty() }
             }
 
             PullToRefreshBox(
@@ -112,7 +143,6 @@ fun TasksScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .statusBarsPadding()
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize()
@@ -124,8 +154,17 @@ fun TasksScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        IconButton(
+                            onClick = { onlyImportant = !onlyImportant }
+                        ) {
+                            Icon(
+                                imageVector = if (onlyImportant) Icons.Default.PriorityHigh else Icons.Default.PriorityHigh,
+                                contentDescription = "Filter Important",
+                                tint = if (onlyImportant) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            )
+                        }
                         Box {
                             TextButton(
                                 onClick = { isFilterExpanded = true },
@@ -164,10 +203,13 @@ fun TasksScreen(
                             Text("No tasks found.")
                         }
                     } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            groupedByGroup.forEach { (groupName, tasksInGroup) ->
-                                item { TaskSectionHeader(groupName) }
-                                items(tasksInGroup, key = { it.id }) { task ->
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 180.dp)
+                        ) {
+                            taskSections.forEach { (sectionName, tasksInSection) ->
+                                item { TaskSectionHeader(sectionName) }
+                                items(tasksInSection, key = { it.id }) { task ->
                                     TaskRow(task, actions, onUpdate = { tasks = it }, onLongClick = { taskToManage = task })
                                 }
                             }
@@ -239,7 +281,11 @@ fun TaskRow(
     val scope = rememberCoroutineScope()
     var isCompleted by remember(task.id, task.completed) { mutableStateOf(task.completed) }
     var isExpanded by remember { mutableStateOf(false) }
-    val cardColor = if (task.isPriority) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
+    
+    val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+    val isOverdue = !task.completed && task.dueDate != null && task.dueDate < now
+    
+    val cardColor = if (task.isPriority || isOverdue) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
 
     Card(
         modifier = Modifier
@@ -250,7 +296,7 @@ fun TaskRow(
                 onLongClick = onLongClick
             ),
         colors = CardDefaults.cardColors(containerColor = cardColor),
-        border = if (task.isPriority) BorderStroke(2.dp, MaterialTheme.colorScheme.error) else null
+        border = if (task.isPriority || isOverdue) BorderStroke(2.dp, MaterialTheme.colorScheme.error) else null
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -262,10 +308,10 @@ fun TaskRow(
                         text = task.title,
                         style = MaterialTheme.typography.titleMedium,
                         textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None,
-                        fontWeight = if (task.isPriority) FontWeight.Bold else FontWeight.Normal,
+                        fontWeight = if (task.isPriority || isOverdue) FontWeight.Bold else FontWeight.Normal,
                         modifier = Modifier.weight(1f, fill = false)
                     )
-                    if (task.isPriority) {
+                    if (task.isPriority || isOverdue) {
                         Spacer(Modifier.width(8.dp))
                         Icon(
                             imageVector = Icons.Default.PriorityHigh,
@@ -275,6 +321,18 @@ fun TaskRow(
                         )
                     }
                 }
+                
+                if (isOverdue && task.dueDate != null) {
+                    val dueDateStr = task.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+                    Text(
+                        text = "Overdue: $dueDateStr",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Red,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+
                 AnimatedVisibility(visible = isExpanded && task.description.isNotEmpty()) {
                     Text(
                         text = task.description,

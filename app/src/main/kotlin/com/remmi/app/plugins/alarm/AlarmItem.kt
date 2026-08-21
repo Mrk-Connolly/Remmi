@@ -39,6 +39,12 @@ data class AlarmItem(
 
     val custom: List<String> = emptyList(),
 
+    @SerialName("use_sound")
+    val useSound: Boolean = true,
+
+    @SerialName("use_vibration")
+    val useVibration: Boolean = true,
+
     @SerialName("user_id")
     override val userId: String? = null
 

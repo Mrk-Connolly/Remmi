@@ -13,7 +13,6 @@ import com.remmi.app.plugins.tasks.ui.screens.TasksScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 
 /**
  * Entry point for the Tasks plugin.
@@ -30,7 +29,6 @@ class TasksPlugin(
     /** Internal storage for initialized components */
     private var _repository: TasksRepository? = null
     private var _actions: TasksActions? = null
-    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for managing Tasks data */
     override val repository: TasksRepository
@@ -72,9 +70,8 @@ class TasksPlugin(
         Log.d("Remmi", "[TasksPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = TasksRepository(context.serviceManager.databaseService)
+        val repo = TasksRepository(context.databaseManager.service)
         _repository = repo
-        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = TasksActions(repo).apply {
@@ -89,7 +86,7 @@ class TasksPlugin(
         Log.d("Remmi", "[TasksPlugin] - Received command: ${command::class.simpleName}")
         when (command) {
             is CreateTaskCommand -> {
-                val now = kotlinx.datetime.Clock.System.now()
+                val now = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
                 val taskId = java.util.UUID.randomUUID().toString()
                 val item = TaskItem(
                     id = taskId,
@@ -102,7 +99,7 @@ class TasksPlugin(
                     group = command.group,
                     repeat = command.repeat,
                     linkedCalendar = if (command.source == "calendar") "event_key" else null, // TODO: Use real ID if available
-                    userId = _authRepository?.getCurrentUserId()
+                    userId = null
                 )
                 
                 actions.eventBus?.publishCommand(
