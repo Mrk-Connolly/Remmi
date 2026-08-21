@@ -2,6 +2,7 @@ package com.remmi.app.core.automation
 
 import android.content.Context
 import android.util.Log
+import com.remmi.app.core.automation.dailyBriefing.DailyBriefingSettings
 
 /**
  * AUTOMATION SETTINGS REPOSITORY

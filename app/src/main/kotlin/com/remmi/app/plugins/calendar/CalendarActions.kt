@@ -2,7 +2,10 @@ package com.remmi.app.plugins.calendar
 
 import android.util.Log
 import com.remmi.app.core.events.*
-import com.remmi.app.core.plugins.actions.RemmiAction
+import com.remmi.app.core.events.events.CalendarEventCreatedEvent
+import com.remmi.app.core.events.events.CalendarEventDeletedEvent
+import com.remmi.app.core.events.events.CalendarEventUpdatedEvent
+import com.remmi.app.core.plugin.actions.RemmiAction
 import kotlinx.datetime.*
 import java.util.UUID
 

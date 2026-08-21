@@ -1,7 +1,7 @@
 package com.remmi.app.testing.core
 
-import com.remmi.app.core.plugins.repository.CloudRepository
-import com.remmi.app.core.database.DatabaseService
+import com.remmi.app.core.plugin.repository.CloudRepository
+import com.remmi.app.core.service.database.DatabaseService
 
 /**
  * DATABASE TEST REPOSITORY

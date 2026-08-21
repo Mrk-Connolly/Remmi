@@ -3,7 +3,7 @@ package com.remmi.app.plugins.calendar
 import android.util.Log
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
-import com.remmi.app.core.plugins.model.models.RemmiModel
+import com.remmi.app.core.plugin.model.models.RemmiModel
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime

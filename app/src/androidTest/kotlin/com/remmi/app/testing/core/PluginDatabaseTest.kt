@@ -1,6 +1,6 @@
 package com.remmi.app.testing.core
 
-import com.remmi.app.core.plugins.model.models.RemmiModel
+import com.remmi.app.core.plugin.model.models.RemmiModel
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName

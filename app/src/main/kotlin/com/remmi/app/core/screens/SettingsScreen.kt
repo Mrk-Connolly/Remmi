@@ -20,9 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.plugins.PluginMetadata
-import com.remmi.app.core.navigation.RemmiDestination
-import com.remmi.app.core.navigation.getIconForName
+import com.remmi.app.core.plugin.PluginMetadata
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController

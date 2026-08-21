@@ -1,5 +1,6 @@
 package com.remmi.app.core.events
 
+import com.remmi.app.core.events.events.RemmiEvent
 import java.util.UUID
 
 /**
