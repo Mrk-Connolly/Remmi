@@ -2,7 +2,7 @@ package com.remmi.app.core.plugins
 
 import android.util.Log
 import com.remmi.app.core.events.*
-import com.remmi.app.core.service.file.FileService
+import com.remmi.app.core.file.FileService
 import com.remmi.app.plugins.alarm.AlarmPlugin
 import com.remmi.app.plugins.calendar.CalendarPlugin
 import com.remmi.app.plugins.contacts.ContactPlugin
@@ -28,6 +28,8 @@ class PluginManager : CommandListener, EventListener {
 
     /** Map of active plugin instances indexed by their metadata ID */
     val plugins = mutableMapOf<String, RemmiPlugin>()
+
+    private var eventBus: EventBus? = null
 
     /** Stream of plugin metadata for all discovered plugins */
     private val _pluginMetadata = MutableStateFlow<List<PluginMetadata>>(emptyList())
@@ -101,6 +103,11 @@ class PluginManager : CommandListener, EventListener {
             is CreateTaskCommand, is UpdateTaskCommand, is DeleteTaskCommand -> {
                 Log.i("Remmi", "[PluginManager] - Routing command to TasksPlugin")
                 plugins["tasks"]?.onCommand(command)
+            }
+
+            is SyncPluginDataCommand -> {
+                Log.i("Remmi", "[PluginManager] - Syncing data for plugin: ${command.pluginId}")
+                plugins[command.pluginId]?.onLoad()
             }
             
             // Future command routing can be added here
@@ -222,15 +229,18 @@ class PluginManager : CommandListener, EventListener {
      * */
     suspend fun initializeAll(context: PluginContext) {
         Log.d("Remmi", "[PluginManager] - Initializing all plugins")
+        this.eventBus = context.eventBus
         plugins.values.forEach { it.initialize(context) }
     }
 
     /**                                 Load All
      * Data loading phase for all plugins.
      * */
-    fun loadAll() {
-        Log.d("Remmi", "[PluginManager] - Starting data load for all plugins")
-        plugins.values.forEach { it.onLoad() }
+    suspend fun loadAll() {
+        Log.d("Remmi", "[PluginManager] - Requesting data load for all plugins via EventBus")
+        plugins.keys.forEach { id ->
+            eventBus?.publishCommand(SyncPluginDataCommand(pluginId = id))
+        }
     }
 
     /**                                 Clear All Caches

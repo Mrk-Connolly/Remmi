@@ -48,7 +48,7 @@ class RecipePlugin(
 
     override suspend fun initialize(context: PluginContext) {
         Log.d("Remmi", "[RecipePlugin] - Initializing")
-        val repo = RecipeRepository(context.serviceManager.databaseService)
+        val repo = RecipeRepository(context.databaseManager.service)
         _repository = repo
         _actions = RecipeActions(repo).apply {
             this.eventBus = context.eventBus

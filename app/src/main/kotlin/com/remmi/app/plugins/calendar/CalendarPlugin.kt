@@ -30,7 +30,6 @@ class CalendarPlugin(
     /** Internal storage for initialized components */
     private var _repository: CalendarRepository? = null
     private var _actions: CalendarActions? = null
-    private var _authRepository: com.remmi.app.core.auth.AuthRepository? = null
 
     /** Repository for managing Calendar data */
     override val repository: CalendarRepository
@@ -73,9 +72,8 @@ class CalendarPlugin(
         Log.d("Remmi", "[CalendarPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = CalendarRepository(context.serviceManager.databaseService)
+        val repo = CalendarRepository(context.databaseManager.service)
         _repository = repo
-        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = CalendarActions(repo).apply {
@@ -109,7 +107,7 @@ class CalendarPlugin(
                     location = command.location,
                     linkedTasks = command.linkedTasks,
                     linkedAlarm = command.linkedAlarm,
-                    userId = _authRepository?.getCurrentUserId()
+                    userId = null
                 )
                 
                 // 1. Request Persistence

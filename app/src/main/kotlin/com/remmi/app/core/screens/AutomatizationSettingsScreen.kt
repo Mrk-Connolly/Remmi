@@ -18,7 +18,7 @@ import com.remmi.app.core.automation.AutomationSettingsRepository
 import com.remmi.app.core.automation.DailyBriefingSettings
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.screens.components.RemmiTimePickerDialog
-import com.remmi.app.core.service.android.implementations.AndroidAutomationScheduler
+import com.remmi.app.core.android.implementations.AndroidAutomationScheduler
 import kotlinx.datetime.LocalTime
 
 @OptIn(ExperimentalMaterial3Api::class)

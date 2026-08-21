@@ -19,6 +19,7 @@ DROP TABLE IF EXISTS contacts CASCADE;
 DROP TABLE IF EXISTS alarms CASCADE;
 DROP TABLE IF EXISTS tasks CASCADE;
 DROP TABLE IF EXISTS calendar CASCADE;
+DROP TABLE IF EXISTS database_tests CASCADE;
 
 
 -- ============================================================
@@ -204,6 +205,22 @@ CREATE TABLE stock_batches (
     expiry_date         DATE
 );
 
+-- ============================================================
+-- 9. TESTING SYSTEM
+-- ============================================================
+
+CREATE TABLE database_tests (
+    id                  TEXT PRIMARY KEY,
+    created             TIMESTAMPTZ NOT NULL,
+    modified            TIMESTAMPTZ NOT NULL,
+    user_id             UUID DEFAULT auth.uid(),
+
+    plugin_id           TEXT NOT NULL,
+    operation           TEXT NOT NULL,
+    status              TEXT NOT NULL,
+    error_message       TEXT
+);
+
 
 -- ============================================================
 -- 9. PERMISSIONS
@@ -226,6 +243,7 @@ ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ingredient_metadata ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_stock ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stock_batches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE database_tests ENABLE ROW LEVEL SECURITY;
 
 -- Dynamic Policies for User Isolation
 CREATE POLICY "calendar_iso" ON calendar FOR ALL USING (auth.uid() = user_id);
@@ -237,6 +255,7 @@ CREATE POLICY "recipes_iso" ON recipes FOR ALL USING (auth.uid() = user_id OR us
 CREATE POLICY "meta_iso" ON ingredient_metadata FOR ALL USING (auth.uid() = user_id OR user_id IS NULL);
 CREATE POLICY "stock_iso" ON user_stock FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "batch_iso" ON stock_batches FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "test_iso" ON database_tests FOR ALL USING (auth.uid() = user_id);
 
 
 -- ============================================================

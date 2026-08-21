@@ -1,0 +1,15 @@
+package com.remmi.app.testing.core
+
+import com.remmi.app.core.plugins.repository.CloudRepository
+import com.remmi.app.core.database.DatabaseService
+
+/**
+ * DATABASE TEST REPOSITORY
+ * 
+ * Repository for logging test results.
+ */
+class DatabaseTestRepository(databaseService: DatabaseService) : CloudRepository<DatabaseTestLog>(
+    databaseService = databaseService,
+    tableName = "database_tests",
+    serializer = DatabaseTestLog.serializer()
+)

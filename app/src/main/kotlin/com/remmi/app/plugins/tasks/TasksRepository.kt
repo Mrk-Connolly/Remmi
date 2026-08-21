@@ -2,7 +2,7 @@ package com.remmi.app.plugins.tasks
 
 import android.util.Log
 import com.remmi.app.core.plugins.repository.CloudRepository
-import com.remmi.app.core.service.database.DatabaseService
+import com.remmi.app.core.database.DatabaseService
 
 /**
  * Repository for managing [TaskItem] data.

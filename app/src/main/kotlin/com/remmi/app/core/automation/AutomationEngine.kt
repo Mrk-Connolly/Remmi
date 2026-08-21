@@ -2,7 +2,7 @@ package com.remmi.app.core.automation
 
 import android.util.Log
 import com.remmi.app.core.events.*
-import com.remmi.app.core.service.ServiceManager
+import com.remmi.app.core.android.AndroidServiceManager
 import com.remmi.app.plugins.calendar.CalendarItem
 import com.remmi.app.plugins.tasks.TaskItem
 import kotlinx.coroutines.delay
@@ -18,7 +18,7 @@ import kotlinx.datetime.toLocalDateTime
  */
 class AutomationEngine(
     private val eventBus: EventBus,
-    private val serviceManager: ServiceManager
+    private val androidManager: AndroidServiceManager
 ) : EventListener, CommandListener {
 
     // ----------------------------------------------------------------------------
@@ -135,7 +135,7 @@ class AutomationEngine(
     private suspend fun generateDailyBriefing(tasks: List<TaskItem>, events: List<CalendarItem>) {
         Log.i("Remmi", "[AutomationEngine] - Generating final briefing summary")
         
-        val weather = serviceManager.weatherService.getTodayWeather()
+        val weather = androidManager.weatherService.getTodayWeather()
         
         val summary = buildString {
             append("Good morning!\n\n")
@@ -173,7 +173,7 @@ class AutomationEngine(
         Log.d("Remmi", "[AutomationEngine] - Briefing summary:\n$summary")
         
         // Post Notification
-        serviceManager.notificationService.postNotification(
+        androidManager.notificationService.postNotification(
             title = "Your Daily Briefing",
             content = summary
         )
