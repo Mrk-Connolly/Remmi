@@ -2,13 +2,27 @@ package com.remmi.app.core.automation
 
 import android.util.Log
 import com.remmi.app.core.events.*
-import com.remmi.app.core.android.AndroidServiceManager
+import com.remmi.app.core.events.commands.CommandListener
+import com.remmi.app.core.events.commands.CreateAlarmCommand
+import com.remmi.app.core.events.commands.DeleteAlarmCommand
+import com.remmi.app.core.events.commands.FetchTodayEventsCommand
+import com.remmi.app.core.events.commands.FetchTodayTasksCommand
+import com.remmi.app.core.events.commands.FetchWeatherCommand
+import com.remmi.app.core.events.commands.PostNotificationCommand
+import com.remmi.app.core.events.commands.RemmiCommand
+import com.remmi.app.core.events.commands.RunDailyBriefingCommand
+import com.remmi.app.core.events.events.CalendarEventDeletedEvent
+import com.remmi.app.core.events.events.DailyBriefingGeneratedEvent
+import com.remmi.app.core.events.events.EventListener
+import com.remmi.app.core.events.events.RemmiEvent
+import com.remmi.app.core.events.events.TaskCreatedEvent
+import com.remmi.app.core.events.events.TodayEventsFetchedEvent
+import com.remmi.app.core.events.events.TodayTasksFetchedEvent
+import com.remmi.app.core.events.events.WeatherFetchedEvent
+import com.remmi.app.core.service.android.WeatherInfo
 import com.remmi.app.plugins.calendar.CalendarItem
 import com.remmi.app.plugins.tasks.TaskItem
-import kotlinx.coroutines.delay
 import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
 /**
  * AUTOMATION ENGINE
@@ -17,8 +31,7 @@ import kotlinx.datetime.toLocalDateTime
  * Coordinates cross-plugin operations without direct dependencies between plugins.
  */
 class AutomationEngine(
-    private val eventBus: EventBus,
-    private val androidManager: AndroidServiceManager
+    private val eventBus: EventBus
 ) : EventListener, CommandListener {
 
     // ----------------------------------------------------------------------------
@@ -31,6 +44,7 @@ class AutomationEngine(
     /** Temporary state for daily briefing generation */
     private var pendingBriefingTasks: List<TaskItem>? = null
     private var pendingBriefingEvents: List<CalendarItem>? = null
+    private var pendingWeather: WeatherInfo? = null
 
 
     // ----------------------------------------------------------------------------
@@ -83,6 +97,7 @@ class AutomationEngine(
             is CalendarEventDeletedEvent -> handleCalendarDeleted(event)
             is TodayTasksFetchedEvent -> handleTasksFetched(event)
             is TodayEventsFetchedEvent -> handleEventsFetched(event)
+            is WeatherFetchedEvent -> handleWeatherFetched(event)
         }
     }
 
@@ -102,10 +117,12 @@ class AutomationEngine(
         // Reset state
         pendingBriefingTasks = null
         pendingBriefingEvents = null
+        pendingWeather = null
         
-        // Request data from plugins
+        // Request data from plugins and services
         eventBus.publishCommand(FetchTodayTasksCommand())
         eventBus.publishCommand(FetchTodayEventsCommand())
+        eventBus.publishCommand(FetchWeatherCommand())
         
         // We'll wait for the Fetched events in onEvent
     }
@@ -120,22 +137,31 @@ class AutomationEngine(
         checkBriefingReadiness()
     }
 
+    private suspend fun handleWeatherFetched(event: WeatherFetchedEvent) {
+        pendingWeather = event.weather
+        checkBriefingReadiness()
+    }
+
     private suspend fun checkBriefingReadiness() {
         val tasks = pendingBriefingTasks
         val events = pendingBriefingEvents
+        val weather = pendingWeather
         
-        if (tasks != null && events != null) {
-            generateDailyBriefing(tasks, events)
+        if (tasks != null && events != null && weather != null) {
+            generateDailyBriefing(tasks, events, weather)
             // Clear state
             pendingBriefingTasks = null
             pendingBriefingEvents = null
+            pendingWeather = null
         }
     }
 
-    private suspend fun generateDailyBriefing(tasks: List<TaskItem>, events: List<CalendarItem>) {
+    private suspend fun generateDailyBriefing(
+        tasks: List<TaskItem>,
+        events: List<CalendarItem>,
+        weather: WeatherInfo
+    ) {
         Log.i("Remmi", "[AutomationEngine] - Generating final briefing summary")
-        
-        val weather = androidManager.weatherService.getTodayWeather()
         
         val summary = buildString {
             append("Good morning!\n\n")
@@ -172,10 +198,12 @@ class AutomationEngine(
 
         Log.d("Remmi", "[AutomationEngine] - Briefing summary:\n$summary")
         
-        // Post Notification
-        androidManager.notificationService.postNotification(
-            title = "Your Daily Briefing",
-            content = summary
+        // Request system notification via EventBus
+        eventBus.publishCommand(
+            PostNotificationCommand(
+                title = "Your Daily Briefing",
+                content = summary
+            )
         )
 
         // Publish Event

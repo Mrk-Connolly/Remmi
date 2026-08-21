@@ -8,8 +8,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.remmi.app.core.plugins.PluginMetadata
-import com.remmi.app.core.plugins.widgets.RemmiWidget
+import com.remmi.app.core.plugin.PluginMetadata
+import com.remmi.app.core.plugin.widgets.RemmiWidget
 
 /**
  * Dashboard widget for favorite contacts.

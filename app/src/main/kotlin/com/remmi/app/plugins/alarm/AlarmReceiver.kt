@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import com.remmi.app.core.android.implementations.AndroidAlarmService
+import com.remmi.app.core.service.android.implementations.AndroidAlarmService
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

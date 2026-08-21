@@ -10,6 +10,7 @@ import com.remmi.app.testing.plugins.gift.*
 import com.remmi.app.testing.plugins.ingredients.*
 import com.remmi.app.testing.plugins.recipebook.*
 import com.remmi.app.testing.plugins.tasks.*
+import com.remmi.app.testing.plugins.weather.*
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
@@ -78,6 +79,9 @@ class PluginIntegrationTest {
         }
         (controller.pluginManager.plugins["tasks"] as? com.remmi.app.plugins.tasks.TasksPlugin)?.let { 
             manager.registerTest(AddTaskActionTest(it.actions)) 
+        }
+        (controller.pluginManager.plugins["weather"] as? com.remmi.app.plugins.weather.WeatherPlugin)?.let { 
+            manager.registerTest(FetchWeatherActionTest(it.actions)) 
         }
 
         manager.runAllWithExceptions()

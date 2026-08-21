@@ -3,8 +3,7 @@ package com.remmi.app.plugins.recipebook.models
 import android.util.Log
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
-import com.remmi.app.core.plugins.model.models.RemmiModel
-import kotlin.time.Instant
+import com.remmi.app.core.plugin.model.models.RemmiModel
 import kotlinx.datetime.Instant as KInstant
 
 @Serializable

@@ -2,7 +2,7 @@ package com.remmi.app.plugins.recipebook
 
 import android.util.Log
 import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.plugins.actions.RemmiAction
+import com.remmi.app.core.plugin.actions.RemmiAction
 import com.remmi.app.plugins.recipebook.models.RecipeItem
 
 class RecipeActions(

@@ -7,7 +7,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.remmi.app.core.host.RemmiHost
-import com.remmi.app.core.navigation.AppNavigation
 
 /**
  * Remmi App UI root

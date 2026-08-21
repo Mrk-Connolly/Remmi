@@ -21,21 +21,18 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.DeleteCalendarEventCommand
+import com.remmi.app.core.events.commands.DeleteCalendarEventCommand
 import com.remmi.app.plugins.calendar.CalendarActions
 import com.remmi.app.plugins.calendar.CalendarItem
 import io.github.boguszpawlowski.composecalendar.SelectableCalendar
@@ -50,7 +47,6 @@ import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.gestures.detectTapGestures
 
 enum class CalendarViewMode {
     MONTH, WEEK

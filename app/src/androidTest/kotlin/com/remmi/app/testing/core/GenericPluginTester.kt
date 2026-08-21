@@ -1,8 +1,8 @@
 package com.remmi.app.testing.core
 
 import android.util.Log
-import com.remmi.app.core.plugins.model.models.RemmiModel
-import com.remmi.app.core.plugins.repository.RemmiRepository
+import com.remmi.app.core.plugin.model.models.RemmiModel
+import com.remmi.app.core.plugin.repository.RemmiRepository
 import java.util.UUID
 
 /**

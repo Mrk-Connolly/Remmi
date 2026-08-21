@@ -13,8 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.remmi.app.core.plugins.model.components.RepeatRule
-import com.remmi.app.core.plugins.model.components.RepeatType
+import com.remmi.app.core.plugin.model.components.RepeatRule
+import com.remmi.app.core.plugin.model.components.RepeatType
 import com.remmi.app.core.screens.components.RemmiDatePickerDialog
 import com.remmi.app.core.screens.components.RemmiPrioritySwitch
 import com.remmi.app.core.screens.components.RemmiTitleDescriptionGroup

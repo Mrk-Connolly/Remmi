@@ -6,13 +6,12 @@ import androidx.compose.runtime.mutableStateOf
 import com.remmi.app.core.automation.AutomationEngine
 import com.remmi.app.core.automation.AutomationSettingsRepository
 import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.plugins.PluginContext
-import com.remmi.app.core.plugins.PluginManager
-import com.remmi.app.core.database.DatabaseServiceManager
-import com.remmi.app.core.file.FileServiceManager
-import com.remmi.app.core.android.AndroidServiceManager
-import com.remmi.app.core.android.implementations.AndroidAutomationScheduler
-import kotlinx.coroutines.launch
+import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.plugin.PluginManager
+import com.remmi.app.core.service.database.DatabaseServiceManager
+import com.remmi.app.core.service.file.FileServiceManager
+import com.remmi.app.core.service.android.AndroidServiceManager
+import com.remmi.app.core.service.android.implementations.AndroidAutomationScheduler
 
 /**
  * REMMI CONTROLLER
@@ -32,10 +31,10 @@ class RemmiController(val androidContext: Context) {
     /** Core System Managers */
     val databaseManager = DatabaseServiceManager()
     val fileManager = FileServiceManager(androidContext)
-    val androidManager = AndroidServiceManager(androidContext)
+    val androidManager = AndroidServiceManager(androidContext, eventBus)
     
     val pluginManager = PluginManager()
-    val automationEngine = AutomationEngine(eventBus, androidManager)
+    val automationEngine = AutomationEngine(eventBus)
 
     /** Shared Plugin Context */
     private val pluginContext = PluginContext(databaseManager, fileManager, androidManager, eventBus)
@@ -73,6 +72,7 @@ class RemmiController(val androidContext: Context) {
         // 3. Subscribe Command and Event Listeners
         eventBus.subscribeCommand(pluginManager)
         eventBus.subscribeCommand(databaseManager)
+        eventBus.subscribeCommand(androidManager)
         eventBus.subscribeCommand(automationEngine)
         eventBus.subscribeEvent(pluginManager)
 
@@ -123,6 +123,7 @@ class RemmiController(val androidContext: Context) {
         // 2. Stop Core Services and Command Channel
         eventBus.unsubscribeCommand(pluginManager)
         eventBus.unsubscribeCommand(databaseManager)
+        eventBus.unsubscribeCommand(androidManager)
         eventBus.unsubscribeCommand(automationEngine)
         eventBus.subscribeEvent(pluginManager)
         eventBus.stop()

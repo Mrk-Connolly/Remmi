@@ -8,8 +8,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.CreateAlarmCommand
-import com.remmi.app.core.events.UpdateAlarmCommand
+import com.remmi.app.core.events.commands.CreateAlarmCommand
+import com.remmi.app.core.events.commands.UpdateAlarmCommand
 import com.remmi.app.core.screens.components.RemmiEditorScaffold
 import com.remmi.app.core.screens.components.RemmiPrioritySwitch
 import com.remmi.app.core.screens.components.RemmiTitleDescriptionGroup

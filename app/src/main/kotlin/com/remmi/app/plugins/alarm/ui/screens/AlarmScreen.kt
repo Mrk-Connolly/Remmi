@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.DeleteAlarmCommand
+import com.remmi.app.core.events.commands.DeleteAlarmCommand
 import com.remmi.app.plugins.alarm.AlarmActions
 import com.remmi.app.plugins.alarm.AlarmUiModel
 import kotlinx.coroutines.delay
