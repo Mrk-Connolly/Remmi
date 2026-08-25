@@ -46,7 +46,7 @@
             android:exported="false" />
 
         <receiver
-            android:name="com.remmi.app.core.automation.dailyBriefing.DailyBriefingReceiver"
+            android:name="com.remmi.app.core.automation.features.dailybriefing.DailyBriefingReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
