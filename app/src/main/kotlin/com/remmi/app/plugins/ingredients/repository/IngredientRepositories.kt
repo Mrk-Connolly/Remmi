@@ -9,7 +9,7 @@ import com.remmi.app.plugins.ingredients.models.UserStock
 
 class MetadataRepository(databaseService: DatabaseService) : CloudRepository<IngredientMetadata>(
     databaseService = databaseService,
-    tableName = "ingredient_metadata",
+    tableName = "ingredient_metadata_TEST",
     serializer = IngredientMetadata.serializer()
 ) {
     init {
@@ -19,7 +19,7 @@ class MetadataRepository(databaseService: DatabaseService) : CloudRepository<Ing
 
 class StockRepository(databaseService: DatabaseService) : CloudRepository<UserStock>(
     databaseService = databaseService,
-    tableName = "user_stock",
+    tableName = "user_stock_TEST",
     serializer = UserStock.serializer()
 ) {
     init {
@@ -29,7 +29,7 @@ class StockRepository(databaseService: DatabaseService) : CloudRepository<UserSt
 
 class BatchRepository(databaseService: DatabaseService) : CloudRepository<StockBatch>(
     databaseService = databaseService,
-    tableName = "stock_batches",
+    tableName = "stock_batches_TEST",
     serializer = StockBatch.serializer()
 ) {
     init {

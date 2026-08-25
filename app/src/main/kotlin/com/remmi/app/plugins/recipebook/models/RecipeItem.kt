@@ -12,7 +12,7 @@ data class RecipeItem(
     override val created: KInstant,
     override var modified: KInstant,
     @SerialName("user_id")
-    override val userId: String? = null,
+    override var userId: String? = null,
 
     val title: String,
     val description: String,

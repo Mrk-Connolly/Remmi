@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 
 import com.remmi.app.core.host.RemmiHost
 import com.remmi.app.core.screens.RemmiApp
+import com.remmi.app.core.util.ErrorToaster
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -34,6 +35,9 @@ class MainActivity : ComponentActivity() {
         Log.d("Remmi", "[MainActivity] - App started")
 
         super.onCreate(savedInstanceState)
+
+        // Allow any layer to surface user-visible errors (e.g. DB failures)
+        ErrorToaster.init(applicationContext)
 
         // Initialize the Remmi core system
         remmiHost = RemmiHost(applicationContext)

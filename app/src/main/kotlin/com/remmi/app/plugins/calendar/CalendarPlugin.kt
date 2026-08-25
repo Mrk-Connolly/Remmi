@@ -18,6 +18,7 @@ import com.remmi.app.core.events.events.CalendarEventUpdatedEvent
 import com.remmi.app.core.events.events.RemmiEvent
 import com.remmi.app.core.events.events.TodayEventsFetchedEvent
 import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.auth.AuthRepository
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
@@ -43,6 +44,7 @@ class CalendarPlugin(
     /** Internal storage for initialized components */
     private var _repository: CalendarRepository? = null
     private var _actions: CalendarActions? = null
+    private var _authRepository: AuthRepository? = null
 
     /** Repository for managing Calendar data */
     override val repository: CalendarRepository
@@ -85,8 +87,9 @@ class CalendarPlugin(
         Log.d("Remmi", "[CalendarPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = CalendarRepository(context.databaseManager.service)
+        val repo = CalendarRepository(context.databaseManager.service, context.authRepository)
         _repository = repo
+        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = CalendarActions(repo).apply {
@@ -120,13 +123,13 @@ class CalendarPlugin(
                     location = command.location,
                     linkedTasks = command.linkedTasks,
                     linkedAlarm = command.linkedAlarm,
-                    userId = null
+                    userId = _authRepository?.getCurrentUser()?.id
                 )
                 
                 // 1. Request Persistence
                 actions.eventBus?.publishCommand(
                     UpsertDataCommand(
-                        tableName = "calendar",
+                        tableName = "calendar_TEST",
                         item = item,
                         serializer = CalendarItem.serializer(),
                         source = "calendar"
@@ -174,7 +177,7 @@ class CalendarPlugin(
             is UpdateCalendarEventCommand -> {
                 actions.eventBus?.publishCommand(
                     UpsertDataCommand(
-                        tableName = "calendar",
+                        tableName = "calendar_TEST",
                         item = command.event,
                         serializer = CalendarItem.serializer(),
                         source = "calendar"
@@ -188,7 +191,7 @@ class CalendarPlugin(
             is DeleteCalendarEventCommand -> {
                 actions.eventBus?.publishCommand(
                     DeleteDataCommand(
-                        tableName = "calendar",
+                        tableName = "calendar_TEST",
                         itemId = command.eventId,
                         source = "calendar"
                     )

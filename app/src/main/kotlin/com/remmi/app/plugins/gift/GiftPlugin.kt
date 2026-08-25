@@ -6,6 +6,7 @@ import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.events.commands.RemmiCommand
 import com.remmi.app.core.events.events.RemmiEvent
 import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.auth.AuthRepository
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
@@ -27,6 +28,7 @@ class GiftPlugin(
     /** Internal storage for initialized components */
     private var _repository: GiftRepository? = null
     private var _actions: GiftActions? = null
+    private var _authRepository: AuthRepository? = null
 
     /** Repository for managing Gift ideas data */
     override val repository: GiftRepository
@@ -80,8 +82,9 @@ class GiftPlugin(
         Log.d("Remmi", "[GiftPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = GiftRepository(context.databaseManager.service)
+        val repo = GiftRepository(context.databaseManager.service, context.authRepository)
         _repository = repo
+        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = GiftActions(repo).apply {

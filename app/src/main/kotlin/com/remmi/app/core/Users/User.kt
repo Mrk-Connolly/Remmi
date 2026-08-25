@@ -1,7 +1,7 @@
 package com.remmi.app.core.Users
 
 import android.util.Log
-import com.remmi.app.core.plugins.model.models.RemmiModel
+import com.remmi.app.core.plugin.model.models.RemmiModel
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -25,7 +25,7 @@ data class User(
     val email: String = "",
 
     @SerialName("user_id")
-    override val userId: String? = null
+    override var userId: String? = null
 
 ) : RemmiModel {
     init {

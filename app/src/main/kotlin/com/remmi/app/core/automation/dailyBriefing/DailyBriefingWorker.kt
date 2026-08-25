@@ -23,9 +23,11 @@ class DailyBriefingWorker(
         Log.d("Remmi", "[DailyBriefingWorker] - Starting background work")
 
         return try {
-            // 1. Initialize Headless Runtime
+            // 1. Initialize Headless Runtime (boot + plugin initialization so the
+            // automation engine has plugin data to work with)
             val host = RemmiHost(applicationContext)
             host.start()
+            host.runtime.initializePlugins()
             
             // 2. Trigger Briefing Command
             Log.d("Remmi", "[DailyBriefingWorker] - Publishing RunDailyBriefingCommand")

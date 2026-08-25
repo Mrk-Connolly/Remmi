@@ -8,6 +8,7 @@ CREATE TABLE contacts (
     id              TEXT PRIMARY KEY,
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,
+    user_id         UUID DEFAULT auth.uid(),
     name            TEXT NOT NULL,
     surname         TEXT NOT NULL,
     nickname        TEXT,
@@ -19,11 +20,12 @@ CREATE TABLE contacts (
     in_gift_list    BOOLEAN NOT NULL DEFAULT FALSE
 );
 
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE contacts TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE contacts TO anon;
 
 ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "contacts_all" ON contacts FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "contacts_user_isolation" ON contacts FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- EXAMPLE
 INSERT INTO contacts (id, created, modified, name, surname, group_name, is_favorite, in_gift_list)

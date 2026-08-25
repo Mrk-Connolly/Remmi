@@ -24,6 +24,7 @@ DROP TABLE IF EXISTS users CASCADE;
 CREATE TABLE calendar (
 
     id              TEXT PRIMARY KEY,
+    user_id            TEXT,
 
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,
@@ -57,6 +58,7 @@ CREATE TABLE calendar (
 CREATE TABLE tasks (
 
     id              TEXT PRIMARY KEY,
+    user_id            TEXT,
 
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,
@@ -88,6 +90,8 @@ CREATE TABLE tasks (
 CREATE TABLE alarms (
 
     id                    TEXT PRIMARY KEY,
+    user_id            TEXT,
+
 
     title                 TEXT NOT NULL,
 
@@ -116,6 +120,7 @@ CREATE TABLE alarms (
 CREATE TABLE contacts (
 
     id              TEXT PRIMARY KEY,
+    user_id            TEXT,
 
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,
@@ -143,6 +148,7 @@ CREATE TABLE contacts (
 CREATE TABLE gift_ideas (
 
     id              TEXT PRIMARY KEY,
+    user_id            TEXT,
 
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,
@@ -748,6 +754,7 @@ VALUES (
 CREATE TABLE users (
 
     id              TEXT PRIMARY KEY,
+    user_id            TEXT,
 
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,

@@ -75,12 +75,12 @@ fun AppNavigation(runtime: RemmiController) {
     val authState by runtime.authRepository.sessionStatus.collectAsState(initial = AuthState.Loading)
 
     when (authState) {
-        AuthState.Loading -> {
+        is AuthState.Loading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         }
-        AuthState.Unauthenticated -> {
+        is AuthState.Unauthenticated -> {
             val authViewModel = remember { AuthViewModel(runtime.authRepository) }
             val userViewModel = remember { UserViewModel(runtime.userRepository, runtime.authRepository) }
             val scope = rememberCoroutineScope()
@@ -99,7 +99,16 @@ fun AppNavigation(runtime: RemmiController) {
                 }
             )
         }
-        AuthState.Authenticated -> {
+        is AuthState.Authenticated -> {
+            // Ensure the (heavy) plugin/services startup has actually run. It is
+            // launched at app start, but if that coroutine failed or hadn't
+            // finished yet, kick it off here so we never sit on this spinner
+            // forever waiting for a flag that never flips.
+            LaunchedEffect(Unit) {
+                if (!runtime.isInitialized.value) {
+                    runtime.initializePlugins()
+                }
+            }
             // Wait for plugin initialization before composing the UI.
             // HomeScreen (and plugin screens) access actions/widgets that throw
             // if the plugin has not been initialized yet.

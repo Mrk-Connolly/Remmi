@@ -15,6 +15,7 @@ import com.remmi.app.core.events.events.AlarmUpdatedEvent
 import com.remmi.app.core.events.events.CalendarEventDeletedEvent
 import com.remmi.app.core.events.events.RemmiEvent
 import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.auth.AuthRepository
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
@@ -41,6 +42,7 @@ class AlarmPlugin(
     /** Internal storage for initialized components */
     private var _repository: AlarmRepository? = null
     private var _actions: AlarmActions? = null
+    private var _authRepository: AuthRepository? = null
 
     /** Repository for persistent alarm data. */
     override val repository: AlarmRepository
@@ -82,8 +84,9 @@ class AlarmPlugin(
         Log.d("Remmi", "[AlarmPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = AlarmRepository(context.databaseManager.service)
+        val repo = AlarmRepository(context.databaseManager.service, context.authRepository)
         _repository = repo
+        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = AlarmActions(repo).apply {
@@ -114,12 +117,12 @@ class AlarmPlugin(
                     useSound = command.useSound,
                     useVibration = command.useVibration,
                     linkedCalendarEvent = if (command.source == "calendar") "event_key" else null, // Placeholder
-                    userId = null
+                    userId = _authRepository?.getCurrentUser()?.id
                 )
                 
                 actions.eventBus?.publishCommand(
                     UpsertDataCommand(
-                        tableName = "alarms",
+                        tableName = "alarms_TEST",
                         item = item,
                         serializer = AlarmItem.serializer(),
                         source = "alarm"
@@ -139,7 +142,7 @@ class AlarmPlugin(
             is UpdateAlarmCommand -> {
                 actions.eventBus?.publishCommand(
                     UpsertDataCommand(
-                        tableName = "alarms",
+                        tableName = "alarms_TEST",
                         item = command.alarm,
                         serializer = AlarmItem.serializer(),
                         source = "alarm"
@@ -152,7 +155,7 @@ class AlarmPlugin(
             is DeleteAlarmCommand -> {
                 actions.eventBus?.publishCommand(
                     DeleteDataCommand(
-                        tableName = "alarms",
+                        tableName = "alarms_TEST",
                         itemId = command.alarmId,
                         source = "alarm"
                     )

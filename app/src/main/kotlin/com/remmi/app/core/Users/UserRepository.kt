@@ -1,7 +1,7 @@
 package com.remmi.app.core.Users
 
 import android.util.Log
-import com.remmi.app.core.plugins.repository.CloudRepository
+import com.remmi.app.core.plugin.repository.CloudRepository
 import com.remmi.app.core.service.database.DatabaseService
 
 /**
@@ -11,7 +11,7 @@ import com.remmi.app.core.service.database.DatabaseService
  */
 class UserRepository(databaseService: DatabaseService) : CloudRepository<User>(
     databaseService = databaseService,
-    tableName = "users",
+    tableName = "users_TEST",
     serializer = User.serializer()
 ) {
 

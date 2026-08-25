@@ -2,6 +2,7 @@ package com.remmi.app.plugins.alarm
 
 import android.util.Log
 import com.remmi.app.core.plugin.repository.CloudRepository
+import com.remmi.app.core.auth.AuthRepository
 import com.remmi.app.core.service.database.DatabaseService
 
 /**
@@ -9,10 +10,14 @@ import com.remmi.app.core.service.database.DatabaseService
  *
  * Persists alarms in the cloud and provides local caching.
  */
-class AlarmRepository(databaseService: DatabaseService) : CloudRepository<AlarmItem>(
+class AlarmRepository(
+    databaseService: DatabaseService,
+    authRepository: AuthRepository? = null
+) : CloudRepository<AlarmItem>(
     databaseService = databaseService,
-    tableName = "alarms",
-    serializer = AlarmItem.serializer()
+    tableName = "alarms_TEST",
+    serializer = AlarmItem.serializer(),
+    authRepository = authRepository
 ) {
 
 

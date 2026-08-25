@@ -8,6 +8,7 @@ CREATE TABLE tasks (
     id              TEXT PRIMARY KEY,
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,
+    user_id         UUID DEFAULT auth.uid(),
     title           TEXT NOT NULL,
     description     TEXT,
     completed       BOOLEAN NOT NULL DEFAULT FALSE,
@@ -21,11 +22,12 @@ CREATE TABLE tasks (
     relationships   TEXT[] NOT NULL DEFAULT '{}'
 );
 
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE tasks TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE tasks TO anon;
 
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "tasks_all" ON tasks FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "tasks_user_isolation" ON tasks FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- EXAMPLE
 INSERT INTO tasks (id, created, modified, title, is_priority, group_name)

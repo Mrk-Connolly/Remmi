@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Remmi.iml" filepath="$PROJECT_DIR$/.idea/Remmi.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/Remmi.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/Remmi.app.main.iml" />
     </modules>
   </component>

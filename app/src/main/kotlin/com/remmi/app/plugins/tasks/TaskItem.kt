@@ -49,7 +49,7 @@ data class TaskItem(
     val relationships: List<String> = emptyList(),
 
     @SerialName("user_id")
-    override val userId: String? = null
+    override var userId: String? = null
 
 ) : RemmiModel {
     init {

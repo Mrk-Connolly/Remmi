@@ -11,9 +11,11 @@ import com.remmi.app.core.service.android.AndroidServiceManager
  * Shared context provided to every plugin during initialization.
  * Centralizes access to system-level managers.
  */
+import com.remmi.app.core.auth.AuthRepository
 data class PluginContext(
     val databaseManager: DatabaseServiceManager,
     val fileManager: FileServiceManager,
     val androidManager: AndroidServiceManager,
-    val eventBus: EventBus
+    val eventBus: EventBus,
+    val authRepository: AuthRepository
 )

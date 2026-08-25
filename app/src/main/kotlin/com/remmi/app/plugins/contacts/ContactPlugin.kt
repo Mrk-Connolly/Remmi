@@ -6,6 +6,7 @@ import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.events.commands.RemmiCommand
 import com.remmi.app.core.events.events.RemmiEvent
 import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.auth.AuthRepository
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
@@ -28,6 +29,7 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     /** Internal storage for initialized components */
     private var _repository: ContactRepository? = null
     private var _actions: ContactActions? = null
+    private var _authRepository: AuthRepository? = null
 
     /** Repository for managing Contacts data */
     override val repository: ContactRepository
@@ -69,8 +71,9 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
         Log.d("Remmi", "[ContactPlugin] - Initializing with shared context")
         
         // Initialize Repository via ServiceManager
-        val repo = ContactRepository(context.databaseManager.service)
+        val repo = ContactRepository(context.databaseManager.service, context.authRepository)
         _repository = repo
+        _authRepository = context.authRepository
         
         // Initialize Actions
         _actions = ContactActions(repo).apply {

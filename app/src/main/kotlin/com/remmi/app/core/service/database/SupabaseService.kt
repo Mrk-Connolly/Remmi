@@ -98,6 +98,20 @@ object SupabaseService : DatabaseService {
         return list.firstOrNull()
     }
 
+    /**                                 Get By User
+     * Retrieve only the rows owned by the given user from the specified
+     * Supabase table.
+     * */
+    override suspend fun <T : RemmiModel> getByUser(tableName: String, userId: String, serializer: KSerializer<T>): List<T> {
+        Log.d("Remmi", "[SupabaseService] - [getByUser] executed")
+        val result = client.postgrest.from(tableName).select {
+            filter {
+                eq("user_id", userId)
+            }
+        }
+        return json.decodeFromString(ListSerializer(serializer), result.data)
+    }
+
     /**                                 Clear Table
      * Remove all entries from the specified Supabase table
      * */

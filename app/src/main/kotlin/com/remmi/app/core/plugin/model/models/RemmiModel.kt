@@ -24,5 +24,5 @@ interface RemmiModel {
     var modified: Instant
 
     /** Owner of the data item */
-    val userId: String?
+    var userId: String?
 }

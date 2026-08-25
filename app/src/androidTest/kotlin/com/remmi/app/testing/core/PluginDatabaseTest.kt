@@ -37,7 +37,7 @@ data class DatabaseTestLog(
     override val created: Instant,
     override var modified: Instant,
     @SerialName("user_id")
-    override val userId: String? = null,
+    override var userId: String? = null,
 
     @SerialName("plugin_id")
     val pluginId: String,

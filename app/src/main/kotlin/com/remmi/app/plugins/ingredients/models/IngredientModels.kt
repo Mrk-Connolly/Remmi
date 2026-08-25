@@ -65,7 +65,7 @@ data class IngredientMetadata(
     override val created: Instant,
     override var modified: Instant,
     @SerialName("user_id")
-    override val userId: String? = null, // Global metadata might have null userId
+    override var userId: String? = null, // Global metadata might have null userId
 
     val name: String,
     val description: String = "",
@@ -92,7 +92,7 @@ data class UserStock(
     override val created: Instant,
     override var modified: Instant,
     @SerialName("user_id")
-    override val userId: String? = null,
+    override var userId: String? = null,
 
     @SerialName("metadata_id")
     val metadataId: String,
@@ -114,7 +114,7 @@ data class StockBatch(
     override val created: Instant,
     override var modified: Instant,
     @SerialName("user_id")
-    override val userId: String? = null,
+    override var userId: String? = null,
 
     @SerialName("stock_id")
     val stockId: String,

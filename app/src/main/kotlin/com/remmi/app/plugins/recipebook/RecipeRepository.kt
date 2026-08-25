@@ -7,7 +7,7 @@ import com.remmi.app.plugins.recipebook.models.RecipeItem
 
 class RecipeRepository(databaseService: DatabaseService) : CloudRepository<RecipeItem>(
     databaseService = databaseService,
-    tableName = "recipes",
+    tableName = "recipes_TEST",
     serializer = RecipeItem.serializer()
 ) {
     init {

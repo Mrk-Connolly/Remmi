@@ -2,6 +2,7 @@ package com.remmi.app.plugins.tasks
 
 import android.util.Log
 import com.remmi.app.core.plugin.repository.CloudRepository
+import com.remmi.app.core.auth.AuthRepository
 import com.remmi.app.core.service.database.DatabaseService
 
 /**
@@ -10,10 +11,14 @@ import com.remmi.app.core.service.database.DatabaseService
  * Persists tasks in the "tasks" table of the cloud database and provides
  * in-memory caching.
  */
-class TasksRepository(databaseService: DatabaseService) : CloudRepository<TaskItem>(
+class TasksRepository(
+    databaseService: DatabaseService,
+    authRepository: AuthRepository? = null
+) : CloudRepository<TaskItem>(
     databaseService = databaseService,
-    tableName = "tasks",
-    serializer = TaskItem.serializer()
+    tableName = "tasks_TEST",
+    serializer = TaskItem.serializer(),
+    authRepository = authRepository
 ) {
 
 

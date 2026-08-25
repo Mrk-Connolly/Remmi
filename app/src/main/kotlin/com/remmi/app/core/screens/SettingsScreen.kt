@@ -1,6 +1,8 @@
 package com.remmi.app.core.screens
 
 import android.util.Log
+import com.remmi.app.core.navigation.RemmiDestination
+import com.remmi.app.core.navigation.getIconForName
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -20,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.auth.AuthState
 import com.remmi.app.core.plugin.PluginMetadata
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -111,6 +114,39 @@ fun SettingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                item {
+                    Text(
+                        text = "Account",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                item {
+                    val authState by runtime.authRepository.sessionStatus.collectAsState(initial = AuthState.Loading)
+                    val email = (authState as? AuthState.Authenticated)?.user?.email ?: "—"
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(text = "Sesión iniciada como:")
+                            Text(
+                                text = email,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Button(
+                                onClick = {
+                                    scope.launch { runtime.signOut() }
+                                },
+                                colors = ButtonDefaults.filledTonalButtonColors(),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Cerrar sesión")
+                            }
+                        }
+                    }
+                }
+
                 item {
                     Text(
                         text = "System Features",

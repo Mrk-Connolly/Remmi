@@ -7,7 +7,8 @@ DROP TABLE IF EXISTS calendar CASCADE;
 CREATE TABLE calendar (
     id              TEXT PRIMARY KEY,
     created         TIMESTAMPTZ NOT NULL,
-    modified        TIMESTAMPTZ NOT NULL,
+    modified         TIMESTAMPTZ NOT NULL,
+    user_id         UUID DEFAULT auth.uid(),
     title           TEXT NOT NULL,
     description     TEXT,
     starting_date   DATE NOT NULL,
@@ -23,11 +24,12 @@ CREATE TABLE calendar (
     linked_alarm    TEXT
 );
 
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE calendar TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE calendar TO anon;
 
 ALTER TABLE calendar ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "calendar_all" ON calendar FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "calendar_user_isolation" ON calendar FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- EXAMPLE
 INSERT INTO calendar (id, created, modified, title, starting_date, is_priority, group_name)

@@ -57,7 +57,7 @@ data class CalendarItem(
     val linkedAlarm: String? = null,
 
     @SerialName("user_id")
-    override val userId: String? = null
+    override var userId: String? = null
 
 ) : RemmiModel {
     init {

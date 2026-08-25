@@ -8,6 +8,7 @@ CREATE TABLE alarms (
     id                    TEXT PRIMARY KEY,
     created               TIMESTAMPTZ NOT NULL,
     modified              TIMESTAMPTZ NOT NULL,
+    user_id               UUID DEFAULT auth.uid(),
     title                 TEXT NOT NULL,
     description           TEXT,
     is_priority           BOOLEAN NOT NULL DEFAULT FALSE,
@@ -18,11 +19,12 @@ CREATE TABLE alarms (
     custom                TEXT[] NOT NULL DEFAULT '{}'
 );
 
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE alarms TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE alarms TO anon;
 
 ALTER TABLE alarms ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "alarms_all" ON alarms FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "alarms_user_isolation" ON alarms FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- EXAMPLE
 INSERT INTO alarms (id, created, modified, title, is_priority, time)
