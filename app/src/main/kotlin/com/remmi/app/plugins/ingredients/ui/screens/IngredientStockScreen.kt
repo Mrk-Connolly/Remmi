@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.plugins.ingredients.IngredientActions
-import com.remmi.app.plugins.ingredients.models.*
+import com.remmi.app.core.model.ingredients.*
 import com.remmi.app.plugins.ingredients.ui.popups.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -140,9 +140,20 @@ fun IngredientStockScreen(
     if (showAddDialog) {
         AddIngredientDialog(
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, group, qty, unit, expiry, brand ->
+            onConfirm = { name, group, qty, unit, expiry, brand, allowedUnits, conversions, nutrition, shelfLife ->
                 scope.launch {
-                    actions.addIngredient(name, group, qty, unit, expiry, brand)
+                    actions.addIngredient(
+                        name = name, 
+                        foodGroup = group, 
+                        initialQuantity = qty, 
+                        unit = unit, 
+                        expiryDate = expiry, 
+                        brand = brand, 
+                        allowedUnits = allowedUnits, 
+                        conversions = conversions,
+                        baseNutrition = nutrition,
+                        shelfLife = shelfLife
+                    )
                     inventory = actions.getInventory()
                     showAddDialog = false
                 }
@@ -276,7 +287,7 @@ fun IngredientRow(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .combinedClickable(
-                onClick = onAdjust,
+                onClick = onLongClick,
                 onLongClick = onLongClick
             ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -323,17 +334,33 @@ fun IngredientRow(
             }
 
             // Quantity
+            val (formattedQty, formattedUnit) = formatQuantity(item.totalQuantity, item.stock.primaryUnit)
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${item.totalQuantity.toCleanString()}",
+                    text = formattedQty,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = if (item.totalQuantity <= 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = item.stock.primaryUnit.name.lowercase(),
+                    text = formattedUnit,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            // Adjustment Button
+            IconButton(
+                onClick = onAdjust,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    Icons.Default.Balance,
+                    contentDescription = "Adjust Stock",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -357,7 +384,5 @@ fun getExpiryStatus(expiry: LocalDate?): ExpiryStatus {
 
 fun formatDate(date: LocalDate): String {
     val monthName = date.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
-    return "${date.dayOfMonth} $monthName"
+    return "${date.day} $monthName"
 }
-
-fun Double.toCleanString(): String = if (this % 1.0 == 0.0) this.toInt().toString() else "%.2f".format(this)

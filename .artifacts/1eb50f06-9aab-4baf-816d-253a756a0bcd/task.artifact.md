@@ -1,0 +1,18 @@
+- [x] Setup MapLibre dependencies
+- [x] Update Database Schema (`startup.sql`)
+- [x] Implement Map Core Models & Events
+    - [x] `SavedLocation.kt`
+    - [x] `StandardCommands.kt` update
+    - [x] `StandardEvents.kt` update
+    - [x] `UIStateManager.kt` update
+- [x] Implement Map Plugin Component
+    - [x] `MapRepository.kt`
+    - [x] `MapActions.kt`
+    - [x] `MapPlugin.kt`
+- [x] Implement Map UI
+    - [x] `LocationPickerPopup.kt`
+    - [x] `MapScreen.kt`
+- [x] Integrate with existing plugins
+    - [x] `AppMenu.kt` (navigation and overlay)
+    - [x] `CalendarScreenEditor.kt` (request location)
+- [x] Final Build & Verification

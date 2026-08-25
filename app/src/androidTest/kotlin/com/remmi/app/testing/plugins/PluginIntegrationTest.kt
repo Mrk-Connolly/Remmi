@@ -54,8 +54,59 @@ class PluginIntegrationTest {
         tasksPlugin?.let { TaskDatabaseTest(it.repository, testRepo).runTests() }
     }
 
+    /**
+     * Diagnostic version to test a single plugin database integration
+     */
+    suspend fun testSpecificPluginDatabase(pluginId: String) {
+        when (pluginId) {
+            "alarm" -> (controller.pluginManager.plugins["alarm"] as? com.remmi.app.plugins.alarm.AlarmPlugin)?.let { 
+                AlarmDatabaseTest(it.repository, testRepo).runTests() 
+            } ?: throw IllegalStateException("Alarm plugin not found")
+            
+            "calendar" -> (controller.pluginManager.plugins["calendar"] as? com.remmi.app.plugins.calendar.CalendarPlugin)?.let { 
+                CalendarDatabaseTest(it.repository, testRepo).runTests() 
+            } ?: throw IllegalStateException("Calendar plugin not found")
+
+            "contacts" -> (controller.pluginManager.plugins["contacts"] as? com.remmi.app.plugins.contacts.ContactPlugin)?.let { 
+                ContactDatabaseTest(it.repository, testRepo).runTests() 
+            } ?: throw IllegalStateException("Contacts plugin not found")
+
+            "gift" -> (controller.pluginManager.plugins["gift"] as? com.remmi.app.plugins.gift.GiftPlugin)?.let { 
+                GiftDatabaseTest(it.repository, testRepo).runTests() 
+            } ?: throw IllegalStateException("Gift plugin not found")
+
+            "ingredient_stock" -> (controller.pluginManager.plugins["ingredient_stock"] as? com.remmi.app.plugins.ingredients.IngredientPlugin)?.let { 
+                IngredientDatabaseTest(it.repository, it.repositoryStock, it.repositoryBatch, testRepo).runTests() 
+            } ?: throw IllegalStateException("Ingredients plugin not found")
+
+            "recipe_book" -> (controller.pluginManager.plugins["recipe_book"] as? com.remmi.app.plugins.recipebook.RecipePlugin)?.let { 
+                RecipeDatabaseTest(it.repository, testRepo).runTests() 
+            } ?: throw IllegalStateException("Recipe plugin not found")
+
+            "tasks" -> (controller.pluginManager.plugins["tasks"] as? com.remmi.app.plugins.tasks.TasksPlugin)?.let { 
+                TaskDatabaseTest(it.repository, testRepo).runTests() 
+            } ?: throw IllegalStateException("Tasks plugin not found")
+        }
+    }
+
     @Test
     fun testAllPluginsActions() = runTest {
+        val manager = getActionManager()
+        manager.runAllWithExceptions()
+    }
+
+    /**
+     * Diagnostic version that reports failures but doesn't throw until the end of the manager run.
+     */
+    suspend fun testAllPluginsActionsDiagnostic() {
+        val manager = getActionManager()
+        val failures = manager.runDiagnostic()
+        if (failures.isNotEmpty()) {
+            throw IllegalStateException("Action Failures:\n${failures.joinToString("\n")}")
+        }
+    }
+
+    private fun getActionManager(): ActionTestManager {
         val manager = ActionTestManager(testRepo)
         
         // Register all action tests
@@ -83,8 +134,7 @@ class PluginIntegrationTest {
         (controller.pluginManager.plugins["weather"] as? com.remmi.app.plugins.weather.WeatherPlugin)?.let { 
             manager.registerTest(FetchWeatherActionTest(it.actions)) 
         }
-
-        manager.runAllWithExceptions()
+        return manager
     }
 
     @Test

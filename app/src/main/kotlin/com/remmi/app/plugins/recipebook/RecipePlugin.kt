@@ -9,6 +9,7 @@ import com.remmi.app.core.plugin.PluginContext
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
+import com.remmi.app.core.model.recipebook.RecipeItem
 import com.remmi.app.core.plugin.widgets.RemmiWidget
 import com.remmi.app.plugins.recipebook.ui.screens.RecipeScreen
 import kotlinx.coroutines.CoroutineScope
@@ -60,17 +61,32 @@ class RecipePlugin(
     }
 
     override suspend fun onEvent(event: RemmiEvent) {
-        Log.d("Remmi", "[RecipePlugin] - [onEvent] executed")
+        Log.d("Remmi", "[RecipePlugin] - [onEvent] executed: ${event::class.simpleName}")
+        when (event) {
+            is com.remmi.app.core.events.events.IngredientUpdatedEvent -> {
+                Log.d("Remmi", "[RecipePlugin] - Ingredient updated. Requesting data for recalculation.")
+                actions.recalculateAllRecipes()
+            }
+            is com.remmi.app.core.events.events.IngredientMetadataFetchedEvent -> {
+                Log.d("Remmi", "[RecipePlugin] - Received metadata. Performing recalculation.")
+                actions.performRecalculation(event.metadata)
+            }
+        }
     }
 
     override fun onLoad() {
         Log.d("Remmi", "[RecipePlugin] - [onLoad] executed")
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                actions.sync()
-            } catch (e: Exception) {
-                Log.e("Remmi", "Failed to sync recipes", e)
-            }
+            refresh()
+        }
+    }
+
+    override suspend fun refresh() {
+        Log.d("Remmi", "[RecipePlugin] - Refreshing data")
+        try {
+            actions.sync()
+        } catch (e: Exception) {
+            Log.e("Remmi", "Failed to sync recipes", e)
         }
     }
 

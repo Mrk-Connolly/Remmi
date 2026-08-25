@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,7 +33,7 @@ import androidx.compose.ui.unit.sp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.events.commands.DeleteCalendarEventCommand
 import com.remmi.app.plugins.calendar.CalendarActions
-import com.remmi.app.plugins.calendar.CalendarItem
+import com.remmi.app.core.model.calendar.CalendarItem
 import io.github.boguszpawlowski.composecalendar.SelectableCalendar
 import io.github.boguszpawlowski.composecalendar.day.DayState
 import io.github.boguszpawlowski.composecalendar.header.MonthState
@@ -87,17 +86,17 @@ fun CalendarScreen(
     
     // Track editor state for hiding bottom menu
     LaunchedEffect(editorMode) {
-        controller.isEditorActive.value = editorMode != null
+        controller.uiStateManager.isEditorActive.value = editorMode != null
     }
 
     LaunchedEffect(viewMode) {
-        controller.isMenuVisible.value = viewMode != CalendarViewMode.WEEK
+        controller.uiStateManager.isMenuVisible.value = viewMode != CalendarViewMode.WEEK
     }
     
     DisposableEffect(Unit) {
         onDispose {
-            controller.isMenuVisible.value = true
-            controller.isEditorActive.value = false
+            controller.uiStateManager.isMenuVisible.value = true
+            controller.uiStateManager.isEditorActive.value = false
         }
     }
 
@@ -148,8 +147,8 @@ fun CalendarScreen(
             while (current <= end) {
                 map.getOrPut(current) { mutableListOf() }.add(event)
                 try {
-                    val javaDate = java.time.LocalDate.of(current.year, current.monthNumber, current.dayOfMonth).plusDays(1)
-                    current = LocalDate(javaDate.year, javaDate.monthValue, javaDate.dayOfMonth)
+                    val nextDate = current.plus(1, DateTimeUnit.DAY)
+                    current = nextDate
                 } catch (e: Exception) {
                     break
                 }
@@ -580,7 +579,7 @@ fun CalendarDay(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = date.day.toString(),
+                text = date.dayOfMonth.toString(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
             )
@@ -639,7 +638,7 @@ fun EventCard(
                 )
                 if (item.group != null) {
                     Text(
-                        text = item.group,
+                        text = item.group!!,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -749,7 +748,7 @@ fun WeekScheduleView(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = date.day.toString(),
+                        text = date.dayOfMonth.toString(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (date == JavaLocalDate.now().toKotlinLocalDate()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
@@ -1091,7 +1090,7 @@ fun EventBox(
             if (durationMinutes >= 60) {
                 if (event.group != null) {
                     Text(
-                        text = event.group,
+                        text = event.group!!,
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 7.sp,
                         color = contentColor.copy(alpha = 0.7f),

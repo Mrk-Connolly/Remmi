@@ -51,6 +51,10 @@ class WeatherPlugin(
         Log.d("Remmi", "[WeatherPlugin] - [onLoad] executed")
     }
 
+    override suspend fun refresh() {
+        Log.d("Remmi", "[WeatherPlugin] - Refreshing data (No-op)")
+    }
+
     override fun onUnload() {
         Log.d("Remmi", "[WeatherPlugin] - [onUnload] executed")
     }

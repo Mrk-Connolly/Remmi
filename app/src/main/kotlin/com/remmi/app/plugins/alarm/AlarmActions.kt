@@ -1,13 +1,14 @@
 package com.remmi.app.plugins.alarm
 
 import android.util.Log
-import com.remmi.app.core.events.*
+import com.remmi.app.core.events.EventBus
 import com.remmi.app.core.events.events.AlarmCreatedEvent
 import com.remmi.app.core.events.events.AlarmDeletedEvent
 import com.remmi.app.core.events.events.AlarmUpdatedEvent
+import com.remmi.app.core.model.alarm.AlarmItem
 import com.remmi.app.core.plugin.actions.RemmiAction
 import com.remmi.app.core.service.android.AlarmService
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.util.UUID
@@ -85,7 +86,8 @@ class AlarmActions(
         custom: List<String> = emptyList(),
         syncToSystem: Boolean = true,
         useSound: Boolean = true,
-        useVibration: Boolean = true
+        useVibration: Boolean = true,
+        linkedCalendarEventId: String? = null
     ): Boolean {
         Log.d("Remmi", "[AlarmActions] - [addAlarm] executed")
         return try {
@@ -101,7 +103,8 @@ class AlarmActions(
                 repeatable = repeatable,
                 custom = custom,
                 useSound = useSound,
-                useVibration = useVibration
+                useVibration = useVibration,
+                linkedCalendarEvent = linkedCalendarEventId
             )
             repository.insert(alarm)
             Log.d("AlarmActions", "Alarm inserted into repository: ${alarm.id}")
@@ -136,22 +139,22 @@ class AlarmActions(
         Log.d("Remmi", "[AlarmActions] - [updateAlarm] executed")
         return try {
             Log.d("AlarmActions", "Updating alarm in repository: ${alarm.id}")
-            alarm.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-            repository.updateCloud(alarm)
+            val updatedAlarm = alarm.copy(modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()))
+            repository.updateCloud(updatedAlarm)
             
             // Reschedule internal system alarm
-            Log.d("AlarmActions", "Rescheduling system alarm for: ${alarm.time}")
-            alarmService?.setAlarm(alarm.id, alarm.title, alarm.time.toEpochMilliseconds(), alarm.useSound, alarm.useVibration)
+            Log.d("AlarmActions", "Rescheduling system alarm for: ${updatedAlarm.time}")
+            alarmService?.setAlarm(updatedAlarm.id, updatedAlarm.title, updatedAlarm.time.toEpochMilliseconds(), updatedAlarm.useSound, updatedAlarm.useVibration)
             
             // Optionally push to external Clock app
             if (syncToSystem) {
-                alarmService?.syncToSystemClock(alarm.title, alarm.time.toEpochMilliseconds())
+                alarmService?.syncToSystemClock(updatedAlarm.title, updatedAlarm.time.toEpochMilliseconds())
             }
 
             // Publish Fact
-            Log.i("Remmi", "[AlarmActions] - Successfully updated alarm: ${alarm.id}. Publishing event...")
+            Log.i("Remmi", "[AlarmActions] - Successfully updated alarm: ${updatedAlarm.id}. Publishing event...")
             eventBus?.publishEvent(
-                AlarmUpdatedEvent(alarmId = alarm.id)
+                AlarmUpdatedEvent(alarmId = updatedAlarm.id)
             )
             
             true
@@ -176,9 +179,6 @@ class AlarmActions(
             alarmService?.cancelAlarm(id)
 
             // If it was synced to system clock, we try to remove it from there too if possible
-            // Note: Android doesn't allow easy deletion of specific alarms in other apps by ID, 
-            // but we can try to find it by time/label if we extend the service.
-            // For now, internal cancellation is guaranteed.
             if (alarmToDelete != null) {
                 alarmService?.removeFromSystemClock(alarmToDelete.title, alarmToDelete.time.toEpochMilliseconds())
             }

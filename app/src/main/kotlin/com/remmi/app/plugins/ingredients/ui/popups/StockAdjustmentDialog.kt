@@ -11,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.screens.components.RemmiDatePickerDialog
-import com.remmi.app.plugins.ingredients.models.IngredientUiModel
+import com.remmi.app.core.model.ingredients.IngredientUiModel
 import kotlinx.datetime.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,15 +42,13 @@ fun StockAdjustmentDialog(
                     FilterChip(
                         selected = !isAddition,
                         onClick = { isAddition = false },
-                        label = { Text("Remove") },
-                        leadingIcon = { Icon(Icons.Default.Remove, null) }
+                        label = { Text("-") }
                     )
                     Spacer(Modifier.width(16.dp))
                     FilterChip(
                         selected = isAddition,
                         onClick = { isAddition = true },
-                        label = { Text("Add New Batch") },
-                        leadingIcon = { Icon(Icons.Default.Add, null) }
+                        label = { Text("+") }
                     )
                 }
 

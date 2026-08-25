@@ -92,13 +92,23 @@ fun AppNavigation(runtime: RemmiController) {
     val isCalendarRoute = currentRoute?.contains("calendar") == true
     val isSettingsRoute = currentRoute == RemmiDestination.SETTINGS_ROUTE
 
-    val isEditorActive = runtime.isEditorActive.value
-    val isMenuVisible = runtime.isMenuVisible.value
+    val isEditorActive = runtime.uiStateManager.isEditorActive.value
+    val isMenuVisible = runtime.uiStateManager.isMenuVisible.value
     
     val animatedPeekHeight by animateDpAsState(
         if (isEditorActive || !isMenuVisible || isSettingsRoute) 0.dp else 160.dp,
         label = "peekHeight"
     )
+
+    // Listen for Map Commands
+    LaunchedEffect(Unit) {
+        runtime.eventBus.commands.collect { command ->
+            if (command is com.remmi.app.core.events.commands.PickLocationCommand) {
+                val mapsPlugin = runtime.pluginManager.plugins["maps"] as? com.remmi.app.plugins.maps.MapPlugin
+                mapsPlugin?.handleCommandWithController(command, runtime)
+            }
+        }
+    }
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
@@ -217,6 +227,20 @@ fun AppNavigation(runtime: RemmiController) {
                 )
             }
         }
+
+        // Global Overlays
+        if (runtime.uiStateManager.showLocationPicker.value) {
+            val mapsPlugin = runtime.pluginManager.plugins["maps"] as? com.remmi.app.plugins.maps.MapPlugin
+            if (mapsPlugin != null) {
+                com.remmi.app.plugins.maps.ui.popups.LocationPickerPopup(
+                    actions = mapsPlugin.actions,
+                    controller = runtime,
+                    requestId = runtime.uiStateManager.locationPickerRequestId.value,
+                    initialSearch = runtime.uiStateManager.locationPickerInitialSearch.value,
+                    onDismiss = { runtime.uiStateManager.showLocationPicker.value = false }
+                )
+            }
+        }
     }
 }
 
@@ -238,25 +262,44 @@ fun RowScope.IslandNavigationItems(
         label = { Text("Home") }
     )
 
-    NavigationBarItem(
-        selected = currentRoute?.contains("calendar") == true,
-        onClick = { 
-            navController.navigate(RemmiDestination.pluginRoute("calendar"))
-            onNavigate()
-        },
-        icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Calendar") },
-        label = { Text("Calendar") }
-    )
+    val isCalendarEnabled = metadata.any { it.id == "calendar" && it.enabled }
+    if (isCalendarEnabled) {
+        NavigationBarItem(
+            selected = currentRoute?.contains("calendar") == true,
+            onClick = { 
+                navController.navigate(RemmiDestination.pluginRoute("calendar"))
+                onNavigate()
+            },
+            icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Calendar") },
+            label = { Text("Calendar") }
+        )
+    }
 
-    NavigationBarItem(
-        selected = currentRoute?.contains("tasks") == true,
-        onClick = { 
-            navController.navigate(RemmiDestination.pluginRoute("tasks"))
-            onNavigate()
-        },
-        icon = { Icon(Icons.Default.CheckCircle, contentDescription = "Tasks") },
-        label = { Text("Tasks") }
-    )
+    val isTasksEnabled = metadata.any { it.id == "tasks" && it.enabled }
+    if (isTasksEnabled) {
+        NavigationBarItem(
+            selected = currentRoute?.contains("tasks") == true,
+            onClick = { 
+                navController.navigate(RemmiDestination.pluginRoute("tasks"))
+                onNavigate()
+            },
+            icon = { Icon(Icons.Default.CheckCircle, contentDescription = "Tasks") },
+            label = { Text("Tasks") }
+        )
+    }
+
+    val isMapsEnabled = metadata.any { it.id == "maps" && it.enabled }
+    if (isMapsEnabled) {
+        NavigationBarItem(
+            selected = currentRoute?.contains("maps") == true,
+            onClick = { 
+                navController.navigate(RemmiDestination.pluginRoute("maps"))
+                onNavigate()
+            },
+            icon = { Icon(Icons.Default.Map, contentDescription = "Map") },
+            label = { Text("Map") }
+        )
+    }
 
     NavigationBarItem(
         selected = currentRoute == RemmiDestination.SETTINGS_ROUTE,
@@ -361,6 +404,7 @@ fun getIconForName(name: String?): ImageVector {
         "restaurant" -> Icons.Default.Restaurant
         "kitchen" -> Icons.Default.Kitchen
         "wb_sunny" -> Icons.Default.WbSunny
+        "map" -> Icons.Default.Map
         else -> Icons.Default.Extension
     }
 }

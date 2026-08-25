@@ -100,11 +100,20 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
         Log.d("Remmi", "[ContactPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Contacts Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                actions.sync()
-            } catch (e: Exception) {
-                Log.e("Remmi", "Failed to sync contacts: ${e.message}")
-            }
+            refresh()
+        }
+        Log.d("Remmi", "Contacts Plugin Loaded")
+    }
+
+    /**                                   Refresh
+     * Sync contacts with the database.
+     */
+    override suspend fun refresh() {
+        Log.d("Remmi", "[ContactPlugin] - Refreshing data")
+        try {
+            actions.sync()
+        } catch (e: Exception) {
+            Log.e("Remmi", "Failed to sync contacts: ${e.message}")
         }
     }
 

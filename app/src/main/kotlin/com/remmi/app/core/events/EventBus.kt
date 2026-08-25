@@ -5,6 +5,8 @@ import com.remmi.app.core.events.commands.CommandListener
 import com.remmi.app.core.events.commands.RemmiCommand
 import com.remmi.app.core.events.events.EventListener
 import com.remmi.app.core.events.events.RemmiEvent
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 /**
  * EVENT BUS
@@ -23,6 +25,12 @@ class EventBus {
 
     /** Listeners for Intents (requests to perform an action) */
     private val commandListeners = mutableSetOf<CommandListener>()
+
+    private val _events = MutableSharedFlow<RemmiEvent>(extraBufferCapacity = 64)
+    val events = _events.asSharedFlow()
+
+    private val _commands = MutableSharedFlow<RemmiCommand>(extraBufferCapacity = 64)
+    val commands = _commands.asSharedFlow()
 
 
     // ----------------------------------------------------------------------------
@@ -96,6 +104,8 @@ class EventBus {
     suspend fun publishEvent(event: RemmiEvent) {
         Log.i("Remmi", "[EventBus] - EVENT PUBLISHED: [${event.type}] from [${event.source}] (ID: ${event.eventId})")
         
+        _events.emit(event)
+        
         eventListeners.forEach { listener ->
             try {
                 listener.onEvent(event)
@@ -110,6 +120,8 @@ class EventBus {
      * */
     suspend fun publishCommand(command: RemmiCommand) {
         Log.i("Remmi", "[EventBus] - COMMAND PUBLISHED: [${command::class.simpleName}] from [${command.source}] (ID: ${command.commandId})")
+        
+        _commands.emit(command)
         
         commandListeners.forEach { listener ->
             try {

@@ -2,9 +2,9 @@ package com.remmi.app.core.events.commands
 
 import com.remmi.app.core.plugin.model.components.RepeatRule
 import com.remmi.app.core.plugin.model.models.RemmiModel
-import com.remmi.app.plugins.alarm.AlarmItem
-import com.remmi.app.plugins.calendar.CalendarItem
-import com.remmi.app.plugins.tasks.TaskItem
+import com.remmi.app.core.model.alarm.AlarmItem
+import com.remmi.app.core.model.calendar.CalendarItem
+import com.remmi.app.core.model.tasks.TaskItem
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -89,6 +89,31 @@ data class FetchTodayEventsCommand(
 ) : RemmiCommand
 
 /**
+ * FETCH WEEKLY EVENTS COMMAND
+ */
+data class FetchWeeklyEventsCommand(
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "lock_screen"
+) : RemmiCommand
+
+/**
+ * FETCH WEEKLY TASKS COMMAND
+ */
+data class FetchWeeklyTasksCommand(
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "lock_screen"
+) : RemmiCommand
+
+/**
+ * UPDATE LOCK SCREEN SUMMARY COMMAND
+ */
+data class UpdateLockScreenSummaryCommand(
+    val summary: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "lock_screen"
+) : RemmiCommand
+
+/**
  * FETCH WEATHER COMMAND
  * Request weather data for the daily briefing.
  */
@@ -104,6 +129,10 @@ data class FetchWeatherCommand(
 data class PostNotificationCommand(
     val title: String,
     val content: String,
+    val useSound: Boolean = true,
+    val useVibration: Boolean = true,
+    val tag: String? = null,
+    val ongoing: Boolean = false,
     override val commandId: String = UUID.randomUUID().toString(),
     override val source: String = "system"
 ) : RemmiCommand
@@ -122,6 +151,7 @@ data class CreateAlarmCommand(
     val syncToSystem: Boolean = true,
     val useSound: Boolean = true,
     val useVibration: Boolean = true,
+    val linkedCalendarEventId: String? = null,
     override val commandId: String = UUID.randomUUID().toString(),
     override val source: String = "system"
 ) : RemmiCommand
@@ -198,6 +228,46 @@ data class UpdateTaskCommand(
 
 data class DeleteTaskCommand(
     val taskId: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system"
+) : RemmiCommand
+
+data class ToggleTaskCommand(
+    val taskId: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system"
+) : RemmiCommand
+
+// ----------------------------------------------------------------------------
+//                               MAP COMMANDS
+// ----------------------------------------------------------------------------
+
+/**
+ * PICK LOCATION COMMAND
+ * Request the Map plugin to show the location picker.
+ */
+data class PickLocationCommand(
+    val initialSearch: String? = null,
+    val requestId: String = UUID.randomUUID().toString(),
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system"
+) : RemmiCommand
+
+/**
+ * SHOW MAP COMMAND
+ * Navigate to the main map screen.
+ */
+data class ShowMapCommand(
+    val focusId: String? = null,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system"
+) : RemmiCommand
+
+// ----------------------------------------------------------------------------
+//                               INGREDIENT COMMANDS
+// ----------------------------------------------------------------------------
+
+data class FetchIngredientMetadataCommand(
     override val commandId: String = UUID.randomUUID().toString(),
     override val source: String = "system"
 ) : RemmiCommand

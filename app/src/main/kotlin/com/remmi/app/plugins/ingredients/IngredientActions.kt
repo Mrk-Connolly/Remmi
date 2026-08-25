@@ -2,8 +2,11 @@ package com.remmi.app.plugins.ingredients
 
 import android.util.Log
 import com.remmi.app.core.events.EventBus
+import com.remmi.app.core.events.events.IngredientCreatedEvent
+import com.remmi.app.core.events.events.IngredientUpdatedEvent
+import com.remmi.app.core.events.events.IngredientStockAdjustedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
-import com.remmi.app.plugins.ingredients.models.*
+import com.remmi.app.core.model.ingredients.*
 import com.remmi.app.plugins.ingredients.repository.*
 import kotlinx.datetime.*
 import java.util.UUID
@@ -37,6 +40,10 @@ class IngredientActions(
         }
     }
 
+    suspend fun getMetadataList(): List<IngredientMetadata> {
+        return metadataRepo.getAll()
+    }
+
     /**
      * Add a new ingredient and initial stock
      */
@@ -48,7 +55,11 @@ class IngredientActions(
         expiryDate: LocalDate? = null,
         brand: String? = null,
         description: String = "",
-        storageLocation: StorageLocation = StorageLocation.PANTRY
+        storageLocation: StorageLocation = StorageLocation.PANTRY,
+        allowedUnits: List<MeasurementUnit> = emptyList(),
+        conversions: List<IngredientConversion> = emptyList(),
+        baseNutrition: NutritionProfile? = null,
+        shelfLife: Pair<Int?, Int?>? = null
     ) {
         val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
         
@@ -61,7 +72,12 @@ class IngredientActions(
             name = name,
             foodGroup = foodGroup,
             brand = brand,
-            description = description
+            description = description,
+            allowedUnits = allowedUnits,
+            conversions = conversions,
+            baseNutrition = baseNutrition,
+            estimatedShelfLifeMinDays = shelfLife?.first,
+            estimatedShelfLifeMaxDays = shelfLife?.second
         )
         metadataRepo.insert(meta)
 
@@ -86,17 +102,27 @@ class IngredientActions(
                 userId = null,
                 stockId = stock.id,
                 quantity = initialQuantity,
-                purchaseDate = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date,
+                purchaseDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date,
                 expiryDate = expiryDate
             )
             batchRepo.insert(batch)
         }
+
+        eventBus?.publishEvent(IngredientCreatedEvent(itemId = meta.id))
+    }
+
+    /**
+     * Update ingredient metadata
+     */
+    suspend fun updateIngredientMetadata(metadata: IngredientMetadata) {
+        Log.d("Remmi", "[IngredientActions] - Updating metadata for ${metadata.id}")
+        metadata.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+        metadataRepo.updateCloud(metadata)
+        eventBus?.publishEvent(IngredientUpdatedEvent(itemId = metadata.id))
     }
 
     /**
      * Adjust stock quantity. 
-     * Positive delta = New Batch.
-     * Negative delta = FEFO (First-Expired-First-Out) consumption.
      */
     suspend fun adjustStock(stockId: String, delta: Double, expiryDate: LocalDate? = null) {
         if (delta == 0.0) return
@@ -111,10 +137,11 @@ class IngredientActions(
                 userId = null,
                 stockId = stockId,
                 quantity = delta,
-                purchaseDate = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date,
+                purchaseDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date,
                 expiryDate = expiryDate
             )
             batchRepo.insert(batch)
+            eventBus?.publishEvent(IngredientStockAdjustedEvent(itemId = stockId, delta = delta))
         } else {
             // Decrease: FEFO Logic
             var remainingToDeduct = -delta
@@ -127,7 +154,7 @@ class IngredientActions(
                 
                 if (batch.quantity <= remainingToDeduct) {
                     remainingToDeduct -= batch.quantity
-                    batchRepo.delete(batch.id) // Or update to 0 if history is needed. Plan says delete for now.
+                    batchRepo.delete(batch.id)
                 } else {
                     val updatedBatch = batch.copy(
                         quantity = batch.quantity - remainingToDeduct,
@@ -137,6 +164,7 @@ class IngredientActions(
                     remainingToDeduct = 0.0
                 }
             }
+            eventBus?.publishEvent(IngredientStockAdjustedEvent(itemId = stockId, delta = delta))
         }
     }
 

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Remmi — Today"
+            android:textColor="@android:color/black"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <ImageButton
+            android:id="@+id/widget_refresh"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:src="@android:drawable/ic_menu_rotate"
+            android:contentDescription="Refresh" />
+    </LinearLayout>
+
+    <ListView
+        android:id="@+id/task_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_below="@id/header"
+        android:layout_above="@+id/calendar_section"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="4dp" />
+
+    <TextView
+        android:id="@+id/empty_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:text="No tasks for today."
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/calendar_section"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical"
+        android:paddingTop="8dp"
+        android:background="#F5F5F5">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="NEXT EVENT"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="#757575" />
+
+        <TextView
+            android:id="@+id/next_event_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No upcoming events today."
+            android:textColor="@android:color/black"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+</RelativeLayout>

@@ -1,8 +1,8 @@
 package com.remmi.app.core.plugin
 
 import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.service.database.DatabaseServiceManager
-import com.remmi.app.core.service.file.FileServiceManager
+import com.remmi.app.core.service.database.DatabaseManager
+import com.remmi.app.core.service.file.FileManager
 import com.remmi.app.core.service.android.AndroidServiceManager
 
 /**
@@ -12,8 +12,8 @@ import com.remmi.app.core.service.android.AndroidServiceManager
  * Centralizes access to system-level managers.
  */
 data class PluginContext(
-    val databaseManager: DatabaseServiceManager,
-    val fileManager: FileServiceManager,
+    val databaseManager: DatabaseManager,
+    val fileManager: FileManager,
     val androidManager: AndroidServiceManager,
     val eventBus: EventBus
 )

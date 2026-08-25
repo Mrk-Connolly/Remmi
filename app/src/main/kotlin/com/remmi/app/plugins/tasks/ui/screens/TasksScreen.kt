@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.events.commands.DeleteTaskCommand
 import com.remmi.app.plugins.tasks.TasksActions
-import com.remmi.app.plugins.tasks.TaskItem
+import com.remmi.app.core.model.tasks.TaskItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
@@ -44,12 +44,12 @@ fun TasksScreen(
     
     // Track editor state for hiding bottom menu
     LaunchedEffect(editorMode) {
-        controller.isEditorActive.value = editorMode != null
+        controller.uiStateManager.isEditorActive.value = editorMode != null
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            controller.isEditorActive.value = false
+            controller.uiStateManager.isEditorActive.value = false
         }
     }
 

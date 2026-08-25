@@ -34,10 +34,15 @@ abstract class CloudRepository<T : RemmiModel>(
     }
 
     suspend fun refresh() {
-        Log.d("Remmi", "[CloudRepository] - [refresh] executed")
-        val items = databaseService.getAll(tableName, serializer)
-        clear()
-        items.forEach { add(it) }
+        Log.d("Remmi", "[CloudRepository] - [refresh] executed for table $tableName")
+        try {
+            val items = databaseService.getAll(tableName, serializer)
+            clear()
+            items.forEach { add(it) }
+        } catch (e: Exception) {
+            Log.e("Remmi", "[CloudRepository] - Error refreshing table $tableName: ${e.message}")
+            // Optional: we could rethrow or handle specific Supabase codes here
+        }
     }
 
     suspend fun sync() {

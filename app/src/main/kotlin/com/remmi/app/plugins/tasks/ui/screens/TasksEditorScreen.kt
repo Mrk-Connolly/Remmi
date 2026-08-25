@@ -18,7 +18,7 @@ import com.remmi.app.core.plugin.model.components.RepeatRule
 import com.remmi.app.core.plugin.model.components.RepeatType
 import com.remmi.app.core.screens.components.*
 import com.remmi.app.plugins.tasks.TasksActions
-import com.remmi.app.plugins.tasks.TaskItem
+import com.remmi.app.core.model.tasks.TaskItem
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
 import kotlinx.coroutines.launch

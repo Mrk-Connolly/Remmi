@@ -34,11 +34,9 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.plugins.ingredients.IngredientActions
-import com.remmi.app.plugins.ingredients.models.FoodGroup
-import com.remmi.app.plugins.ingredients.models.IngredientUiModel
-import com.remmi.app.plugins.ingredients.models.MeasurementUnit
+import com.remmi.app.core.model.ingredients.*
 import com.remmi.app.plugins.recipebook.RecipeActions
-import com.remmi.app.plugins.recipebook.models.*
+import com.remmi.app.core.model.recipebook.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -57,9 +55,9 @@ fun AddRecipeScreen(
     
     // Manage Global Menu Visibility
     DisposableEffect(Unit) {
-        controller.isEditorActive.value = true
+        controller.uiStateManager.isEditorActive.value = true
         onDispose {
-            controller.isEditorActive.value = false
+            controller.uiStateManager.isEditorActive.value = false
         }
     }
 
@@ -512,10 +510,25 @@ fun StepIngredientDialog(
     onDismiss: () -> Unit,
     onConfirm: (StepIngredient) -> Unit
 ) {
-    var selectedMeta by remember { mutableStateOf<IngredientUiModel?>(null) }
+    var selectedItem by remember { mutableStateOf<IngredientUiModel?>(null) }
     var amount by remember { mutableStateOf("") }
-    var unit by remember { mutableStateOf("grams") }
-    val units = listOf("grams", "kg", "ml", "liters", "unities", "cups", "spoonfuls", "teaspoons")
+    
+    // Default to GRAMS, but we'll update it when ingredient is selected
+    var unit by remember { mutableStateOf(MeasurementUnit.GRAMS) }
+    
+    val allowedUnits = remember(selectedItem) {
+        selectedItem?.metadata?.allowedUnits?.takeIf { it.isNotEmpty() } 
+            ?: listOf(MeasurementUnit.GRAMS, MeasurementUnit.UNITS)
+    }
+
+    val conversionPreview = remember(selectedItem, amount, unit) {
+        val qty = amount.toDoubleOrNull() ?: 0.0
+        if (selectedItem != null && unit != MeasurementUnit.GRAMS) {
+            val inGrams = convertUnit(qty, unit, MeasurementUnit.GRAMS, selectedItem!!.metadata)
+            val (fQty, fUnit) = formatQuantity(inGrams, MeasurementUnit.GRAMS)
+            "(~$fQty $fUnit)"
+        } else ""
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -526,7 +539,7 @@ fun StepIngredientDialog(
                 var expanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                     OutlinedTextField(
-                        value = selectedMeta?.metadata?.name ?: "Select Ingredient",
+                        value = selectedItem?.metadata?.name ?: "Select Ingredient",
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -536,7 +549,13 @@ fun StepIngredientDialog(
                         available.forEach { item ->
                             DropdownMenuItem(
                                 text = { Text(item.metadata.name) },
-                                onClick = { selectedMeta = item; expanded = false }
+                                onClick = { 
+                                    selectedItem = item
+                                    if (!allowedUnits.contains(unit)) {
+                                        unit = allowedUnits.firstOrNull() ?: MeasurementUnit.GRAMS
+                                    }
+                                    expanded = false 
+                                }
                             )
                         }
                     }
@@ -554,7 +573,7 @@ fun StepIngredientDialog(
                     var unitExpanded by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(expanded = unitExpanded, onExpandedChange = { unitExpanded = it }, modifier = Modifier.weight(1f)) {
                         OutlinedTextField(
-                            value = unit,
+                            value = unit.name.lowercase(),
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Unit") },
@@ -562,25 +581,35 @@ fun StepIngredientDialog(
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
                         ExposedDropdownMenu(expanded = unitExpanded, onDismissRequest = { unitExpanded = false }) {
-                            units.forEach { u ->
+                            allowedUnits.forEach { u ->
                                 DropdownMenuItem(
-                                    text = { Text(u) },
+                                    text = { Text(u.name.lowercase()) },
                                     onClick = { unit = u; unitExpanded = false }
                                 )
                             }
                         }
                     }
                 }
+                
+                if (conversionPreview.isNotBlank()) {
+                    Text(
+                        text = conversionPreview,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End
+                    )
+                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    selectedMeta?.let {
-                        onConfirm(StepIngredient(it.metadata.id, it.metadata.name, amount.toDoubleOrNull() ?: 0.0, unit))
+                    selectedItem?.let {
+                        onConfirm(StepIngredient(it.metadata.id, it.metadata.name, amount.toDoubleOrNull() ?: 0.0, unit.name.lowercase()))
                     }
                 },
-                enabled = selectedMeta != null && amount.isNotEmpty()
+                enabled = selectedItem != null && amount.isNotEmpty()
             ) { Text("Add") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
@@ -679,7 +708,7 @@ fun AddIngredientDialog(
             Button(
                 onClick = {
                     scope.launch {
-                        actions.addIngredient(name, foodGroup, 0.0, MeasurementUnit.GRAMS)
+                        actions.addIngredient(name, foodGroup, 0.0, MeasurementUnit.GRAMS, allowedUnits = listOf(MeasurementUnit.GRAMS, MeasurementUnit.UNITS))
                         // Fetch the new one
                         val inventory = actions.getInventory()
                         inventory.find { it.metadata.name == name }?.let { onIngredientAdded(it) }

@@ -1,6 +1,7 @@
 package com.remmi.app.plugins.recipebook.ui.screens
 
 import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,9 +19,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.ui.components.RecipeNutritionRadarGraph
 import com.remmi.app.plugins.recipebook.RecipeActions
-import com.remmi.app.plugins.recipebook.models.MealType
-import com.remmi.app.plugins.recipebook.models.RecipeItem
+import com.remmi.app.core.model.recipebook.MealType
+import com.remmi.app.core.model.recipebook.RecipeItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -39,6 +41,8 @@ fun RecipeScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedMealType by remember { mutableStateOf<MealType?>(null) }
     var selectedIngredient by remember { mutableStateOf<String?>(null) }
+    
+    var selectedRecipeForDetail by remember { mutableStateOf<RecipeItem?>(null) }
 
     val onRefresh: () -> Unit = remember {
         {
@@ -123,7 +127,10 @@ fun RecipeScreen(
                             contentPadding = PaddingValues(bottom = 180.dp)
                         ) {
                             items(filteredRecipes, key = { it.id }) { recipe ->
-                                RecipeCard(recipe)
+                                RecipeCard(
+                                    recipe = recipe,
+                                    onClick = { selectedRecipeForDetail = recipe }
+                                )
                             }
                         }
                     }
@@ -131,6 +138,54 @@ fun RecipeScreen(
             }
         }
     }
+
+    selectedRecipeForDetail?.let { recipe ->
+        RecipeDetailDialog(
+            recipe = recipe,
+            onDismiss = { selectedRecipeForDetail = null }
+        )
+    }
+}
+
+@Composable
+fun RecipeDetailDialog(
+    recipe: RecipeItem,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(recipe.title) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Nutrition (Per Serving)",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "${recipe.nutritionPerServing.calories?.toInt() ?: "--"} kcal",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                RecipeNutritionRadarGraph(nutrition = recipe.nutritionPerServing)
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    NutritionSnippet("Prot", "${recipe.nutritionPerServing.proteins ?: "--"}g", Modifier.weight(1f))
+                    NutritionSnippet("Carbs", "${recipe.nutritionPerServing.carbohydrates ?: "--"}g", Modifier.weight(1f))
+                    NutritionSnippet("Fat", "${recipe.nutritionPerServing.fats ?: "--"}g", Modifier.weight(1f))
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) { Text("Close") }
+        }
+    )
 }
 
 @Composable
@@ -245,11 +300,15 @@ fun HeaderSection(
 }
 
 @Composable
-fun RecipeCard(recipe: RecipeItem) {
+fun RecipeCard(
+    recipe: RecipeItem,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -288,18 +347,18 @@ fun RecipeCard(recipe: RecipeItem) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                NutritionSnippet("Prot", "${recipe.nutritionPerServing.proteins}g")
-                NutritionSnippet("Carbs", "${recipe.nutritionPerServing.carbohydrates}g")
-                NutritionSnippet("Fat", "${recipe.nutritionPerServing.fats}g")
-                NutritionSnippet("Cal", "${recipe.nutritionPerServing.calories.toInt()}")
+                NutritionSnippet("Prot", "${recipe.nutritionPerServing.proteins ?: "--"}g")
+                NutritionSnippet("Carbs", "${recipe.nutritionPerServing.carbohydrates ?: "--"}g")
+                NutritionSnippet("Fat", "${recipe.nutritionPerServing.fats ?: "--"}g")
+                NutritionSnippet("Cal", "${recipe.nutritionPerServing.calories?.toInt() ?: "--"}")
             }
         }
     }
 }
 
 @Composable
-fun NutritionSnippet(label: String, value: String) {
-    Column {
+fun NutritionSnippet(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(text = value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
     }

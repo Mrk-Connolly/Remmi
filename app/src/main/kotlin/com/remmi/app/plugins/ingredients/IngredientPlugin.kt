@@ -10,6 +10,7 @@ import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.plugin.widgets.RemmiWidget
+import com.remmi.app.core.model.ingredients.*
 import com.remmi.app.plugins.ingredients.repository.MetadataRepository
 import com.remmi.app.plugins.ingredients.repository.StockRepository
 import com.remmi.app.plugins.ingredients.repository.BatchRepository
@@ -67,7 +68,13 @@ class IngredientPlugin(
     }
 
     override suspend fun onCommand(command: RemmiCommand) {
-        // Implement ingredient specific commands if needed
+        when (command) {
+            is com.remmi.app.core.events.commands.FetchIngredientMetadataCommand -> {
+                Log.d("Remmi", "[IngredientPlugin] - Fetching metadata for external requester")
+                val metadata = actions.getMetadataList()
+                actions.eventBus?.publishEvent(com.remmi.app.core.events.events.IngredientMetadataFetchedEvent(metadata))
+            }
+        }
     }
 
     override suspend fun onEvent(event: RemmiEvent) {
@@ -76,7 +83,16 @@ class IngredientPlugin(
 
     override fun onLoad() {
         CoroutineScope(Dispatchers.IO).launch {
+            refresh()
+        }
+    }
+
+    override suspend fun refresh() {
+        Log.d("Remmi", "[IngredientPlugin] - Refreshing data")
+        try {
             actions.sync()
+        } catch (e: Exception) {
+            Log.e("Remmi", "Failed to sync ingredients: ${e.message}")
         }
     }
 

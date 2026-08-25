@@ -2,8 +2,9 @@ package com.remmi.app.plugins.gift
 
 import android.util.Log
 import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.events.EventType
-import com.remmi.app.core.events.PluginEvent
+import com.remmi.app.core.events.events.GiftIdeaCreatedEvent
+import com.remmi.app.core.events.events.GiftIdeaDeletedEvent
+import com.remmi.app.core.events.events.GiftIdeaUpdatedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
 import kotlin.time.Instant
 import java.util.UUID
@@ -72,11 +73,7 @@ class GiftActions(
             // Publish Fact
             Log.i("Remmi", "[GiftActions] - Successfully created gift idea: ${idea.id}. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "gift",
-                    type = EventType.CREATED,
-                    itemId = idea.id
-                )
+                GiftIdeaCreatedEvent(itemId = idea.id)
             )
 
             true
@@ -98,11 +95,7 @@ class GiftActions(
             // Publish Fact
             Log.i("Remmi", "[GiftActions] - Successfully updated gift idea: ${idea.id}. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "gift",
-                    type = EventType.UPDATED,
-                    itemId = idea.id
-                )
+                GiftIdeaUpdatedEvent(itemId = idea.id)
             )
 
             true
@@ -123,11 +116,7 @@ class GiftActions(
             // Publish Fact
             Log.i("Remmi", "[GiftActions] - Successfully deleted gift idea: $id. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "gift",
-                    type = EventType.DELETED,
-                    itemId = id
-                )
+                GiftIdeaDeletedEvent(itemId = id)
             )
 
             true

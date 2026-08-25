@@ -1,27 +1,15 @@
 package com.remmi.app.core.automation
 
+import android.content.Context
 import android.util.Log
+import com.remmi.app.core.automation.features.LockScreenManager
+import com.remmi.app.plugins.dashboard.logic.RemmiWidgetUpdateManager
 import com.remmi.app.core.events.*
-import com.remmi.app.core.events.commands.CommandListener
-import com.remmi.app.core.events.commands.CreateAlarmCommand
-import com.remmi.app.core.events.commands.DeleteAlarmCommand
-import com.remmi.app.core.events.commands.FetchTodayEventsCommand
-import com.remmi.app.core.events.commands.FetchTodayTasksCommand
-import com.remmi.app.core.events.commands.FetchWeatherCommand
-import com.remmi.app.core.events.commands.PostNotificationCommand
-import com.remmi.app.core.events.commands.RemmiCommand
-import com.remmi.app.core.events.commands.RunDailyBriefingCommand
-import com.remmi.app.core.events.events.CalendarEventDeletedEvent
-import com.remmi.app.core.events.events.DailyBriefingGeneratedEvent
-import com.remmi.app.core.events.events.EventListener
-import com.remmi.app.core.events.events.RemmiEvent
-import com.remmi.app.core.events.events.TaskCreatedEvent
-import com.remmi.app.core.events.events.TodayEventsFetchedEvent
-import com.remmi.app.core.events.events.TodayTasksFetchedEvent
-import com.remmi.app.core.events.events.WeatherFetchedEvent
+import com.remmi.app.core.events.commands.*
+import com.remmi.app.core.events.events.*
 import com.remmi.app.core.service.android.WeatherInfo
-import com.remmi.app.plugins.calendar.CalendarItem
-import com.remmi.app.plugins.tasks.TaskItem
+import com.remmi.app.core.model.calendar.CalendarItem
+import com.remmi.app.core.model.tasks.TaskItem
 import kotlinx.datetime.Instant
 
 /**
@@ -31,12 +19,18 @@ import kotlinx.datetime.Instant
  * Coordinates cross-plugin operations without direct dependencies between plugins.
  */
 class AutomationEngine(
+    private val context: Context,
     private val eventBus: EventBus
 ) : EventListener, CommandListener {
 
     // ----------------------------------------------------------------------------
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
+
+    /** Feature Managers owned by Automation */
+    val settingsRepository = AutomationSettingsRepository(context)
+    val lockScreenManager = LockScreenManager(eventBus, settingsRepository)
+    val widgetUpdateManager = RemmiWidgetUpdateManager(context)
 
     /** Flag indicating if the engine is currently running and listening to events */
     private var running = false
@@ -66,7 +60,14 @@ class AutomationEngine(
     fun start() {
         if (running) return
         Log.d("Remmi", "[AutomationEngine] - Starting automation services")
+        
+        // 1. Subscribe Engine
         eventBus.subscribeEvent(this)
+        
+        // 2. Start sub-features
+        lockScreenManager.start()
+        eventBus.subscribeEvent(widgetUpdateManager)
+        
         running = true
     }
 
@@ -76,7 +77,14 @@ class AutomationEngine(
     fun stop() {
         if (!running) return
         Log.d("Remmi", "[AutomationEngine] - Stopping automation services")
+        
+        // 1. Stop sub-features
+        lockScreenManager.stop()
+        eventBus.unsubscribeEvent(widgetUpdateManager)
+        
+        // 2. Unsubscribe Engine
         eventBus.unsubscribeEvent(this)
+        
         running = false
     }
 
@@ -123,8 +131,6 @@ class AutomationEngine(
         eventBus.publishCommand(FetchTodayTasksCommand())
         eventBus.publishCommand(FetchTodayEventsCommand())
         eventBus.publishCommand(FetchWeatherCommand())
-        
-        // We'll wait for the Fetched events in onEvent
     }
 
     private suspend fun handleTasksFetched(event: TodayTasksFetchedEvent) {
@@ -165,7 +171,6 @@ class AutomationEngine(
         
         val summary = buildString {
             append("Good morning!\n\n")
-            
             append("Today's Schedule:\n")
             if (events.isEmpty()) {
                 append("- No calendar events\n")
@@ -196,9 +201,6 @@ class AutomationEngine(
             }
         }
 
-        Log.d("Remmi", "[AutomationEngine] - Briefing summary:\n$summary")
-        
-        // Request system notification via EventBus
         eventBus.publishCommand(
             PostNotificationCommand(
                 title = "Your Daily Briefing",
@@ -206,22 +208,12 @@ class AutomationEngine(
             )
         )
 
-        // Publish Event
         eventBus.publishEvent(DailyBriefingGeneratedEvent(summary))
     }
 
-    /**                                 Handle Task Created
-     * Automation Rule: If a high priority task is created, ensure an alarm is set.
-     * */
     private suspend fun handleTaskCreated(event: TaskCreatedEvent) {
         if (event.priority) {
-            Log.i("Remmi", "[AutomationEngine] - High priority task created! Triggering CreateAlarmCommand...")
-            
-            // Automation: Create an alarm for high priority tasks
-            // In a real app, we might use the task's due date.
-            // Here we just set an alarm for a few hours from now as a demonstration.
-            val alarmTime = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis() + 3600000) // +1 hour
-            
+            val alarmTime = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis() + 3600000)
             eventBus.publishCommand(
                 CreateAlarmCommand(
                     title = "Priority Task Reminder",
@@ -234,20 +226,10 @@ class AutomationEngine(
         }
     }
 
-    /**                                 Handle Calendar Deleted
-     * Automation Rule: Cleanup linked resources when a calendar event is removed.
-     * */
     private suspend fun handleCalendarDeleted(event: CalendarEventDeletedEvent) {
-        Log.i("Remmi", "[AutomationEngine] - Calendar event deleted. Checking for linked Alarms...")
-        
-        // TODO: In a real implementation, we would lookup linkedAlarmId from a mapping service/db
         val linkedAlarmId: String? = null 
-        
         linkedAlarmId?.let { alarmId ->
-            Log.i("Remmi", "[AutomationEngine] - Issuing DeleteAlarmCommand for: $alarmId")
-            eventBus.publishCommand(
-                DeleteAlarmCommand(alarmId = alarmId)
-            )
+            eventBus.publishCommand(DeleteAlarmCommand(alarmId = alarmId))
         }
     }
 }

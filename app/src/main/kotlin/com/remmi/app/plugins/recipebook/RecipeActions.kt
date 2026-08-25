@@ -2,8 +2,16 @@ package com.remmi.app.plugins.recipebook
 
 import android.util.Log
 import com.remmi.app.core.events.EventBus
+import com.remmi.app.core.events.commands.FetchIngredientMetadataCommand
+import com.remmi.app.core.events.events.RecipeCreatedEvent
+import com.remmi.app.core.events.events.RecipeDeletedEvent
+import com.remmi.app.core.events.events.RecipeUpdatedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
-import com.remmi.app.plugins.recipebook.models.RecipeItem
+import com.remmi.app.core.model.recipebook.RecipeItem
+import com.remmi.app.core.model.ingredients.IngredientMetadata
+import com.remmi.app.plugins.recipebook.logic.RecipeNutritionCalculator
+import kotlinx.datetime.Instant
+import java.util.UUID
 
 class RecipeActions(
     private val repository: RecipeRepository,
@@ -34,6 +42,48 @@ class RecipeActions(
 
     suspend fun addRecipe(recipe: RecipeItem) {
         Log.d("Remmi", "[RecipeActions] - [addRecipe] executed")
+        // Nutrition will be calculated by the AutomationEngine or a dedicated listener
+        // to maintain decoupling. For now, we save and request a recalculation.
         repository.insert(recipe)
+        eventBus?.publishEvent(RecipeCreatedEvent(itemId = recipe.id))
+        requestNutritionRecalculation()
+    }
+
+    suspend fun updateRecipe(recipe: RecipeItem) {
+        Log.d("Remmi", "[RecipeActions] - [updateRecipe] executed")
+        val updatedRecipe = recipe.copy(modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()))
+        repository.updateCloud(updatedRecipe)
+        eventBus?.publishEvent(RecipeUpdatedEvent(itemId = updatedRecipe.id))
+        requestNutritionRecalculation()
+    }
+
+    suspend fun deleteRecipe(id: String) {
+        Log.d("Remmi", "[RecipeActions] - [deleteRecipe] executed")
+        repository.delete(id)
+        eventBus?.publishEvent(RecipeDeletedEvent(itemId = id))
+    }
+
+    suspend fun recalculateAllRecipes() {
+        Log.d("Remmi", "[RecipeActions] - [recalculateAllRecipes] requested")
+        requestNutritionRecalculation()
+    }
+
+    private suspend fun requestNutritionRecalculation() {
+        Log.d("Remmi", "[RecipeActions] - Requesting global nutrition update via EventBus")
+        eventBus?.publishCommand(FetchIngredientMetadataCommand())
+    }
+
+    /**
+     * Called by the Plugin/Engine when metadata is available.
+     */
+    suspend fun performRecalculation(allMetadata: List<IngredientMetadata>) {
+        val recipes = repository.getAll()
+        recipes.forEach { recipe ->
+            val newNutrition = RecipeNutritionCalculator.calculate(recipe, allMetadata)
+            if (newNutrition != recipe.nutritionPerServing) {
+                val updated = recipe.copy(nutritionPerServing = newNutrition)
+                repository.updateCloud(updated)
+            }
+        }
     }
 }

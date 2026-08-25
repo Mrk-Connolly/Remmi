@@ -16,7 +16,7 @@ import com.remmi.app.core.screens.components.RemmiTitleDescriptionGroup
 import com.remmi.app.core.screens.components.RemmiTimePickerDialog
 import com.remmi.app.core.screens.components.RemmiDaySelectionDialog
 import com.remmi.app.plugins.alarm.AlarmActions
-import com.remmi.app.plugins.alarm.AlarmItem
+import com.remmi.app.core.model.alarm.AlarmItem
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone

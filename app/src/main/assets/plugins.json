@@ -40,6 +40,16 @@
     "icon": "person"
   },
   {
+    "id": "maps",
+    "name": "Maps",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": false,
+    "icon": "map"
+  },
+  {
     "id": "gift",
     "name": "Gift List",
     "version": "1.0",

@@ -111,11 +111,20 @@ class GiftPlugin(
         Log.d("Remmi", "[GiftPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Gift Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                actions.sync()
-            } catch (e: Exception) {
-                Log.e("Remmi", "Failed to sync gifts: ${e.message}")
-            }
+            refresh()
+        }
+        Log.d("Remmi", "Gift Plugin Loaded")
+    }
+
+    /**                                   Refresh
+     * Sync gifts with the database.
+     */
+    override suspend fun refresh() {
+        Log.d("Remmi", "[GiftPlugin] - Refreshing data")
+        try {
+            actions.sync()
+        } catch (e: Exception) {
+            Log.e("Remmi", "Failed to sync gifts: ${e.message}")
         }
     }
 

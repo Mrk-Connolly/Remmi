@@ -43,12 +43,12 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
     
     // Track editor state for hiding bottom menu
     LaunchedEffect(editorMode, selectedContact) {
-        controller.isEditorActive.value = editorMode != null || selectedContact != null
+        controller.uiStateManager.isEditorActive.value = editorMode != null || selectedContact != null
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            controller.isEditorActive.value = false
+            controller.uiStateManager.isEditorActive.value = false
         }
     }
 

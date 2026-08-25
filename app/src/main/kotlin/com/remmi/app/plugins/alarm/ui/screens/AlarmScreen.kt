@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.events.commands.DeleteAlarmCommand
+import com.remmi.app.core.model.alarm.AlarmItem
 import com.remmi.app.plugins.alarm.AlarmActions
 import com.remmi.app.plugins.alarm.AlarmUiModel
 import kotlinx.coroutines.delay
@@ -40,12 +41,12 @@ fun AlarmScreen(
     
     // Track editor state for hiding bottom menu
     LaunchedEffect(editorMode) {
-        controller.isEditorActive.value = editorMode != null
+        controller.uiStateManager.isEditorActive.value = editorMode != null
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            controller.isEditorActive.value = false
+            controller.uiStateManager.isEditorActive.value = false
         }
     }
 

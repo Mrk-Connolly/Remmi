@@ -6,6 +6,7 @@ import com.remmi.app.core.events.events.CalendarEventCreatedEvent
 import com.remmi.app.core.events.events.CalendarEventDeletedEvent
 import com.remmi.app.core.events.events.CalendarEventUpdatedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
+import com.remmi.app.core.model.calendar.CalendarItem
 import kotlinx.datetime.*
 import java.util.UUID
 
@@ -218,6 +219,16 @@ class CalendarActions(
         Log.d("Remmi", "[CalendarActions] - [getTodayEvents] executed")
         val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
         return getEventsOn(today)
+    }
+
+    /**                                 Get Weekly
+     * Retrieve all events for the next 7 days
+     * */
+    suspend fun getWeeklyEvents(): List<CalendarItem> {
+        Log.d("Remmi", "[CalendarActions] - [getWeeklyEvents] executed")
+        val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val nextWeek = today.plus(7, DateTimeUnit.DAY)
+        return repository.getAll().filter { it.startingDate in today..nextWeek }.sortedBy { it.startingDate }
     }
 
     /**                                 Get All Groups

@@ -1,6 +1,6 @@
 package com.remmi.app.core.service.android
 
-import com.remmi.app.plugins.alarm.AlarmItem
+import com.remmi.app.core.model.alarm.AlarmItem
 
 /**
  * ALARM SERVICE

@@ -5,10 +5,8 @@ import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.events.commands.CreateAlarmCommand
 import com.remmi.app.core.events.commands.DeleteAlarmCommand
-import com.remmi.app.core.events.commands.DeleteDataCommand
 import com.remmi.app.core.events.commands.RemmiCommand
 import com.remmi.app.core.events.commands.UpdateAlarmCommand
-import com.remmi.app.core.events.commands.UpsertDataCommand
 import com.remmi.app.core.events.events.AlarmCreatedEvent
 import com.remmi.app.core.events.events.AlarmDeletedEvent
 import com.remmi.app.core.events.events.AlarmUpdatedEvent
@@ -17,6 +15,8 @@ import com.remmi.app.core.events.events.RemmiEvent
 import com.remmi.app.core.plugin.PluginContext
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
+import com.remmi.app.core.plugin.model.models.RemmiModel
+import com.remmi.app.core.plugin.repository.RemmiRepository
 import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.plugin.widgets.RemmiWidget
 import com.remmi.app.plugins.alarm.ui.screens.AlarmScreen
@@ -43,7 +43,7 @@ class AlarmPlugin(
     private var _actions: AlarmActions? = null
 
     /** Repository for persistent alarm data. */
-    override val repository: AlarmRepository
+    override val repository: RemmiRepository<out RemmiModel>
         get() = _repository ?: throw IllegalStateException("AlarmPlugin not initialized")
 
     /** Action controller for alarm logic. */
@@ -99,67 +99,24 @@ class AlarmPlugin(
         Log.d("Remmi", "[AlarmPlugin] - Received command: ${command::class.simpleName}")
         when (command) {
             is CreateAlarmCommand -> {
-                val now = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-                val alarmId = java.util.UUID.randomUUID().toString()
-                val item = AlarmItem(
-                    id = alarmId,
-                    created = now,
-                    modified = now,
+                actions.addAlarm(
                     title = command.title,
                     description = command.description,
                     time = command.time,
                     isPriority = command.isPriority,
                     repeatable = command.repeatable,
                     custom = command.custom,
+                    syncToSystem = command.syncToSystem,
                     useSound = command.useSound,
                     useVibration = command.useVibration,
-                    linkedCalendarEvent = if (command.source == "calendar") "event_key" else null, // Placeholder
-                    userId = null
-                )
-                
-                actions.eventBus?.publishCommand(
-                    UpsertDataCommand(
-                        tableName = "alarms",
-                        item = item,
-                        serializer = AlarmItem.serializer(),
-                        source = "alarm"
-                    )
-                )
-                
-                // If syncToSystem is true, also notify the Android system via AlarmService
-                if (command.syncToSystem) {
-                    actions.alarmService?.setAlarm(item.id, item.title, item.time.toEpochMilliseconds(), item.useSound, item.useVibration)
-                    actions.alarmService?.syncToSystemClock(item.title, item.time.toEpochMilliseconds())
-                }
-
-                actions.eventBus?.publishEvent(
-                    AlarmCreatedEvent(alarmId = item.id)
+                    linkedCalendarEventId = command.linkedCalendarEventId
                 )
             }
             is UpdateAlarmCommand -> {
-                actions.eventBus?.publishCommand(
-                    UpsertDataCommand(
-                        tableName = "alarms",
-                        item = command.alarm,
-                        serializer = AlarmItem.serializer(),
-                        source = "alarm"
-                    )
-                )
-                actions.eventBus?.publishEvent(
-                    AlarmUpdatedEvent(alarmId = command.alarm.id)
-                )
+                actions.updateAlarm(command.alarm)
             }
             is DeleteAlarmCommand -> {
-                actions.eventBus?.publishCommand(
-                    DeleteDataCommand(
-                        tableName = "alarms",
-                        itemId = command.alarmId,
-                        source = "alarm"
-                    )
-                )
-                actions.eventBus?.publishEvent(
-                    AlarmDeletedEvent(alarmId = command.alarmId)
-                )
+                actions.deleteAlarm(command.alarmId)
             }
         }
     }
@@ -190,11 +147,20 @@ class AlarmPlugin(
         Log.d("Remmi", "[AlarmPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Alarm Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                actions.sync()
-            } catch (e: Exception) {
-                Log.e("Remmi", "Failed to sync alarms: ${e.message}")
-            }
+            refresh()
+        }
+        Log.d("Remmi", "Alarm Plugin Loaded")
+    }
+
+    /**                                   Refresh
+     * Sync alarms with the database.
+     */
+    override suspend fun refresh() {
+        Log.d("Remmi", "[AlarmPlugin] - Refreshing data")
+        try {
+            actions.sync()
+        } catch (e: Exception) {
+            Log.e("Remmi", "Failed to sync alarms: ${e.message}")
         }
     }
 

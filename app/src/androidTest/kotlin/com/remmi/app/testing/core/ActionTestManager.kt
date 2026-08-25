@@ -57,4 +57,22 @@ class ActionTestManager(private val testRepository: DatabaseTestRepository) {
             throw IllegalStateException("Action Tests Failed:\n${failures.joinToString("\n")}")
         }
     }
+
+    /**
+     * Run all tests and return a summary of failures without throwing.
+     */
+    suspend fun runDiagnostic(): List<String> {
+        val failures = mutableListOf<String>()
+        tests.keys.forEach { name ->
+            try {
+                val result = executeTest(name)
+                if (result?.status == TestStatus.FAILURE) {
+                    failures.add("$name: ${result.errorMessage}")
+                }
+            } catch (e: Exception) {
+                failures.add("$name: Crashed with ${e.message}")
+            }
+        }
+        return failures
+    }
 }

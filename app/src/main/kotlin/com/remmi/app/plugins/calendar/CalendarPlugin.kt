@@ -9,6 +9,7 @@ import com.remmi.app.core.events.commands.CreateTaskCommand
 import com.remmi.app.core.events.commands.DeleteCalendarEventCommand
 import com.remmi.app.core.events.commands.DeleteDataCommand
 import com.remmi.app.core.events.commands.FetchTodayEventsCommand
+import com.remmi.app.core.events.commands.FetchWeeklyEventsCommand
 import com.remmi.app.core.events.commands.RemmiCommand
 import com.remmi.app.core.events.commands.UpdateCalendarEventCommand
 import com.remmi.app.core.events.commands.UpsertDataCommand
@@ -17,10 +18,12 @@ import com.remmi.app.core.events.events.CalendarEventDeletedEvent
 import com.remmi.app.core.events.events.CalendarEventUpdatedEvent
 import com.remmi.app.core.events.events.RemmiEvent
 import com.remmi.app.core.events.events.TodayEventsFetchedEvent
+import com.remmi.app.core.events.events.WeeklyEventsFetchedEvent
 import com.remmi.app.core.plugin.PluginContext
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
+import com.remmi.app.core.model.calendar.CalendarItem
 import com.remmi.app.core.plugin.widgets.RemmiWidget
 import com.remmi.app.plugins.calendar.ui.screens.CalendarScreen
 import kotlinx.coroutines.CoroutineScope
@@ -204,6 +207,12 @@ class CalendarPlugin(
                 val events = actions.getTodayEvents()
                 actions.eventBus?.publishEvent(TodayEventsFetchedEvent(events))
             }
+            
+            is FetchWeeklyEventsCommand -> {
+                Log.d("Remmi", "[CalendarPlugin] - Fetching weekly events for lock screen")
+                val events = actions.getWeeklyEvents()
+                actions.eventBus?.publishEvent(WeeklyEventsFetchedEvent(events))
+            }
         }
     }
 
@@ -221,9 +230,17 @@ class CalendarPlugin(
         Log.d("Remmi", "[CalendarPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Calendar Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
-            actions.sync()
+            refresh()
         }
         Log.d("Remmi", "Calendar Plugin Loaded")
+    }
+
+    /**                                   Refresh
+     * Sync calendar events with the database.
+     */
+    override suspend fun refresh() {
+        Log.d("Remmi", "[CalendarPlugin] - Refreshing data")
+        actions.sync()
     }
 
     /**                                   On Unload

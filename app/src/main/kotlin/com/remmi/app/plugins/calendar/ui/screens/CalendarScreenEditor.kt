@@ -16,10 +16,9 @@ import com.remmi.app.core.events.commands.CreateCalendarEventCommand
 import com.remmi.app.core.events.commands.CreateTaskCommand
 import com.remmi.app.core.events.commands.UpdateCalendarEventCommand
 import com.remmi.app.core.screens.components.*
-import com.remmi.app.core.screens.popups.LocationDialog
-import com.remmi.app.core.screens.popups.ContactsSelectionDialog
+import com.remmi.app.plugins.contacts.ui.popups.ContactsSelectionDialog
 import com.remmi.app.plugins.calendar.CalendarActions
-import com.remmi.app.plugins.calendar.CalendarItem
+import com.remmi.app.core.model.calendar.CalendarItem
 import com.remmi.app.plugins.calendar.ui.popups.*
 import com.remmi.app.plugins.alarm.AlarmActions
 import com.remmi.app.plugins.tasks.TasksActions
@@ -109,12 +108,25 @@ fun CalendarEditorScreen(
     val linkedTaskIds = remember { mutableStateListOf<String>().apply { addAll(initialEvent?.linkedTasks ?: emptyList()) } }
     val currentEventId = remember { initialEvent?.id ?: UUID.randomUUID().toString() }
     
-    var showLocationDialog by remember { mutableStateOf(false) }
     val locations = remember { mutableStateListOf<String>().apply { addAll(initialEvent?.location ?: emptyList()) } }
     var showParticipantsDialog by remember { mutableStateOf(false) }
     val participants = remember { mutableStateListOf<String>().apply { addAll(initialEvent?.participants ?: emptyList()) } }
     
     var showAlarmConfirmation by remember { mutableStateOf(false) }
+
+    val pickerRequestId = remember { "calendar_editor_${currentEventId}" }
+
+    // Listen for picked location
+    LaunchedEffect(Unit) {
+        controller.eventBus.events.collect { event ->
+            if (event is com.remmi.app.core.events.events.LocationPickedEvent && event.requestId == pickerRequestId) {
+                val locStr = "${event.name} (${event.address ?: ""})"
+                if (!locations.contains(locStr)) {
+                    locations.add(locStr)
+                }
+            }
+        }
+    }
 
     RemmiEditorScaffold(
         title = if (initialEvent == null) "New Event" else "Edit Event",
@@ -247,7 +259,16 @@ fun CalendarEditorScreen(
                 )
             }
             IconButton(onClick = { showParticipantsDialog = true }) { Icon(Icons.Default.Person, "Participants") }
-            IconButton(onClick = { showLocationDialog = true }) { Icon(Icons.Default.LocationOn, "Location") }
+            IconButton(onClick = { 
+                scope.launch {
+                    controller.eventBus.publishCommand(
+                        com.remmi.app.core.events.commands.PickLocationCommand(
+                            initialSearch = title.takeIf { it.isNotBlank() },
+                            requestId = pickerRequestId
+                        )
+                    )
+                }
+            }) { Icon(Icons.Default.LocationOn, "Location") }
         }
 
         Row(
@@ -429,17 +450,6 @@ fun CalendarEditorScreen(
         )
     }
 
-    if (showLocationDialog) {
-        LocationDialog(
-            initialLocations = locations,
-            onDismiss = { showLocationDialog = false },
-            onConfirm = { 
-                locations.clear()
-                locations.addAll(it)
-                showLocationDialog = false
-            }
-        )
-    }
 
     if (showParticipantsDialog) {
         ContactsSelectionDialog(

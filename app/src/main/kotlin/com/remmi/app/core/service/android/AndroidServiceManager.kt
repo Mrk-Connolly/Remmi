@@ -8,7 +8,8 @@ import com.remmi.app.core.events.commands.FetchWeatherCommand
 import com.remmi.app.core.events.commands.PostNotificationCommand
 import com.remmi.app.core.events.commands.RemmiCommand
 import com.remmi.app.core.events.events.WeatherFetchedEvent
-import com.remmi.app.core.service.android.implementations.AndroidAlarmService
+import com.remmi.app.core.service.android.implementations.SystemAlarmService
+import com.remmi.app.core.service.android.implementations.SystemNotificationService
 import com.remmi.app.core.service.android.implementations.AndroidWeatherService
 
 /**
@@ -22,8 +23,8 @@ class AndroidServiceManager(
 ) : CommandListener {
 
     /** Specialized Android Services */
-    val alarmService: AlarmService = AndroidAlarmService(context)
-    val notificationService: NotificationService = AndroidAlarmService(context)
+    val alarmService: AlarmService = SystemAlarmService(context)
+    val notificationService: NotificationService = SystemNotificationService(context)
     val weatherService: WeatherService = AndroidWeatherService()
 
     init {
@@ -53,7 +54,14 @@ class AndroidServiceManager(
             }
             is PostNotificationCommand -> {
                 Log.i("Remmi", "[AndroidServiceManager] - Posting notification: ${command.title}")
-                notificationService.postNotification(command.title, command.content)
+                notificationService.postNotification(
+                    title = command.title,
+                    content = command.content,
+                    useSound = command.useSound,
+                    useVibration = command.useVibration,
+                    tag = command.tag,
+                    ongoing = command.ongoing
+                )
             }
         }
     }

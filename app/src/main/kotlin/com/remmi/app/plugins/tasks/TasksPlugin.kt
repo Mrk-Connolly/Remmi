@@ -7,6 +7,7 @@ import com.remmi.app.core.events.commands.CreateTaskCommand
 import com.remmi.app.core.events.commands.DeleteDataCommand
 import com.remmi.app.core.events.commands.DeleteTaskCommand
 import com.remmi.app.core.events.commands.FetchTodayTasksCommand
+import com.remmi.app.core.events.commands.FetchWeeklyTasksCommand
 import com.remmi.app.core.events.commands.RemmiCommand
 import com.remmi.app.core.events.commands.UpdateTaskCommand
 import com.remmi.app.core.events.commands.UpsertDataCommand
@@ -16,11 +17,13 @@ import com.remmi.app.core.events.events.TaskCreatedEvent
 import com.remmi.app.core.events.events.TaskDeletedEvent
 import com.remmi.app.core.events.events.TaskUpdatedEvent
 import com.remmi.app.core.events.events.TodayTasksFetchedEvent
+import com.remmi.app.core.events.events.WeeklyTasksFetchedEvent
 import com.remmi.app.core.plugin.PluginContext
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.plugin.widgets.RemmiWidget
+import com.remmi.app.core.model.tasks.TaskItem
 import com.remmi.app.plugins.tasks.ui.screens.TasksScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -144,22 +147,33 @@ class TasksPlugin(
                     TaskUpdatedEvent(taskId = command.task.id)
                 )
             }
-            is DeleteTaskCommand -> {
+            is com.remmi.app.core.events.commands.DeleteTaskCommand -> {
                 actions.eventBus?.publishCommand(
-                    DeleteDataCommand(
+                    com.remmi.app.core.events.commands.DeleteDataCommand(
                         tableName = "tasks",
                         itemId = command.taskId,
                         source = "tasks"
                     )
                 )
                 actions.eventBus?.publishEvent(
-                    TaskDeletedEvent(taskId = command.taskId)
+                    com.remmi.app.core.events.events.TaskDeletedEvent(taskId = command.taskId)
                 )
+            }
+            is com.remmi.app.core.events.commands.ToggleTaskCommand -> {
+                Log.d("Remmi", "[TasksPlugin] - Toggling task: ${command.taskId}")
+                val task = actions.getTask(command.taskId)
+                task?.let { actions.toggleTask(it) }
             }
             is FetchTodayTasksCommand -> {
                 Log.d("Remmi", "[TasksPlugin] - Fetching today's tasks for automation")
                 val tasks = actions.getTodayTasks()
                 actions.eventBus?.publishEvent(TodayTasksFetchedEvent(tasks))
+            }
+            
+            is FetchWeeklyTasksCommand -> {
+                Log.d("Remmi", "[TasksPlugin] - Fetching weekly tasks for lock screen")
+                val tasks = actions.getWeeklyTasks()
+                actions.eventBus?.publishEvent(WeeklyTasksFetchedEvent(tasks))
             }
         }
     }
@@ -190,7 +204,20 @@ class TasksPlugin(
         Log.d("Remmi", "[TasksPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Tasks Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
+            refresh()
+        }
+        Log.d("Remmi", "Tasks Plugin Loaded")
+    }
+
+    /**                                   Refresh
+     * Sync tasks with the database.
+     */
+    override suspend fun refresh() {
+        Log.d("Remmi", "[TasksPlugin] - Refreshing data")
+        try {
             actions.sync()
+        } catch (e: Exception) {
+            Log.e("Remmi", "Failed to sync tasks: ${e.message}")
         }
     }
 
