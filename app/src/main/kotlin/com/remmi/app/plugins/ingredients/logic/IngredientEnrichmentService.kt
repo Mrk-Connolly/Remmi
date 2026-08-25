@@ -1,6 +1,6 @@
 package com.remmi.app.plugins.ingredients.logic
 
-import com.remmi.app.core.model.ingredients.*
+import com.remmi.app.plugins.ingredients.models.*
 
 /**
  * INGREDIENT ENRICHMENT SERVICE

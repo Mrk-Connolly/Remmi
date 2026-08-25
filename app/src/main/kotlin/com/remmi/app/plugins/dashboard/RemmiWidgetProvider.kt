@@ -11,8 +11,6 @@ import android.widget.RemoteViews
 import com.remmi.app.MainActivity
 import com.remmi.app.R
 import com.remmi.app.RemmiApplication
-import com.remmi.app.core.events.commands.UpdateTaskCommand
-import com.remmi.app.core.model.tasks.TaskItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -56,7 +54,7 @@ class RemmiWidgetProvider : AppWidgetProvider() {
                 // Ideally we have a MarkTaskCompletedCommand(taskId).
                 
                 Log.d("Remmi", "[RemmiWidgetProvider] - Executing ToggleTask via EventBus for $taskId")
-                host.runtime.eventBus.publishCommand(com.remmi.app.core.events.commands.ToggleTaskCommand(taskId))
+                host.runtime.eventBus.publishCommand(com.remmi.app.core.eventBus.commands.ToggleTaskCommand(taskId))
             }
         }
     }

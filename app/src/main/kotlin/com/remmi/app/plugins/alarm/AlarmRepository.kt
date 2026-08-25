@@ -1,9 +1,9 @@
 package com.remmi.app.plugins.alarm
 
 import android.util.Log
-import com.remmi.app.core.model.alarm.AlarmItem
+import com.remmi.app.plugins.alarm.models.AlarmItem
 import com.remmi.app.core.plugin.repository.CloudRepository
-import com.remmi.app.core.service.database.DatabaseService
+import com.remmi.app.core.database.DatabaseService
 
 /**
  * Repository for managing [AlarmItem] data.

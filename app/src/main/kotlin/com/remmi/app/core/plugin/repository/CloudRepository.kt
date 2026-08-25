@@ -2,11 +2,11 @@ package com.remmi.app.core.plugin.repository
 
 import android.util.Log
 import com.remmi.app.core.plugin.model.models.RemmiModel
-import com.remmi.app.core.service.database.DatabaseService
+import com.remmi.app.core.database.DatabaseService
 import kotlinx.serialization.KSerializer
 
 abstract class CloudRepository<T : RemmiModel>(
-    protected val databaseService: DatabaseService,
+    val databaseService: DatabaseService,
     protected val tableName: String,
     protected val serializer: KSerializer<T>
 ) : MemoryRepository<T>() {

@@ -29,7 +29,9 @@ class AddAlarmActionTest(
             modified = now,
             pluginId = pluginId,
             operation = "ACTION: ADD_ALARM",
-            status = status
+            status = status,
+            sourcePlugin = null,
+            sourceItemId = null
         )
     }
 }

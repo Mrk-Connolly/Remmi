@@ -1,17 +1,16 @@
 package com.remmi.app.plugins.recipebook
 
 import android.util.Log
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.events.commands.FetchIngredientMetadataCommand
-import com.remmi.app.core.events.events.RecipeCreatedEvent
-import com.remmi.app.core.events.events.RecipeDeletedEvent
-import com.remmi.app.core.events.events.RecipeUpdatedEvent
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.FetchIngredientMetadataCommand
+import com.remmi.app.core.eventBus.events.RecipeCreatedEvent
+import com.remmi.app.core.eventBus.events.RecipeDeletedEvent
+import com.remmi.app.core.eventBus.events.RecipeUpdatedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
-import com.remmi.app.core.model.recipebook.RecipeItem
-import com.remmi.app.core.model.ingredients.IngredientMetadata
+import com.remmi.app.plugins.recipebook.models.RecipeItem
+import com.remmi.app.plugins.ingredients.models.IngredientMetadata
 import com.remmi.app.plugins.recipebook.logic.RecipeNutritionCalculator
 import kotlinx.datetime.Instant
-import java.util.UUID
 
 class RecipeActions(
     private val repository: RecipeRepository,

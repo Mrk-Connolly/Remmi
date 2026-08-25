@@ -6,7 +6,7 @@ import kotlinx.serialization.SerialName
 import com.remmi.app.core.plugin.model.components.ContactInfo
 import com.remmi.app.core.plugin.model.components.Location
 import com.remmi.app.core.plugin.model.components.PersonName
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 
 /**
@@ -32,7 +32,13 @@ data class Person(
     val notes: String = "",
 
     @SerialName("user_id")
-    override val userId: String? = null
+    override val userId: String? = null,
+
+    @SerialName("source_plugin")
+    override val sourcePlugin: String? = null,
+
+    @SerialName("source_item_id")
+    override val sourceItemId: String? = null
 
 ) : RemmiModel {
     init {

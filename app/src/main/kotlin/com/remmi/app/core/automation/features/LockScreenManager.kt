@@ -2,11 +2,11 @@ package com.remmi.app.core.automation.features
 
 import android.util.Log
 import com.remmi.app.core.automation.AutomationSettingsRepository
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.events.commands.*
-import com.remmi.app.core.events.events.*
-import com.remmi.app.core.model.calendar.CalendarItem
-import com.remmi.app.core.model.tasks.TaskItem
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.*
+import com.remmi.app.core.eventBus.events.*
+import com.remmi.app.plugins.calendar.models.CalendarItem
+import com.remmi.app.plugins.tasks.models.TaskItem
 import kotlinx.datetime.*
 
 /**
@@ -95,7 +95,7 @@ class LockScreenManager(
         val summary = buildString {
             append("📅 Weekly Summary\n\n")
             
-            val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+            val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
             val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
             
             // Events for the week

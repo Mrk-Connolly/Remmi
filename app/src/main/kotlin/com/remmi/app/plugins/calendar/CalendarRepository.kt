@@ -2,8 +2,8 @@ package com.remmi.app.plugins.calendar
 
 import android.util.Log
 import com.remmi.app.core.plugin.repository.CloudRepository
-import com.remmi.app.core.service.database.DatabaseService
-import com.remmi.app.core.model.calendar.CalendarItem
+import com.remmi.app.core.database.DatabaseService
+import com.remmi.app.plugins.calendar.models.CalendarItem
 import kotlinx.datetime.*
 
 /**
@@ -45,8 +45,8 @@ class CalendarRepository (databaseService: DatabaseService) : CloudRepository<Ca
                 participants = emptyList(),
                 repeat = emptyList(),
                 location = emptyList(),
-                linkedTasks = emptyList(),
-                linkedAlarm = null,
+                createAlarm = false,
+                createTask = false,
             )
         )
     }

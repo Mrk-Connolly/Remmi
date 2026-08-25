@@ -15,10 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.automation.AutomationSettingsRepository
-import com.remmi.app.core.automation.dailyBriefing.DailyBriefingSettings
+import com.remmi.app.core.automation.features.dailybriefing.DailyBriefingSettings
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.screens.components.RemmiTimePickerDialog
-import com.remmi.app.core.service.android.implementations.AndroidAutomationScheduler
+import com.remmi.app.core.android.system.AndroidAutomationScheduler
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 
@@ -29,7 +29,7 @@ fun AutomatizationSettingsScreen(
     onBack: () -> Unit
 ) {
     Log.d("Remmi", "[AutomatizationSettingsScreen] - [Content] executed")
-    val repository = remember { AutomationSettingsRepository(controller.androidContext) }
+    val repository = remember { controller.automationEngine.settingsRepository }
     val scheduler = remember { AndroidAutomationScheduler(controller.androidContext) }
     val scope = rememberCoroutineScope()
     

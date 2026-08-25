@@ -3,20 +3,23 @@ package com.remmi.app.plugins.gift
 import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.commands.RemmiCommand
-import com.remmi.app.core.events.events.RemmiEvent
-import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.RemmiCommand
+import com.remmi.app.core.eventBus.events.ContactDeletedEvent
+import com.remmi.app.core.eventBus.events.RemmiEvent
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.plugin.widgets.RemmiWidget
-import com.remmi.app.plugins.contacts.ContactActions
+import com.remmi.app.core.database.DatabaseManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class GiftPlugin(
-    override val metadata: PluginMetadata
+    override val metadata: PluginMetadata,
+    private val databaseManager: DatabaseManager,
+    private val eventBus: EventBus
 ) : RemmiPlugin {
 
 
@@ -25,20 +28,16 @@ class GiftPlugin(
     // ----------------------------------------------------------------------------
 
     /** Internal storage for initialized components */
-    private var _repository: GiftRepository? = null
-    private var _actions: GiftActions? = null
+    private val _repository: GiftRepository = GiftRepository(databaseManager.service)
+    private val _actions: GiftActions = GiftActions(_repository).apply {
+        this.eventBus = this@GiftPlugin.eventBus
+    }
 
     /** Repository for managing Gift ideas data */
-    override val repository: GiftRepository
-        get() = _repository ?: throw IllegalStateException("GiftPlugin not initialized")
+    override val repository: GiftRepository get() = _repository
 
     /** Action controller for gift logic. */
-    override val actions: GiftActions
-        get() = _actions ?: throw IllegalStateException("GiftPlugin not initialized")
-    
-    /** Access to Contact actions via PluginContext.serviceManager or automation flow */
-    private val contactActions: ContactActions?
-        get() = null // Refactored: Should not access other plugins directly
+    override val actions: GiftActions get() = _actions
 
 
     /** Dashboard widget for gifts. */
@@ -46,7 +45,6 @@ class GiftPlugin(
         override val metadata: PluginMetadata = this@GiftPlugin.metadata
         @Composable override fun Content() {
             Log.d("Remmi", "[GiftPlugin] - [Content] (widget) executed")
-            // Placeholder for gift widget if needed later
         }
     }
 
@@ -54,8 +52,6 @@ class GiftPlugin(
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content(controller: RemmiController) {
             Log.d("Remmi", "[GiftPlugin] - [Content] (screen) executed")
-            // GiftListScreen needs contactActions. This should be handled by standardizing UI access.
-            // For now, keeping placeholder to fix compilation.
         }
     }
 
@@ -76,17 +72,8 @@ class GiftPlugin(
     /**                                   Initialize
      * Configure the plugin with the shared system context.
      */
-    override suspend fun initialize(context: PluginContext) {
-        Log.d("Remmi", "[GiftPlugin] - Initializing with shared context")
-        
-        // Initialize Repository via ServiceManager
-        val repo = GiftRepository(context.databaseManager.service)
-        _repository = repo
-        
-        // Initialize Actions
-        _actions = GiftActions(repo).apply {
-            this.eventBus = context.eventBus
-        }
+    override suspend fun initialize() {
+        Log.d("Remmi", "[GiftPlugin] - Initializing")
     }
 
     /**                                   On Command
@@ -94,14 +81,24 @@ class GiftPlugin(
      */
     override suspend fun onCommand(command: RemmiCommand) {
         Log.d("Remmi", "[GiftPlugin] - Received command: ${command::class.simpleName}")
-        // Future: Implement gift CRUD commands if needed
     }
 
     /**                                   On Event
      * Handle a system-wide or plugin-specific notification (Fact).
      * */
     override suspend fun onEvent(event: RemmiEvent) {
-        // Gift ideas might listen for birthday events etc.
+        when (event) {
+            is ContactDeletedEvent -> {
+                Log.i("Remmi", "[GiftPlugin] - Contact ${event.itemId} deleted. Cleaning up linked gift ideas...")
+                CoroutineScope(Dispatchers.IO).launch {
+                    val linkedGifts = repository.databaseService.getBySource("gift_ideas", "contacts", event.itemId, GiftIdea.serializer())
+                    linkedGifts.forEach { gift ->
+                        repository.delete(gift.id)
+                        Log.d("Remmi", "[GiftPlugin] - Deleted linked gift: ${gift.id}")
+                    }
+                }
+            }
+        }
     }
 
     /**                                   On Load
@@ -140,6 +137,6 @@ class GiftPlugin(
      */
     override suspend fun reformat() {
         Log.d("Remmi", "[GiftPlugin] - [reformat] executed")
-        _repository?.clear()
+        _repository.clear()
     }
 }

@@ -1,13 +1,15 @@
 package com.remmi.app.core.plugin
 
 import android.util.Log
-import com.remmi.app.core.events.*
-import com.remmi.app.core.events.commands.CommandListener
-import com.remmi.app.core.events.commands.RemmiCommand
-import com.remmi.app.core.events.commands.SyncPluginDataCommand
-import com.remmi.app.core.events.events.EventListener
-import com.remmi.app.core.events.events.RemmiEvent
-import com.remmi.app.core.service.file.FileService
+import com.remmi.app.core.eventBus.*
+import com.remmi.app.core.eventBus.commands.CommandListener
+import com.remmi.app.core.eventBus.commands.RemmiCommand
+import com.remmi.app.core.eventBus.commands.SyncPluginDataCommand
+import com.remmi.app.core.eventBus.events.EventListener
+import com.remmi.app.core.eventBus.events.RemmiEvent
+import com.remmi.app.core.android.files.FileService
+import com.remmi.app.core.database.DatabaseManager
+import com.remmi.app.core.android.services.AndroidServiceManager
 import com.remmi.app.plugins.alarm.AlarmPlugin
 import com.remmi.app.plugins.calendar.CalendarPlugin
 import com.remmi.app.plugins.contacts.ContactPlugin
@@ -26,7 +28,11 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * Manages plugin lifecycle and discovery.
  */
-class PluginManager : CommandListener, EventListener {
+class PluginManager(
+    private val databaseManager: DatabaseManager,
+    private val androidManager: AndroidServiceManager,
+    private val eventBus: EventBus
+) : CommandListener, EventListener {
 
     // ----------------------------------------------------------------------------
     //                                 VARIABLES
@@ -46,15 +52,15 @@ class PluginManager : CommandListener, EventListener {
 
     /** Registry of available plugin factory functions */
     private val pluginRegistry = mapOf<String, (PluginMetadata) -> RemmiPlugin>(
-        "calendar" to { CalendarPlugin(it) },
-        "tasks" to { TasksPlugin(it) },
-        "alarm" to { AlarmPlugin(it) },
-        "contacts" to { ContactPlugin(it) },
-        "gift" to { GiftPlugin(it) },
-        "recipe_book" to { RecipePlugin(it) },
-        "ingredient_stock" to { IngredientPlugin(it) },
-        "weather" to { WeatherPlugin(it) },
-        "maps" to { MapPlugin(it) }
+        "calendar" to { CalendarPlugin(it, databaseManager, eventBus) },
+        "tasks" to { TasksPlugin(it, databaseManager, eventBus) },
+        "alarm" to { AlarmPlugin(it, databaseManager, androidManager, eventBus) },
+        "contacts" to { ContactPlugin(it, databaseManager, eventBus) },
+        "gift" to { GiftPlugin(it, databaseManager, eventBus) },
+        "recipe_book" to { RecipePlugin(it, databaseManager, eventBus) },
+        "ingredient_stock" to { IngredientPlugin(it, databaseManager, eventBus) },
+        "weather" to { WeatherPlugin(it, databaseManager, androidManager, eventBus) },
+        "maps" to { MapPlugin(it, databaseManager, eventBus) }
     )
 
 

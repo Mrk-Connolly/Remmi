@@ -3,14 +3,15 @@ package com.remmi.app.plugins.contacts
 import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.commands.RemmiCommand
-import com.remmi.app.core.events.events.RemmiEvent
-import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.RemmiCommand
+import com.remmi.app.core.eventBus.events.RemmiEvent
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.plugin.widgets.RemmiWidget
-import com.remmi.app.plugins.contacts.ui.screens.ContactScreen
+import com.remmi.app.core.database.DatabaseManager
+import com.remmi.app.plugins.contacts.screens.ContactScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -18,7 +19,11 @@ import kotlinx.coroutines.launch
 /**
  * Entry point for the Contacts plugin.
  */
-class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
+class ContactPlugin(
+    override val metadata: PluginMetadata,
+    private val databaseManager: DatabaseManager,
+    private val eventBus: EventBus
+) : RemmiPlugin {
 
 
     // ----------------------------------------------------------------------------
@@ -26,16 +31,16 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     // ----------------------------------------------------------------------------
 
     /** Internal storage for initialized components */
-    private var _repository: ContactRepository? = null
-    private var _actions: ContactActions? = null
+    private val _repository: ContactRepository = ContactRepository(databaseManager.service)
+    private val _actions: ContactActions = ContactActions(_repository).apply {
+        this.eventBus = this@ContactPlugin.eventBus
+    }
 
     /** Repository for managing Contacts data */
-    override val repository: ContactRepository
-        get() = _repository ?: throw IllegalStateException("ContactPlugin not initialized")
+    override val repository: ContactRepository get() = _repository
 
     /** Action controller for contact logic. */
-    override val actions: ContactActions
-        get() = _actions ?: throw IllegalStateException("ContactPlugin not initialized")
+    override val actions: ContactActions get() = _actions
 
     /** Dashboard widget for contacts. */
     override val widget: RemmiWidget by lazy { ContactWidget(metadata, actions) }
@@ -65,17 +70,8 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
     /**                                   Initialize
      * Configure the plugin with the shared system context.
      */
-    override suspend fun initialize(context: PluginContext) {
-        Log.d("Remmi", "[ContactPlugin] - Initializing with shared context")
-        
-        // Initialize Repository via ServiceManager
-        val repo = ContactRepository(context.databaseManager.service)
-        _repository = repo
-        
-        // Initialize Actions
-        _actions = ContactActions(repo).apply {
-            this.eventBus = context.eventBus
-        }
+    override suspend fun initialize() {
+        Log.d("Remmi", "[ContactPlugin] - Initializing")
     }
 
     /**                                   On Command
@@ -83,14 +79,12 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
      */
     override suspend fun onCommand(command: RemmiCommand) {
         Log.d("Remmi", "[ContactPlugin] - Received command: ${command::class.simpleName}")
-        // Future: Implement contact CRUD commands if needed
     }
 
     /**                                   On Event
      * Handle a system-wide or plugin-specific notification (Fact).
      * */
     override suspend fun onEvent(event: RemmiEvent) {
-        // Contacts might listen for other things in future
     }
 
     /**                                   On Load
@@ -129,6 +123,6 @@ class ContactPlugin(override val metadata: PluginMetadata) : RemmiPlugin {
      */
     override suspend fun reformat() {
         Log.d("Remmi", "[ContactPlugin] - [reformat] executed")
-        _repository?.clear()
+        _repository.clear()
     }
 }

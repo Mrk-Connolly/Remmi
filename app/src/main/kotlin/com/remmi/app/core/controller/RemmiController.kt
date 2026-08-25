@@ -2,14 +2,11 @@ package com.remmi.app.core.controller
 
 import android.content.Context
 import android.util.Log
-import com.remmi.app.core.automation.AutomationEngine
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.automation.engine.AutomationEngine
+import com.remmi.app.core.eventBus.EventBus
 import com.remmi.app.core.plugin.PluginManager
-import com.remmi.app.core.service.database.DatabaseManager
-import com.remmi.app.core.service.file.FileManager
-import com.remmi.app.core.service.android.AndroidServiceManager
-import com.remmi.app.core.ui.state.UIStateManager
+import com.remmi.app.core.database.DatabaseManager
+import com.remmi.app.core.android.services.AndroidServiceManager
 
 /**
  * REMMI CONTROLLER
@@ -26,15 +23,11 @@ class RemmiController(val androidContext: Context) {
     /** Shared Communication Channel */
     val eventBus = EventBus()
 
-    /** UI State Management */
-    val uiStateManager = UIStateManager()
-
     /** Core System Managers */
-    val databaseManager = DatabaseManager()
-    val fileManager = FileManager(androidContext)
+    val databaseManager = DatabaseManager(eventBus)
     val androidManager = AndroidServiceManager(androidContext, eventBus)
-    val pluginManager = PluginManager()
-    val automationEngine = AutomationEngine(androidContext, eventBus)
+    val pluginManager = PluginManager(databaseManager, androidManager, eventBus)
+    val automationEngine = AutomationEngine(eventBus, androidManager)
 
     private var isStarted = false
 
@@ -66,14 +59,13 @@ class RemmiController(val androidContext: Context) {
         eventBus.start()
 
         // 2. Discover Plugins using FileService
-        pluginManager.readPlugins(fileManager.service)
+        pluginManager.readPlugins(androidManager.fileService)
         
         // 3. Load plugins (MUST BE BEFORE SUBSCRIPTION)
         pluginManager.loadPlugins()
 
         // 4. Initialize Plugins with Context
-        val pluginContext = PluginContext(databaseManager, fileManager, androidManager, eventBus)
-        pluginManager.plugins.values.forEach { it.initialize(pluginContext) }
+        pluginManager.plugins.values.forEach { it.initialize() }
 
         // 5. Subscribe Command and Event Listeners
         subscribeAll()

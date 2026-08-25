@@ -58,7 +58,9 @@ class GenericPluginTester<T : RemmiModel>(
                 modified = now,
                 pluginId = pluginId,
                 operation = operation,
-                status = TestStatus.SUCCESS
+                status = TestStatus.SUCCESS,
+                sourcePlugin = null,
+                sourceItemId = null
             )
         } catch (e: Exception) {
             Log.e("RemmiTest", "[$pluginId] Test failed for $operation: ${e.message}")
@@ -69,7 +71,9 @@ class GenericPluginTester<T : RemmiModel>(
                 pluginId = pluginId,
                 operation = operation,
                 status = TestStatus.FAILURE,
-                errorMessage = e.message
+                errorMessage = e.message,
+                sourcePlugin = null,
+                sourceItemId = null
             )
         }
     }

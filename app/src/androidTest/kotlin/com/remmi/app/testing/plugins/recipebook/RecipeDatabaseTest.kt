@@ -2,7 +2,7 @@ package com.remmi.app.testing.plugins.recipebook
 
 import com.remmi.app.testing.core.*
 import com.remmi.app.plugins.recipebook.RecipeRepository
-import com.remmi.app.plugins.recipebook.models.RecipeItem
+import com.remmi.app.core.model.recipebook.RecipeItem
 import java.util.UUID
 
 class RecipeDatabaseTest(

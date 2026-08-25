@@ -1,13 +1,15 @@
 package com.remmi.app.plugins.alarm
 
 import android.util.Log
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.events.events.AlarmCreatedEvent
-import com.remmi.app.core.events.events.AlarmDeletedEvent
-import com.remmi.app.core.events.events.AlarmUpdatedEvent
-import com.remmi.app.core.model.alarm.AlarmItem
+import com.remmi.app.core.eventBus.CreationContext
+import com.remmi.app.core.eventBus.DeletionContext
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.events.AlarmCreatedEvent
+import com.remmi.app.core.eventBus.events.AlarmDeletedEvent
+import com.remmi.app.core.eventBus.events.AlarmUpdatedEvent
+import com.remmi.app.plugins.alarm.models.AlarmItem
 import com.remmi.app.core.plugin.actions.RemmiAction
-import com.remmi.app.core.service.android.AlarmService
+import com.remmi.app.core.android.alarms.AlarmService
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -87,7 +89,11 @@ class AlarmActions(
         syncToSystem: Boolean = true,
         useSound: Boolean = true,
         useVibration: Boolean = true,
-        linkedCalendarEventId: String? = null
+        sourcePlugin: String? = null,
+        sourceItemId: String? = null,
+        correlationId: String? = null,
+        causationId: String? = null,
+        creationContext: CreationContext? = null
     ): Boolean {
         Log.d("Remmi", "[AlarmActions] - [addAlarm] executed")
         return try {
@@ -104,7 +110,8 @@ class AlarmActions(
                 custom = custom,
                 useSound = useSound,
                 useVibration = useVibration,
-                linkedCalendarEvent = linkedCalendarEventId
+                sourcePlugin = sourcePlugin,
+                sourceItemId = sourceItemId
             )
             repository.insert(alarm)
             Log.d("AlarmActions", "Alarm inserted into repository: ${alarm.id}")
@@ -122,7 +129,12 @@ class AlarmActions(
             // Publish Fact
             Log.i("Remmi", "[AlarmActions] - Successfully created alarm: ${alarm.id}. Publishing event...")
             eventBus?.publishEvent(
-                AlarmCreatedEvent(alarmId = alarm.id)
+                AlarmCreatedEvent(
+                    alarmId = alarm.id,
+                    correlationId = correlationId,
+                    causationId = causationId,
+                    creationContext = creationContext
+                )
             )
             
             true
@@ -167,7 +179,12 @@ class AlarmActions(
     /**                                 Delete Alarm
      * Deletes an alarm from the repository and cancels system scheduling
      */
-    suspend fun deleteAlarm(id: String): Boolean {
+    suspend fun deleteAlarm(
+        id: String,
+        correlationId: String? = null,
+        causationId: String? = null,
+        deletionContext: DeletionContext? = null
+    ): Boolean {
         Log.d("Remmi", "[AlarmActions] - [deleteAlarm] executed")
         return try {
             val alarmToDelete = repository.get(id)
@@ -186,7 +203,12 @@ class AlarmActions(
             // Publish Fact
             Log.i("Remmi", "[AlarmActions] - Successfully deleted alarm: $id. Publishing event...")
             eventBus?.publishEvent(
-                AlarmDeletedEvent(alarmId = id)
+                AlarmDeletedEvent(
+                    alarmId = id,
+                    correlationId = correlationId,
+                    causationId = causationId,
+                    deletionContext = deletionContext
+                )
             )
             
             true

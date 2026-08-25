@@ -1,7 +1,7 @@
 package com.remmi.app.plugins.alarm
 
 import android.util.Log
-import com.remmi.app.core.model.alarm.AlarmItem
+import com.remmi.app.plugins.alarm.models.AlarmItem
 
 /**
  * Wrapper for AlarmItem to handle UI state like whether it's a local system alarm.

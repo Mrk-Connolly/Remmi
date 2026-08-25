@@ -1,12 +1,12 @@
 package com.remmi.app.plugins.ingredients
 
 import android.util.Log
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.events.events.IngredientCreatedEvent
-import com.remmi.app.core.events.events.IngredientUpdatedEvent
-import com.remmi.app.core.events.events.IngredientStockAdjustedEvent
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.events.IngredientCreatedEvent
+import com.remmi.app.core.eventBus.events.IngredientUpdatedEvent
+import com.remmi.app.core.eventBus.events.IngredientStockAdjustedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
-import com.remmi.app.core.model.ingredients.*
+import com.remmi.app.plugins.ingredients.models.*
 import com.remmi.app.plugins.ingredients.repository.*
 import kotlinx.datetime.*
 import java.util.UUID

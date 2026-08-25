@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.widgets.RemmiWidget
-import com.remmi.app.core.model.calendar.CalendarItem
+import com.remmi.app.plugins.calendar.models.CalendarItem
 
 /**
  * Dashboard widget for the Calendar plugin.

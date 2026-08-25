@@ -1,12 +1,13 @@
 package com.remmi.app.plugins.calendar
 
 import android.util.Log
-import com.remmi.app.core.events.*
-import com.remmi.app.core.events.events.CalendarEventCreatedEvent
-import com.remmi.app.core.events.events.CalendarEventDeletedEvent
-import com.remmi.app.core.events.events.CalendarEventUpdatedEvent
+import com.remmi.app.core.eventBus.*
+import com.remmi.app.core.eventBus.events.CalendarEventCreatedEvent
+import com.remmi.app.core.eventBus.events.CalendarEventDeletedEvent
+import com.remmi.app.core.eventBus.events.CalendarEventUpdatedEvent
+import com.remmi.app.core.eventBus.events.LinkedCreationRequest
 import com.remmi.app.core.plugin.actions.RemmiAction
-import com.remmi.app.core.model.calendar.CalendarItem
+import com.remmi.app.plugins.calendar.models.CalendarItem
 import kotlinx.datetime.*
 import java.util.UUID
 
@@ -64,8 +65,11 @@ class CalendarActions(
         participants: List<String> = emptyList(),
         repeat: List<String> = emptyList(),
         location: List<String> = emptyList(),
-        linkedTasks: List<String> = emptyList(),
-        linkedAlarm: String? = null
+        createAlarm: Boolean = false,
+        createTask: Boolean = false,
+        correlationId: String? = null,
+        causationId: String? = null,
+        creationContext: CreationContext? = null
     ): String? {
         Log.d("Remmi", "[CalendarActions] - [addEvent] executed")
         return try {
@@ -85,8 +89,8 @@ class CalendarActions(
                 participants = participants,
                 repeat = repeat,
                 location = location,
-                linkedTasks = linkedTasks,
-                linkedAlarm = linkedAlarm
+                createAlarm = createAlarm,
+                createTask = createTask
             )
             repository.insert(item)
             Log.d(TAG, "Event inserted successfully")
@@ -96,7 +100,14 @@ class CalendarActions(
             eventBus?.publishEvent(
                 CalendarEventCreatedEvent(
                     itemId = item.id,
-                    isPriority = item.isPriority
+                    isPriority = item.isPriority,
+                    linkedRequests = LinkedCreationRequest(
+                        createAlarm = item.createAlarm,
+                        createTask = item.createTask
+                    ),
+                    correlationId = correlationId,
+                    causationId = causationId,
+                    creationContext = creationContext
                 )
             )
 
@@ -110,7 +121,12 @@ class CalendarActions(
     /**                                 Remove Event
      * Delete an event by ID
      * */
-    suspend fun removeEvent(id: String): Boolean {
+    suspend fun removeEvent(
+        id: String,
+        correlationId: String? = null,
+        causationId: String? = null,
+        deletionContext: DeletionContext? = null
+    ): Boolean {
         Log.d("Remmi", "[CalendarActions] - [removeEvent] executed")
         return try {
             repository.delete(id)
@@ -118,7 +134,12 @@ class CalendarActions(
             // Publish Fact
             Log.i("Remmi", "[CalendarActions] - Successfully deleted event: $id. Publishing event...")
             eventBus?.publishEvent(
-                CalendarEventDeletedEvent(itemId = id)
+                CalendarEventDeletedEvent(
+                    itemId = id,
+                    correlationId = correlationId,
+                    causationId = causationId,
+                    deletionContext = deletionContext
+                )
             )
 
             true
@@ -131,7 +152,11 @@ class CalendarActions(
     /**                                 Update Event
      * Update event details
      * */
-    suspend fun updateEvent(event: CalendarItem): Boolean {
+    suspend fun updateEvent(
+        event: CalendarItem,
+        correlationId: String? = null,
+        causationId: String? = null
+    ): Boolean {
         Log.d("Remmi", "[CalendarActions] - [updateEvent] executed")
         return try {
             event.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
@@ -140,7 +165,11 @@ class CalendarActions(
             // Publish Fact
             Log.i("Remmi", "[CalendarActions] - Successfully updated event: ${event.id}. Publishing event...")
             eventBus?.publishEvent(
-                CalendarEventUpdatedEvent(itemId = event.id)
+                CalendarEventUpdatedEvent(
+                    itemId = event.id,
+                    correlationId = correlationId,
+                    causationId = causationId
+                )
             )
 
             true

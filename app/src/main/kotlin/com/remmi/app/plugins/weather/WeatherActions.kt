@@ -1,10 +1,10 @@
 package com.remmi.app.plugins.weather
 
 import android.util.Log
-import com.remmi.app.core.events.EventBus
+import com.remmi.app.core.eventBus.EventBus
 import com.remmi.app.core.plugin.actions.RemmiAction
-import com.remmi.app.core.service.android.WeatherInfo
-import com.remmi.app.core.service.android.WeatherService
+import com.remmi.app.core.android.system.WeatherInfo
+import com.remmi.app.core.android.system.WeatherService
 
 /**
  * Action controller for the Weather plugin.

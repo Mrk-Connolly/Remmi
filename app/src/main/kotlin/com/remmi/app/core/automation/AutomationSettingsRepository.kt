@@ -1,18 +1,16 @@
 package com.remmi.app.core.automation
 
-import android.content.Context
 import android.util.Log
-import com.remmi.app.core.automation.dailyBriefing.DailyBriefingSettings
+import com.remmi.app.core.automation.features.dailybriefing.DailyBriefingSettings
+import com.remmi.app.core.android.services.SystemSettingsService
 
 /**
  * AUTOMATION SETTINGS REPOSITORY
  *
  * Manages persistent storage for automation-related settings.
- * Uses SharedPreferences for local persistence.
+ * Uses SystemSettingsService for local persistence.
  */
-class AutomationSettingsRepository(private val context: Context) {
-
-    private val prefs = context.getSharedPreferences("remmi_automation_settings", Context.MODE_PRIVATE)
+class AutomationSettingsRepository(private val settingsService: SystemSettingsService) {
 
     companion object {
         private const val KEY_BRIEFING_ENABLED = "daily_briefing_enabled"
@@ -26,9 +24,9 @@ class AutomationSettingsRepository(private val context: Context) {
      * */
     fun getBriefingSettings(): DailyBriefingSettings {
         return DailyBriefingSettings(
-            enabled = prefs.getBoolean(KEY_BRIEFING_ENABLED, false),
-            hour = prefs.getInt(KEY_BRIEFING_HOUR, 7),
-            minute = prefs.getInt(KEY_BRIEFING_MINUTE, 0)
+            enabled = settingsService.getBoolean(KEY_BRIEFING_ENABLED, false),
+            hour = settingsService.getInt(KEY_BRIEFING_HOUR, 7),
+            minute = settingsService.getInt(KEY_BRIEFING_MINUTE, 0)
         )
     }
 
@@ -37,24 +35,22 @@ class AutomationSettingsRepository(private val context: Context) {
      * */
     fun updateBriefingSettings(settings: DailyBriefingSettings) {
         Log.d("Remmi", "[AutomationSettingsRepository] - Updating settings: $settings")
-        prefs.edit()
-            .putBoolean(KEY_BRIEFING_ENABLED, settings.enabled)
-            .putInt(KEY_BRIEFING_HOUR, settings.hour)
-            .putInt(KEY_BRIEFING_MINUTE, settings.minute)
-            .apply()
+        settingsService.setBoolean(KEY_BRIEFING_ENABLED, settings.enabled)
+        settingsService.setInt(KEY_BRIEFING_HOUR, settings.hour)
+        settingsService.setInt(KEY_BRIEFING_MINUTE, settings.minute)
     }
 
     /**                                 Get Lock Screen Summary Enabled
      * Check if the persistent lock screen notification is active.
      * */
     fun isLockScreenSummaryEnabled(): Boolean {
-        return prefs.getBoolean(KEY_LOCK_SCREEN_SUMMARY_ENABLED, true) // Default to true
+        return settingsService.getBoolean(KEY_LOCK_SCREEN_SUMMARY_ENABLED, true) // Default to true
     }
 
     /**                                 Update Lock Screen Summary Enabled
      * Toggle the persistent lock screen notification.
      * */
     fun setLockScreenSummaryEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_LOCK_SCREEN_SUMMARY_ENABLED, enabled).apply()
+        settingsService.setBoolean(KEY_LOCK_SCREEN_SUMMARY_ENABLED, enabled)
     }
 }

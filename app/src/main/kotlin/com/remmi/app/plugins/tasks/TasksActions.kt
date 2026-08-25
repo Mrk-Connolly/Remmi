@@ -1,13 +1,15 @@
 package com.remmi.app.plugins.tasks
 
 import android.util.Log
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.events.events.TaskCreatedEvent
-import com.remmi.app.core.events.events.TaskDeletedEvent
-import com.remmi.app.core.events.events.TaskUpdatedEvent
+import com.remmi.app.core.eventBus.CreationContext
+import com.remmi.app.core.eventBus.DeletionContext
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.events.TaskCreatedEvent
+import com.remmi.app.core.eventBus.events.TaskDeletedEvent
+import com.remmi.app.core.eventBus.events.TaskUpdatedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
 import com.remmi.app.core.plugin.model.components.RepeatRule
-import com.remmi.app.core.model.tasks.TaskItem
+import com.remmi.app.plugins.tasks.models.TaskItem
 import kotlinx.datetime.*
 import java.util.UUID
 
@@ -58,7 +60,12 @@ class TasksActions(
         dueDate: Instant? = null,
         isPriority: Boolean = false,
         group: String? = null,
-        repeat: RepeatRule? = null
+        repeat: RepeatRule? = null,
+        sourcePlugin: String? = null,
+        sourceItemId: String? = null,
+        correlationId: String? = null,
+        causationId: String? = null,
+        creationContext: CreationContext? = null
     ): Boolean {
         Log.d("Remmi", "[TasksActions] - [createTask] executed")
         return try {
@@ -76,7 +83,8 @@ class TasksActions(
                 group = group,
                 completed = false,
                 repeat = repeat,
-                linkedCalendar = null // Will be linked via AutomationEngine if needed
+                sourcePlugin = sourcePlugin,
+                sourceItemId = sourceItemId
             )
 
             repository.insert(task)
@@ -88,7 +96,10 @@ class TasksActions(
                 TaskCreatedEvent(
                     taskId = task.id,
                     priority = task.isPriority,
-                    group = task.group
+                    group = task.group,
+                    correlationId = correlationId,
+                    causationId = causationId,
+                    creationContext = creationContext
                 )
             )
 
@@ -124,7 +135,12 @@ class TasksActions(
     /**                                 Delete Task
      * Delete a task by ID and publish a Fact event
      * */
-    suspend fun deleteTask(id: String): Boolean {
+    suspend fun deleteTask(
+        id: String,
+        correlationId: String? = null,
+        causationId: String? = null,
+        deletionContext: DeletionContext? = null
+    ): Boolean {
         Log.d("Remmi", "[TasksActions] - [deleteTask] executed")
         return try {
             repository.delete(id)
@@ -132,7 +148,12 @@ class TasksActions(
             // Publish Fact
             Log.i("Remmi", "[TasksActions] - Successfully deleted task: $id. Publishing event...")
             eventBus?.publishEvent(
-                TaskDeletedEvent(taskId = id)
+                TaskDeletedEvent(
+                    taskId = id,
+                    correlationId = correlationId,
+                    causationId = causationId,
+                    deletionContext = deletionContext
+                )
             )
 
             true

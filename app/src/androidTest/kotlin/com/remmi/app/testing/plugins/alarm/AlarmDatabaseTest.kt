@@ -1,7 +1,7 @@
 package com.remmi.app.testing.plugins.alarm
 
 import com.remmi.app.testing.core.*
-import com.remmi.app.plugins.alarm.AlarmItem
+import com.remmi.app.core.model.alarm.AlarmItem
 import com.remmi.app.plugins.alarm.AlarmRepository
 import java.util.UUID
 

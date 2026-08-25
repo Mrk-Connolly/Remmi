@@ -1,9 +1,9 @@
 package com.remmi.app.plugins.recipebook.logic
 
-import com.remmi.app.core.model.ingredients.*
-import com.remmi.app.core.model.recipebook.NutritionInfo
-import com.remmi.app.core.model.recipebook.RecipeItem
-import com.remmi.app.core.model.recipebook.StepIngredient
+import com.remmi.app.plugins.ingredients.models.*
+import com.remmi.app.plugins.recipebook.models.NutritionInfo
+import com.remmi.app.plugins.recipebook.models.RecipeItem
+import com.remmi.app.plugins.recipebook.models.StepIngredient
 
 /**
  * RECIPE NUTRITION CALCULATOR

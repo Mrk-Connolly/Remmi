@@ -25,4 +25,10 @@ interface RemmiModel {
 
     /** Owner of the data item */
     val userId: String?
+
+    /** The plugin that caused this item to be created (optional) */
+    val sourcePlugin: String?
+
+    /** The ID of the item in the source plugin that caused this item to be created (optional) */
+    val sourceItemId: String?
 }

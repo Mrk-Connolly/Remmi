@@ -8,9 +8,9 @@ import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import com.remmi.app.R
 import com.remmi.app.RemmiApplication
-import com.remmi.app.core.model.calendar.CalendarItem
+import com.remmi.app.plugins.calendar.models.CalendarItem
 import com.remmi.app.plugins.calendar.CalendarPlugin
-import com.remmi.app.core.model.tasks.TaskItem
+import com.remmi.app.plugins.tasks.models.TaskItem
 import com.remmi.app.plugins.tasks.TasksPlugin
 import kotlinx.coroutines.runBlocking
 

@@ -1,10 +1,10 @@
 package com.remmi.app.plugins.gift
 
 import android.util.Log
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.events.events.GiftIdeaCreatedEvent
-import com.remmi.app.core.events.events.GiftIdeaDeletedEvent
-import com.remmi.app.core.events.events.GiftIdeaUpdatedEvent
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.events.GiftIdeaCreatedEvent
+import com.remmi.app.core.eventBus.events.GiftIdeaDeletedEvent
+import com.remmi.app.core.eventBus.events.GiftIdeaUpdatedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
 import kotlin.time.Instant
 import java.util.UUID

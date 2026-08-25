@@ -1,12 +1,13 @@
 package com.remmi.app.plugins.maps
 
 import android.util.Log
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.events.commands.PickLocationCommand
-import com.remmi.app.core.events.events.LocationPickedEvent
-import com.remmi.app.core.model.maps.SavedLocation
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.PickLocationCommand
+import com.remmi.app.core.eventBus.events.LocationPickedEvent
+import com.remmi.app.plugins.maps.models.SavedLocation
 import com.remmi.app.core.plugin.actions.RemmiAction
 import com.remmi.app.plugins.maps.repository.MapRepository
+import com.remmi.app.core.controller.GlobalUIState
 import kotlinx.datetime.Instant
 import java.util.UUID
 
@@ -45,11 +46,11 @@ class MapActions(
         return repository.getAll()
     }
 
-    fun handlePickLocation(command: PickLocationCommand, uiStateManager: com.remmi.app.core.ui.state.UIStateManager) {
+    fun handlePickLocation(command: PickLocationCommand) {
         Log.d("Remmi", "[MapActions] - Handling PickLocationCommand: ${command.requestId}")
-        uiStateManager.locationPickerRequestId.value = command.requestId
-        uiStateManager.locationPickerInitialSearch.value = command.initialSearch
-        uiStateManager.showLocationPicker.value = true
+        GlobalUIState.locationPickerRequestId.value = command.requestId
+        GlobalUIState.locationPickerInitialSearch.value = command.initialSearch
+        GlobalUIState.showLocationPicker.value = true
     }
 
     suspend fun notifyLocationPicked(requestId: String, name: String, address: String?, lat: Double?, lon: Double?) {
