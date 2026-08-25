@@ -8,6 +8,7 @@ import com.remmi.app.core.plugin.model.components.Location
 import com.remmi.app.core.plugin.model.components.PersonName
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.SerialName
 
 /**
  * Data model representing a person or contact.

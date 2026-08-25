@@ -1,4 +1,4 @@
-package com.remmi.app.core.screens
+package com.remmi.app.core.navigation
 
 import android.util.Log
 import androidx.compose.animation.core.animateDpAsState
@@ -28,6 +28,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.Users.UserViewModel
+import com.remmi.app.core.auth.AuthState
+import com.remmi.app.core.auth.AuthViewModel
+import com.remmi.app.core.screens.AuthScreen
+import com.remmi.app.core.screens.HomeScreen
+import com.remmi.app.core.screens.SettingsScreen
+import com.remmi.app.core.screens.AutomatizationSettingsScreen
 import com.remmi.app.core.plugin.PluginMetadata
 import kotlinx.coroutines.launch
 
@@ -63,6 +70,53 @@ sealed class RemmiDestination(val route: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(runtime: RemmiController) {
+
+    Log.d("Remmi", "[AppNavigation] - [AppNavigation] executed")
+    val authState by runtime.authRepository.sessionStatus.collectAsState(initial = AuthState.Loading)
+
+    when (authState) {
+        AuthState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        AuthState.Unauthenticated -> {
+            val authViewModel = remember { AuthViewModel(runtime.authRepository) }
+            val userViewModel = remember { UserViewModel(runtime.userRepository, runtime.authRepository) }
+            val scope = rememberCoroutineScope()
+            AuthScreen(
+                viewModel = authViewModel,
+                onAuthSuccess = {
+                    val userName = authViewModel.name
+                    val isNewUser = authViewModel.isSignUpMode
+                    scope.launch {
+                        // Plugin initialization is mostly local and fast; run it
+                        // first so the home screen appears immediately. The profile
+                        // round trip happens in the background, without blocking UI.
+                        launch { userViewModel.ensureProfile(userName, isNewUser) }
+                        runtime.initializePlugins()
+                    }
+                }
+            )
+        }
+        AuthState.Authenticated -> {
+            // Wait for plugin initialization before composing the UI.
+            // HomeScreen (and plugin screens) access actions/widgets that throw
+            // if the plugin has not been initialized yet.
+            if (runtime.isInitialized.value) {
+                MainAppContent(runtime)
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainAppContent(runtime: RemmiController) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -94,7 +148,7 @@ fun AppNavigation(runtime: RemmiController) {
 
     val isEditorActive = runtime.isEditorActive.value
     val isMenuVisible = runtime.isMenuVisible.value
-    
+
     val animatedPeekHeight by animateDpAsState(
         if (isEditorActive || !isMenuVisible || isSettingsRoute) 0.dp else 160.dp,
         label = "peekHeight"
@@ -240,7 +294,7 @@ fun RowScope.IslandNavigationItems(
 
     NavigationBarItem(
         selected = currentRoute?.contains("calendar") == true,
-        onClick = { 
+        onClick = {
             navController.navigate(RemmiDestination.pluginRoute("calendar"))
             onNavigate()
         },
@@ -250,7 +304,7 @@ fun RowScope.IslandNavigationItems(
 
     NavigationBarItem(
         selected = currentRoute?.contains("tasks") == true,
-        onClick = { 
+        onClick = {
             navController.navigate(RemmiDestination.pluginRoute("tasks"))
             onNavigate()
         },
