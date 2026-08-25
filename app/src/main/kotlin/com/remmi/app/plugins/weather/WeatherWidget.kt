@@ -9,8 +9,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.widgets.RemmiWidget
-import com.remmi.app.core.service.android.WeatherInfo
-import com.remmi.app.plugins.weather.ui.screens.getWeatherIcon
+import com.remmi.app.core.android.system.WeatherInfo
+import com.remmi.app.plugins.weather.screens.getWeatherIcon
 
 class WeatherWidget(
     override val metadata: PluginMetadata,

@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.widgets.RemmiWidget
+import com.remmi.app.plugins.tasks.models.TaskItem
 
 /**
  * Dashboard widget for the Tasks plugin.

@@ -2,7 +2,6 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
     kotlin("plugin.serialization")
-
 }
 
 android {
@@ -65,11 +64,11 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:postgrest-kt:3.2.2")
     implementation("io.github.jan-tennert.supabase:auth-kt:3.2.2")
     implementation("io.ktor:ktor-client-android:3.1.1")
+    implementation("io.ktor:ktor-client-cio:3.1.1")
     implementation("io.coil-kt:coil-compose:2.7.0")
     
-    // Google Maps & Location
-    implementation("com.google.maps.android:maps-compose:8.4.0")
-    implementation("com.google.android.gms:play-services-maps:20.0.0")
+    // MapLibre & Location
+    implementation("org.maplibre.compose:maplibre-compose-android:0.14.0")
     implementation("com.google.android.gms:play-services-location:21.4.0")
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")

@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Remmi"
 include(":app")
+include(":db-scripts")

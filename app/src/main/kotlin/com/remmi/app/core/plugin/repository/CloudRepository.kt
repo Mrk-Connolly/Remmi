@@ -2,11 +2,11 @@ package com.remmi.app.core.plugin.repository
 
 import android.util.Log
 import com.remmi.app.core.plugin.model.models.RemmiModel
-import com.remmi.app.core.service.database.DatabaseService
+import com.remmi.app.core.database.DatabaseService
 import kotlinx.serialization.KSerializer
 
 abstract class CloudRepository<T : RemmiModel>(
-    protected val databaseService: DatabaseService,
+    val databaseService: DatabaseService,
     protected val tableName: String,
     protected val serializer: KSerializer<T>
 ) : MemoryRepository<T>() {
@@ -34,10 +34,15 @@ abstract class CloudRepository<T : RemmiModel>(
     }
 
     suspend fun refresh() {
-        Log.d("Remmi", "[CloudRepository] - [refresh] executed")
-        val items = databaseService.getAll(tableName, serializer)
-        clear()
-        items.forEach { add(it) }
+        Log.d("Remmi", "[CloudRepository] - [refresh] executed for table $tableName")
+        try {
+            val items = databaseService.getAll(tableName, serializer)
+            clear()
+            items.forEach { add(it) }
+        } catch (e: Exception) {
+            Log.e("Remmi", "[CloudRepository] - Error refreshing table $tableName: ${e.message}")
+            // Optional: we could rethrow or handle specific Supabase codes here
+        }
     }
 
     suspend fun sync() {

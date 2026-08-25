@@ -43,7 +43,13 @@ data class RecipeItem(
     val nutritionPerServing: NutritionInfo = NutritionInfo(),
     val instructions: List<String> = emptyList(),
     @SerialName("meal_type")
-    val mealType: MealType = MealType.OTHER
+    val mealType: MealType = MealType.OTHER,
+
+    @SerialName("source_plugin")
+    override val sourcePlugin: String? = null,
+
+    @SerialName("source_item_id")
+    override val sourceItemId: String? = null
 ) : RemmiModel {
     init {
         Log.d("Remmi", "[RecipeItem] - [constructor] executed")

@@ -3,34 +3,33 @@ package com.remmi.app.plugins.tasks
 import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.commands.CreateTaskCommand
-import com.remmi.app.core.events.commands.DeleteDataCommand
-import com.remmi.app.core.events.commands.DeleteTaskCommand
-import com.remmi.app.core.events.commands.FetchTodayTasksCommand
-import com.remmi.app.core.events.commands.RemmiCommand
-import com.remmi.app.core.events.commands.UpdateTaskCommand
-import com.remmi.app.core.events.commands.UpsertDataCommand
-import com.remmi.app.core.events.events.CalendarEventDeletedEvent
-import com.remmi.app.core.events.events.RemmiEvent
-import com.remmi.app.core.events.events.TaskCreatedEvent
-import com.remmi.app.core.events.events.TaskDeletedEvent
-import com.remmi.app.core.events.events.TaskUpdatedEvent
-import com.remmi.app.core.events.events.TodayTasksFetchedEvent
-import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.eventBus.CreationContext
+import com.remmi.app.core.eventBus.DeletionContext
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.*
+import com.remmi.app.core.eventBus.events.*
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.core.plugin.widgets.RemmiWidget
-import com.remmi.app.plugins.tasks.ui.screens.TasksScreen
+import com.remmi.app.plugins.tasks.models.TaskItem
+import com.remmi.app.plugins.calendar.models.CalendarItem
+import com.remmi.app.core.database.DatabaseManager
+import com.remmi.app.plugins.tasks.screens.TasksScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atTime
+import kotlinx.datetime.toInstant
 
 /**
  * Entry point for the Tasks plugin.
  */
 class TasksPlugin(
-    override val metadata: PluginMetadata
+    override val metadata: PluginMetadata,
+    private val databaseManager: DatabaseManager,
+    private val eventBus: EventBus
 ) : RemmiPlugin {
 
 
@@ -39,16 +38,16 @@ class TasksPlugin(
     // ----------------------------------------------------------------------------
 
     /** Internal storage for initialized components */
-    private var _repository: TasksRepository? = null
-    private var _actions: TasksActions? = null
+    private val _repository: TasksRepository = TasksRepository(databaseManager.service)
+    private val _actions: TasksActions = TasksActions(_repository).apply {
+        this.eventBus = this@TasksPlugin.eventBus
+    }
 
     /** Repository for managing Tasks data */
-    override val repository: TasksRepository
-        get() = _repository ?: throw IllegalStateException("TasksPlugin not initialized")
+    override val repository: TasksRepository get() = _repository
 
     /** Action controller for tasks logic. */
-    override val actions: TasksActions
-        get() = _actions ?: throw IllegalStateException("TasksPlugin not initialized")
+    override val actions: TasksActions get() = _actions
 
     /** Dashboard widget for tasks. */
     override val widget: RemmiWidget by lazy { TasksWidget(metadata, actions) }
@@ -78,17 +77,8 @@ class TasksPlugin(
     /**                                   Initialize
      * Configure the plugin with the shared system context.
      */
-    override suspend fun initialize(context: PluginContext) {
-        Log.d("Remmi", "[TasksPlugin] - Initializing with shared context")
-        
-        // Initialize Repository via ServiceManager
-        val repo = TasksRepository(context.databaseManager.service)
-        _repository = repo
-        
-        // Initialize Actions
-        _actions = TasksActions(repo).apply {
-            this.eventBus = context.eventBus
-        }
+    override suspend fun initialize() {
+        Log.d("Remmi", "[TasksPlugin] - Initializing")
     }
 
     /**                                   On Command
@@ -98,68 +88,46 @@ class TasksPlugin(
         Log.d("Remmi", "[TasksPlugin] - Received command: ${command::class.simpleName}")
         when (command) {
             is CreateTaskCommand -> {
-                val now = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-                val taskId = java.util.UUID.randomUUID().toString()
-                val item = TaskItem(
-                    id = taskId,
-                    created = now,
-                    modified = now,
+                actions.createTask(
                     title = command.title,
                     description = command.description,
                     dueDate = command.dueDate,
                     isPriority = command.isPriority,
                     group = command.group,
                     repeat = command.repeat,
-                    linkedCalendar = if (command.source == "calendar") "event_key" else null, // TODO: Use real ID if available
-                    userId = null
-                )
-                
-                actions.eventBus?.publishCommand(
-                    UpsertDataCommand(
-                        tableName = "tasks",
-                        item = item,
-                        serializer = TaskItem.serializer(),
-                        source = "tasks"
-                    )
-                )
-                
-                actions.eventBus?.publishEvent(
-                    TaskCreatedEvent(
-                        taskId = item.id,
-                        priority = item.isPriority,
-                        group = item.group
-                    )
+                    sourcePlugin = command.sourcePlugin,
+                    sourceItemId = command.sourceItemId,
+                    correlationId = command.correlationId ?: command.commandId,
+                    causationId = command.commandId,
+                    creationContext = command.creationContext ?: CreationContext.PRIMARY
                 )
             }
             is UpdateTaskCommand -> {
-                actions.eventBus?.publishCommand(
-                    UpsertDataCommand(
-                        tableName = "tasks",
-                        item = command.task,
-                        serializer = TaskItem.serializer(),
-                        source = "tasks"
-                    )
-                )
-                actions.eventBus?.publishEvent(
-                    TaskUpdatedEvent(taskId = command.task.id)
+                actions.updateTask(command.task)
+            }
+            is com.remmi.app.core.eventBus.commands.DeleteTaskCommand -> {
+                actions.deleteTask(
+                    id = command.taskId,
+                    correlationId = command.correlationId ?: command.commandId,
+                    causationId = command.commandId,
+                    deletionContext = command.deletionContext ?: DeletionContext.PRIMARY
                 )
             }
-            is DeleteTaskCommand -> {
-                actions.eventBus?.publishCommand(
-                    DeleteDataCommand(
-                        tableName = "tasks",
-                        itemId = command.taskId,
-                        source = "tasks"
-                    )
-                )
-                actions.eventBus?.publishEvent(
-                    TaskDeletedEvent(taskId = command.taskId)
-                )
+            is com.remmi.app.core.eventBus.commands.ToggleTaskCommand -> {
+                Log.d("Remmi", "[TasksPlugin] - Toggling task: ${command.taskId}")
+                val task = actions.getTask(command.taskId)
+                task?.let { actions.toggleTask(it) }
             }
             is FetchTodayTasksCommand -> {
                 Log.d("Remmi", "[TasksPlugin] - Fetching today's tasks for automation")
                 val tasks = actions.getTodayTasks()
                 actions.eventBus?.publishEvent(TodayTasksFetchedEvent(tasks))
+            }
+            
+            is FetchWeeklyTasksCommand -> {
+                Log.d("Remmi", "[TasksPlugin] - Fetching weekly tasks for lock screen")
+                val tasks = actions.getWeeklyTasks()
+                actions.eventBus?.publishEvent(WeeklyTasksFetchedEvent(tasks))
             }
         }
     }
@@ -170,14 +138,79 @@ class TasksPlugin(
     override suspend fun onEvent(event: RemmiEvent) {
         Log.d("Remmi", "[TasksPlugin] - Received event: ${event::class.simpleName}")
         when (event) {
-            is CalendarEventDeletedEvent -> {
-                Log.i("Remmi", "[TasksPlugin] - Calendar event ${event.itemId} deleted. Cleaning up linked tasks...")
-                // Find and delete tasks linked to this calendar event
-                val linkedTasks = actions.getAllTasks().filter { it.linkedCalendar == event.itemId }
-                linkedTasks.forEach { task ->
-                    actions.eventBus?.publishCommand(
-                        DeleteTaskCommand(taskId = task.id, source = "tasks_cleanup")
+            is CalendarEventCreatedEvent -> {
+                if (event.linkedRequests.createTask) {
+                    Log.i("Remmi", "[TasksPlugin] - Calendar event requested task. Requesting calendar item...")
+                    eventBus.publishCommand(
+                        FetchDataByIdCommand(
+                            tableName = "calendar",
+                            itemId = event.itemId,
+                            serializer = CalendarItem.serializer(),
+                            correlationId = event.correlationId ?: event.eventId,
+                            causationId = event.eventId,
+                            source = "tasks_plugin"
+                        )
                     )
+                }
+            }
+            is CalendarEventDeletedEvent -> {
+                Log.i("Remmi", "[TasksPlugin] - Source calendar event ${event.itemId} deleted. Cleaning up linked tasks...")
+                eventBus.publishCommand(
+                    FetchDataBySourceCommand(
+                        tableName = "tasks",
+                        sourcePlugin = "calendar",
+                        sourceItemId = event.itemId,
+                        serializer = TaskItem.serializer(),
+                        correlationId = event.correlationId ?: event.eventId,
+                        causationId = event.eventId,
+                        source = "tasks_plugin_cleanup"
+                    )
+                )
+            }
+            is DataFetchedEvent<*> -> {
+                handleDataFetched(event)
+            }
+        }
+    }
+
+    private suspend fun handleDataFetched(event: DataFetchedEvent<*>) {
+        if (event.source == "database" && event.items.isNotEmpty()) {
+            val firstItem = event.items[0]
+            if (firstItem is CalendarItem) {
+                Log.d("Remmi", "[TasksPlugin] - Received calendar item for linked task creation")
+                val dueDate = firstItem.startingTime?.let { time ->
+                    firstItem.startingDate.atTime(time).toInstant(TimeZone.currentSystemDefault())
+                } ?: firstItem.startingDate.atTime(0, 0).toInstant(TimeZone.currentSystemDefault())
+                
+                actions.eventBus?.publishCommand(
+                    CreateTaskCommand(
+                        title = "Task for: ${firstItem.title}",
+                        description = firstItem.description,
+                        dueDate = dueDate,
+                        isPriority = firstItem.isPriority,
+                        group = firstItem.group,
+                        sourcePlugin = "calendar",
+                        sourceItemId = firstItem.id,
+                        correlationId = event.correlationId,
+                        causationId = event.eventId,
+                        creationContext = CreationContext.SECONDARY_LINKED,
+                        source = "tasks_plugin"
+                    )
+                )
+            }
+            else if (firstItem is TaskItem && event.causationId?.contains("tasks_plugin_cleanup") == true) {
+                event.items.forEach { task ->
+                    if (task is TaskItem) {
+                        actions.eventBus?.publishCommand(
+                            DeleteTaskCommand(
+                                taskId = task.id,
+                                source = "tasks_cleanup",
+                                correlationId = event.correlationId,
+                                causationId = event.eventId,
+                                deletionContext = DeletionContext.LINKED_CLEANUP
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -190,7 +223,20 @@ class TasksPlugin(
         Log.d("Remmi", "[TasksPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Tasks Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
+            refresh()
+        }
+        Log.d("Remmi", "Tasks Plugin Loaded")
+    }
+
+    /**                                   Refresh
+     * Sync tasks with the database.
+     */
+    override suspend fun refresh() {
+        Log.d("Remmi", "[TasksPlugin] - Refreshing data")
+        try {
             actions.sync()
+        } catch (e: Exception) {
+            Log.e("Remmi", "Failed to sync tasks: ${e.message}")
         }
     }
 
@@ -206,6 +252,6 @@ class TasksPlugin(
      */
     override suspend fun reformat() {
         Log.d("Remmi", "[TasksPlugin] - [reformat] executed")
-        _repository?.clear()
+        _repository.clear()
     }
 }

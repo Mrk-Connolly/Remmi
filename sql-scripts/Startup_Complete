@@ -172,6 +172,7 @@ CREATE TABLE ingredient_metadata (
     food_group          TEXT NOT NULL,
     icon                TEXT,
     brand               TEXT,
+    allowed_units       JSONB DEFAULT '[]',
 
     conversions         JSONB DEFAULT '[]',
     base_nutrition      JSONB DEFAULT '{}',

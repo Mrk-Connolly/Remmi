@@ -2,8 +2,8 @@ package com.remmi.app.testing.plugins.ingredients
 
 import com.remmi.app.testing.core.*
 import com.remmi.app.plugins.ingredients.IngredientActions
-import com.remmi.app.plugins.ingredients.models.FoodGroup
-import com.remmi.app.plugins.ingredients.models.MeasurementUnit
+import com.remmi.app.core.model.ingredients.FoodGroup
+import com.remmi.app.core.model.ingredients.MeasurementUnit
 import java.util.UUID
 
 /**

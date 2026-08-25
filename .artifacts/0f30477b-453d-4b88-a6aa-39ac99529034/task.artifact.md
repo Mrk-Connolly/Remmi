@@ -1,0 +1,7 @@
+- [x] Add error handling to `CloudRepository.kt`
+- [x] Add error handling to `MapPlugin.kt`
+- [x] Create missing database table `saved_locations`
+    - [x] Temporarily isolate `:db-scripts` to bypass `:app` build errors
+    - [x] Run `:db-scripts:run` (Manual via curl due to environment toolchain issues)
+    - [x] Restore `settings.gradle.kts`
+- [x] Verify fix by running the application

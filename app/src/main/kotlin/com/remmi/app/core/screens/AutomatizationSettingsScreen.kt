@@ -15,10 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.automation.AutomationSettingsRepository
-import com.remmi.app.core.automation.dailyBriefing.DailyBriefingSettings
+import com.remmi.app.core.automation.features.dailybriefing.DailyBriefingSettings
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.screens.components.RemmiTimePickerDialog
-import com.remmi.app.core.service.android.implementations.AndroidAutomationScheduler
+import com.remmi.app.core.android.system.AndroidAutomationScheduler
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,18 +29,20 @@ fun AutomatizationSettingsScreen(
     onBack: () -> Unit
 ) {
     Log.d("Remmi", "[AutomatizationSettingsScreen] - [Content] executed")
-    val repository = remember { AutomationSettingsRepository(controller.androidContext) }
+    val repository = remember { controller.automationEngine.settingsRepository }
     val scheduler = remember { AndroidAutomationScheduler(controller.androidContext) }
+    val scope = rememberCoroutineScope()
     
     var settings by remember { mutableStateOf(repository.getBriefingSettings()) }
+    var lockScreenEnabled by remember { mutableStateOf(repository.isLockScreenSummaryEnabled()) }
     var showTimePicker by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { }
 
-    LaunchedEffect(settings.enabled) {
-        if (settings.enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    LaunchedEffect(settings.enabled, lockScreenEnabled) {
+        if ((settings.enabled || lockScreenEnabled) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
@@ -121,6 +124,41 @@ fun AutomatizationSettingsScreen(
                             }
                         }
                     }
+                }
+            }
+
+            // Lock Screen Summary Section
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Lock Screen Summary",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        Text(
+                            text = "Show your weekly schedule and tasks on the lock screen.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = lockScreenEnabled,
+                        onCheckedChange = { enabled ->
+                            lockScreenEnabled = enabled
+                            repository.setLockScreenSummaryEnabled(enabled)
+                            // Trigger immediate refresh to show/hide
+                            scope.launch {
+                                controller.automationEngine.lockScreenManager.refreshSummary()
+                            }
+                        }
+                    )
                 }
             }
 

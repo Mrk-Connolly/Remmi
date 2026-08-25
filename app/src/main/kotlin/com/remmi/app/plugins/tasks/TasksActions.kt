@@ -1,12 +1,15 @@
 package com.remmi.app.plugins.tasks
 
 import android.util.Log
-import com.remmi.app.core.events.*
-import com.remmi.app.core.events.events.TaskCreatedEvent
-import com.remmi.app.core.events.events.TaskDeletedEvent
-import com.remmi.app.core.events.events.TaskUpdatedEvent
+import com.remmi.app.core.eventBus.CreationContext
+import com.remmi.app.core.eventBus.DeletionContext
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.events.TaskCreatedEvent
+import com.remmi.app.core.eventBus.events.TaskDeletedEvent
+import com.remmi.app.core.eventBus.events.TaskUpdatedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
 import com.remmi.app.core.plugin.model.components.RepeatRule
+import com.remmi.app.plugins.tasks.models.TaskItem
 import kotlinx.datetime.*
 import java.util.UUID
 
@@ -57,7 +60,12 @@ class TasksActions(
         dueDate: Instant? = null,
         isPriority: Boolean = false,
         group: String? = null,
-        repeat: RepeatRule? = null
+        repeat: RepeatRule? = null,
+        sourcePlugin: String? = null,
+        sourceItemId: String? = null,
+        correlationId: String? = null,
+        causationId: String? = null,
+        creationContext: CreationContext? = null
     ): Boolean {
         Log.d("Remmi", "[TasksActions] - [createTask] executed")
         return try {
@@ -75,7 +83,8 @@ class TasksActions(
                 group = group,
                 completed = false,
                 repeat = repeat,
-                linkedCalendar = null // Will be linked via AutomationEngine if needed
+                sourcePlugin = sourcePlugin,
+                sourceItemId = sourceItemId
             )
 
             repository.insert(task)
@@ -87,7 +96,10 @@ class TasksActions(
                 TaskCreatedEvent(
                     taskId = task.id,
                     priority = task.isPriority,
-                    group = task.group
+                    group = task.group,
+                    correlationId = correlationId,
+                    causationId = causationId,
+                    creationContext = creationContext
                 )
             )
 
@@ -123,7 +135,12 @@ class TasksActions(
     /**                                 Delete Task
      * Delete a task by ID and publish a Fact event
      * */
-    suspend fun deleteTask(id: String): Boolean {
+    suspend fun deleteTask(
+        id: String,
+        correlationId: String? = null,
+        causationId: String? = null,
+        deletionContext: DeletionContext? = null
+    ): Boolean {
         Log.d("Remmi", "[TasksActions] - [deleteTask] executed")
         return try {
             repository.delete(id)
@@ -131,7 +148,12 @@ class TasksActions(
             // Publish Fact
             Log.i("Remmi", "[TasksActions] - Successfully deleted task: $id. Publishing event...")
             eventBus?.publishEvent(
-                TaskDeletedEvent(taskId = id)
+                TaskDeletedEvent(
+                    taskId = id,
+                    correlationId = correlationId,
+                    causationId = causationId,
+                    deletionContext = deletionContext
+                )
             )
 
             true
@@ -156,7 +178,6 @@ class TasksActions(
     suspend fun getAllTasks(): List<TaskItem> {
         Log.d("Remmi", "[TasksActions] - [getAllTasks] executed")
         return try {
-            cleanupOldFinishedTasks()
             repository.getAll().sortedByDescending { it.created }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to retrieve tasks", e)
@@ -164,15 +185,22 @@ class TasksActions(
         }
     }
 
-    private suspend fun cleanupOldFinishedTasks() {
+    /**                                 Cleanup Finished
+     * Remove tasks that were completed before today.
+     * */
+    suspend fun cleanupOldFinishedTasks() {
+        Log.d("Remmi", "[TasksActions] - [cleanupOldFinishedTasks] executed")
         val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             .toLocalDateTime(TimeZone.currentSystemDefault()).date
         
-        repository.getAll().filter { task ->
+        val tasksToDelete = repository.getAll().filter { task ->
             task.completed && task.modified.toLocalDateTime(TimeZone.currentSystemDefault()).date < today
-        }.forEach { task ->
+        }
+        
+        tasksToDelete.forEach { task ->
             Log.d(TAG, "Cleaning up old finished task: ${task.id}")
             repository.delete(task.id)
+            eventBus?.publishEvent(TaskDeletedEvent(taskId = task.id, source = "tasks_cleanup"))
         }
     }
 
@@ -205,6 +233,20 @@ class TasksActions(
         return repository.getAll().filter { 
             (!it.completed) && (it.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date == today)
         }
+    }
+
+    /**                                 Get Weekly
+     * Retrieve incomplete tasks due in the next 7 days
+     * */
+    suspend fun getWeeklyTasks(): List<TaskItem> {
+        Log.d("Remmi", "[TasksActions] - [getWeeklyTasks] executed")
+        val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val nextWeek = today.plus(7, DateTimeUnit.DAY)
+        return repository.getAll().filter { 
+            (!it.completed) && it.dueDate?.toLocalDateTime(TimeZone.currentSystemDefault())?.date?.let { date ->
+                date in today..nextWeek
+            } == true
+        }.sortedBy { it.dueDate }
     }
 
     /**                                 Get High Priority (Month)

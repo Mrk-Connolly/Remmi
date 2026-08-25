@@ -1,7 +1,7 @@
 package com.remmi.app.testing.plugins.tasks
 
 import com.remmi.app.testing.core.*
-import com.remmi.app.plugins.tasks.TaskItem
+import com.remmi.app.core.model.tasks.TaskItem
 import com.remmi.app.plugins.tasks.TasksRepository
 import java.util.UUID
 

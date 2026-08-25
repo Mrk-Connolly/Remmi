@@ -1,6 +1,6 @@
 package com.remmi.app.core.plugin.actions
 
-import com.remmi.app.core.events.EventBus
+import com.remmi.app.core.eventBus.EventBus
 
 /**
  * Base interface for all actions within the Remmi ecosystem.

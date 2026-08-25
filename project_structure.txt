@@ -1,0 +1,158 @@
+.
+├── app
+│   ├── build
+│   │   ├── generated
+│   │   │   ├── res
+│   │   │   └── updated_navigation_xml
+│   │   ├── intermediates
+│   │   │   ├── aar_metadata_check
+│   │   │   ├── android_res_source_set_path_map
+│   │   │   ├── android_test_results
+│   │   │   ├── annotation_processor_list
+│   │   │   ├── apk_ide_redirect_file
+│   │   │   ├── app_metadata
+│   │   │   ├── assets
+│   │   │   ├── built_in_kotlinc
+│   │   │   ├── compatible_screen_manifest
+│   │   │   ├── compile_and_runtime_r_class_jar
+│   │   │   ├── compile_app_classes_jar
+│   │   │   ├── compiled_navigation_res
+│   │   │   ├── compile_r_class_jar
+│   │   │   ├── compile_symbol_list
+│   │   │   ├── compressed_assets
+│   │   │   ├── data_binding_layout_info_type_merge
+│   │   │   ├── data_binding_layout_info_type_package
+│   │   │   ├── desugar_graph
+│   │   │   ├── desugar_lib_dex
+│   │   │   ├── dex
+│   │   │   ├── dex_archive_input_jar_hashes
+│   │   │   ├── dex_number_of_buckets_file
+│   │   │   ├── duplicate_classes_check
+│   │   │   ├── external_file_lib_dex_archives
+│   │   │   ├── external_libs_dex_archive
+│   │   │   ├── external_libs_dex_archive_with_artifact_transforms
+│   │   │   ├── global_synthetics_dex
+│   │   │   ├── global_synthetics_external_lib
+│   │   │   ├── global_synthetics_external_libs_artifact_transform
+│   │   │   ├── global_synthetics_file_lib
+│   │   │   ├── global_synthetics_mixed_scope
+│   │   │   ├── global_synthetics_project
+│   │   │   ├── global_synthetics_subproject
+│   │   │   ├── incremental
+│   │   │   ├── java_res
+│   │   │   ├── l8_art_profile
+│   │   │   ├── linked_resources_binary_format
+│   │   │   ├── local_only_symbol_list
+│   │   │   ├── manifest_merge_blame_file
+│   │   │   ├── merged_java_res
+│   │   │   ├── merged_jni_libs
+│   │   │   ├── merged_manifest
+│   │   │   ├── merged_manifests
+│   │   │   ├── merged_native_libs
+│   │   │   ├── merged_native_libs_blame
+│   │   │   ├── merged_res
+│   │   │   ├── merged_res_blame_folder
+│   │   │   ├── merged_test_only_native_libs
+│   │   │   ├── mixed_scope_dex_archive
+│   │   │   ├── navigation_json
+│   │   │   ├── nested_resources_validation_report
+│   │   │   ├── packaged_manifests
+│   │   │   ├── packaged_res
+│   │   │   ├── project_dex_archive
+│   │   │   ├── runtime_app_classes_jar
+│   │   │   ├── runtime_symbol_list
+│   │   │   ├── signing_config_versions
+│   │   │   ├── stable_resource_ids_file
+│   │   │   ├── stripped_native_libs
+│   │   │   ├── sub_project_dex_archive
+│   │   │   ├── symbol_list_with_package_name
+│   │   │   ├── tmp
+│   │   │   └── validate_signing_config
+│   │   ├── kotlin
+│   │   │   ├── compileDebugAndroidTestKotlin
+│   │   │   └── compileDebugKotlin
+│   │   ├── outputs
+│   │   │   ├── androidTest-results
+│   │   │   ├── apk
+│   │   │   ├── code_coverage
+│   │   │   ├── connected_android_test_additional_output
+│   │   │   └── logs
+│   │   └── reports
+│   │       └── androidTests
+│   ├── build.gradle.kts
+│   ├── proguard-rules.pro
+│   └── src
+│       ├── androidTest
+│       │   └── kotlin
+│       ├── main
+│       │   ├── AndroidManifest.xml
+│       │   ├── assets
+│       │   ├── kotlin
+│       │   └── res
+│       └── test
+│           └── kotlin
+├── build
+│   └── reports
+│       └── problems
+│           └── problems-report.html
+├── build.gradle.kts
+├── db-scripts
+│   ├── build
+│   │   ├── classes
+│   │   │   └── kotlin
+│   │   ├── distributions
+│   │   │   ├── db-scripts-1.0-SNAPSHOT.tar
+│   │   │   └── db-scripts-1.0-SNAPSHOT.zip
+│   │   ├── kotlin
+│   │   │   └── compileKotlin
+│   │   ├── libs
+│   │   │   └── db-scripts-1.0-SNAPSHOT.jar
+│   │   ├── resources
+│   │   │   └── main
+│   │   ├── scripts
+│   │   │   ├── db-scripts
+│   │   │   └── db-scripts.bat
+│   │   └── tmp
+│   │       └── jar
+│   ├── build.gradle.kts
+│   └── src
+│       └── main
+│           ├── kotlin
+│           └── resources
+├── documents
+│   ├── ADR - 001 : Remmi
+│   ├── ADR - 002 : Remmi core
+│   ├── ADR - 003 : Remmi Automatization Philosophy
+│   ├── ADR - 004 : Knowledge base
+│   ├── ADR - 005 : Stable Plugin Contract
+│   ├── apk
+│   │   ├── app-debug.apk
+│   │   └── output-metadata.json
+│   └── Current Structure
+├── gradle
+│   └── wrapper
+│       ├── gradle-wrapper.jar
+│       └── gradle-wrapper.properties
+├── gradle.properties
+├── gradlew
+├── gradlew.bat
+├── LICENSE
+├── local.properties
+├── project_structure.txt
+├── README.md
+├── settings.gradle.kts
+└── sql-scripts
+    ├── migrations
+    │   ├── migration_nutrition.sql
+    │   └── migration_v2_relationships.sql
+    ├── plugins
+    │   ├── alarms.sql
+    │   ├── calendar.sql
+    │   ├── contacts.sql
+    │   ├── gift_ideas.sql
+    │   └── tasks.sql
+    ├── Startup
+    ├── Startup_Complete
+    └── Testing
+
+117 directories, 39 files

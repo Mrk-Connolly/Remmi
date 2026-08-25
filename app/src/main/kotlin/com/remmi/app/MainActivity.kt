@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 
 import com.remmi.app.core.host.RemmiHost
 import com.remmi.app.core.screens.RemmiApp
+import com.remmi.app.RemmiApplication
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -35,8 +36,8 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
 
-        // Initialize the Remmi core system
-        remmiHost = RemmiHost(applicationContext)
+        // Access the shared Remmi core system from Application
+        remmiHost = (application as RemmiApplication).remmiHost
         
         // Start the system in a coroutine
         lifecycleScope.launch {
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
      * */
     override fun onDestroy() {
         super.onDestroy()
-        remmiHost.stop()
+        // We no longer stop the host here because it's application-scoped
+        // and might be needed by the widget.
     }
 }

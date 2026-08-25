@@ -1,11 +1,12 @@
 package com.remmi.app.plugins.contacts
 
 import android.util.Log
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.events.EventType
-import com.remmi.app.core.events.PluginEvent
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.events.ContactCreatedEvent
+import com.remmi.app.core.eventBus.events.ContactDeletedEvent
+import com.remmi.app.core.eventBus.events.ContactUpdatedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import java.util.UUID
 
 /**
@@ -78,11 +79,7 @@ class ContactActions(
             // Publish Fact
             Log.i("Remmi", "[ContactActions] - Successfully created contact: ${contact.id}. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "contacts",
-                    type = EventType.CREATED,
-                    itemId = contact.id
-                )
+                ContactCreatedEvent(itemId = contact.id)
             )
 
             true
@@ -104,11 +101,7 @@ class ContactActions(
             // Publish Fact
             Log.i("Remmi", "[ContactActions] - Successfully updated contact: ${contact.id}. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "contacts",
-                    type = EventType.UPDATED,
-                    itemId = contact.id
-                )
+                ContactUpdatedEvent(itemId = contact.id)
             )
 
             true
@@ -129,11 +122,7 @@ class ContactActions(
             // Publish Fact
             Log.i("Remmi", "[ContactActions] - Successfully deleted contact: $id. Publishing event...")
             eventBus?.publishEvent(
-                PluginEvent(
-                    source = "contacts",
-                    type = EventType.DELETED,
-                    itemId = id
-                )
+                ContactDeletedEvent(itemId = id)
             )
 
             true

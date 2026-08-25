@@ -3,36 +3,41 @@ package com.remmi.app.plugins.calendar
 import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.events.commands.CreateAlarmCommand
-import com.remmi.app.core.events.commands.CreateCalendarEventCommand
-import com.remmi.app.core.events.commands.CreateTaskCommand
-import com.remmi.app.core.events.commands.DeleteCalendarEventCommand
-import com.remmi.app.core.events.commands.DeleteDataCommand
-import com.remmi.app.core.events.commands.FetchTodayEventsCommand
-import com.remmi.app.core.events.commands.RemmiCommand
-import com.remmi.app.core.events.commands.UpdateCalendarEventCommand
-import com.remmi.app.core.events.commands.UpsertDataCommand
-import com.remmi.app.core.events.events.CalendarEventCreatedEvent
-import com.remmi.app.core.events.events.CalendarEventDeletedEvent
-import com.remmi.app.core.events.events.CalendarEventUpdatedEvent
-import com.remmi.app.core.events.events.RemmiEvent
-import com.remmi.app.core.events.events.TodayEventsFetchedEvent
-import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.eventBus.CreationContext
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.CreateCalendarEventCommand
+import com.remmi.app.core.eventBus.commands.DeleteCalendarEventCommand
+import com.remmi.app.core.eventBus.commands.DeleteDataCommand
+import com.remmi.app.core.eventBus.commands.FetchTodayEventsCommand
+import com.remmi.app.core.eventBus.commands.FetchWeeklyEventsCommand
+import com.remmi.app.core.eventBus.commands.RemmiCommand
+import com.remmi.app.core.eventBus.commands.UpdateCalendarEventCommand
+import com.remmi.app.core.eventBus.commands.UpsertDataCommand
+import com.remmi.app.core.eventBus.events.CalendarEventCreatedEvent
+import com.remmi.app.core.eventBus.events.CalendarEventDeletedEvent
+import com.remmi.app.core.eventBus.events.CalendarEventUpdatedEvent
+import com.remmi.app.core.eventBus.events.LinkedCreationRequest
+import com.remmi.app.core.eventBus.events.RemmiEvent
+import com.remmi.app.core.eventBus.events.TodayEventsFetchedEvent
+import com.remmi.app.core.eventBus.events.WeeklyEventsFetchedEvent
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
+import com.remmi.app.plugins.calendar.models.CalendarItem
 import com.remmi.app.core.plugin.widgets.RemmiWidget
-import com.remmi.app.plugins.calendar.ui.screens.CalendarScreen
+import com.remmi.app.core.database.DatabaseManager
+import com.remmi.app.plugins.calendar.screens.CalendarScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.datetime.*
 
 /**
  * The main entry point for the Calendar plugin.
  */
 class CalendarPlugin(
-    override val metadata: PluginMetadata
+    override val metadata: PluginMetadata,
+    private val databaseManager: DatabaseManager,
+    private val eventBus: EventBus
 ) : RemmiPlugin {
 
 
@@ -41,16 +46,16 @@ class CalendarPlugin(
     // ----------------------------------------------------------------------------
 
     /** Internal storage for initialized components */
-    private var _repository: CalendarRepository? = null
-    private var _actions: CalendarActions? = null
+    private val _repository: CalendarRepository = CalendarRepository(databaseManager.service)
+    private val _actions: CalendarActions = CalendarActions(_repository).apply {
+        this.eventBus = this@CalendarPlugin.eventBus
+    }
 
     /** Repository for managing Calendar data */
-    override val repository: CalendarRepository
-        get() = _repository ?: throw IllegalStateException("CalendarPlugin not initialized")
+    override val repository: CalendarRepository get() = _repository
 
     /** Action controller for calendar logic. */
-    override val actions: CalendarActions
-        get() = _actions ?: throw IllegalStateException("CalendarPlugin not initialized")
+    override val actions: CalendarActions get() = _actions
 
     /** Dashboard widget for calendar. */
     override val widget: RemmiWidget by lazy { CalendarWidget(metadata, actions) }
@@ -81,17 +86,8 @@ class CalendarPlugin(
     /**                                   Initialize
      * Configure the plugin with the shared system context.
      */
-    override suspend fun initialize(context: PluginContext) {
-        Log.d("Remmi", "[CalendarPlugin] - Initializing with shared context")
-        
-        // Initialize Repository via ServiceManager
-        val repo = CalendarRepository(context.databaseManager.service)
-        _repository = repo
-        
-        // Initialize Actions
-        _actions = CalendarActions(repo).apply {
-            this.eventBus = context.eventBus
-        }
+    override suspend fun initialize() {
+        Log.d("Remmi", "[CalendarPlugin] - Initializing")
     }
 
     /**                                   On Command
@@ -118,8 +114,8 @@ class CalendarPlugin(
                     participants = command.participants,
                     repeat = command.repeat,
                     location = command.location,
-                    linkedTasks = command.linkedTasks,
-                    linkedAlarm = command.linkedAlarm,
+                    createAlarm = command.createLinkedAlarm,
+                    createTask = command.createLinkedTask,
                     userId = null
                 )
                 
@@ -129,46 +125,27 @@ class CalendarPlugin(
                         tableName = "calendar",
                         item = item,
                         serializer = CalendarItem.serializer(),
-                        source = "calendar"
+                        source = "calendar",
+                        correlationId = command.correlationId ?: command.commandId,
+                        causationId = command.commandId,
+                        creationContext = command.creationContext ?: CreationContext.PRIMARY
                     )
                 )
 
-                // 2. Publish Fact
+                // 2. Publish Fact (Listeners will react to create linked items)
                 actions.eventBus?.publishEvent(
                     CalendarEventCreatedEvent(
                         itemId = item.id,
-                        isPriority = item.isPriority
+                        isPriority = item.isPriority,
+                        linkedRequests = LinkedCreationRequest(
+                            createAlarm = item.createAlarm,
+                            createTask = item.createTask
+                        ),
+                        correlationId = command.correlationId ?: command.commandId,
+                        causationId = command.commandId,
+                        creationContext = command.creationContext ?: CreationContext.PRIMARY
                     )
                 )
-
-                // 3. Handle Linked items
-                if (command.createLinkedTask) {
-                    actions.eventBus?.publishCommand(
-                        CreateTaskCommand(
-                            title = "Task for: ${item.title}",
-                            description = item.description,
-                            dueDate = null, // Or derive from event
-                            isPriority = item.isPriority,
-                            group = item.group,
-                            source = "calendar"
-                        )
-                    )
-                }
-                
-                if (command.createLinkedAlarm && item.startingTime != null) {
-                    // Logic for alarm time calculation
-                    val alarmDateTime = kotlinx.datetime.LocalDateTime(item.startingDate, item.startingTime)
-                    val alarmTime = alarmDateTime.toInstant(kotlinx.datetime.TimeZone.currentSystemDefault())
-                    actions.eventBus?.publishCommand(
-                        CreateAlarmCommand(
-                            title = "Alarm: ${item.title}",
-                            description = item.description,
-                            time = alarmTime,
-                            isPriority = item.isPriority,
-                            source = "calendar"
-                        )
-                    )
-                }
             }
             
             is UpdateCalendarEventCommand -> {
@@ -177,11 +154,17 @@ class CalendarPlugin(
                         tableName = "calendar",
                         item = command.event,
                         serializer = CalendarItem.serializer(),
-                        source = "calendar"
+                        source = "calendar",
+                        correlationId = command.correlationId ?: command.commandId,
+                        causationId = command.commandId
                     )
                 )
                 actions.eventBus?.publishEvent(
-                    CalendarEventUpdatedEvent(itemId = command.event.id)
+                    CalendarEventUpdatedEvent(
+                        itemId = command.event.id,
+                        correlationId = command.correlationId ?: command.commandId,
+                        causationId = command.commandId
+                    )
                 )
             }
             
@@ -190,12 +173,20 @@ class CalendarPlugin(
                     DeleteDataCommand(
                         tableName = "calendar",
                         itemId = command.eventId,
-                        source = "calendar"
+                        source = "calendar",
+                        correlationId = command.correlationId ?: command.commandId,
+                        causationId = command.commandId,
+                        deletionContext = command.deletionContext ?: com.remmi.app.core.eventBus.DeletionContext.PRIMARY
                     )
                 )
                 // Critical: Notify others for cascading delete
                 actions.eventBus?.publishEvent(
-                    CalendarEventDeletedEvent(itemId = command.eventId)
+                    CalendarEventDeletedEvent(
+                        itemId = command.eventId,
+                        correlationId = command.correlationId ?: command.commandId,
+                        causationId = command.commandId,
+                        deletionContext = command.deletionContext ?: com.remmi.app.core.eventBus.DeletionContext.PRIMARY
+                    )
                 )
             }
             
@@ -203,6 +194,12 @@ class CalendarPlugin(
                 Log.d("Remmi", "[CalendarPlugin] - Fetching today's events for automation")
                 val events = actions.getTodayEvents()
                 actions.eventBus?.publishEvent(TodayEventsFetchedEvent(events))
+            }
+            
+            is FetchWeeklyEventsCommand -> {
+                Log.d("Remmi", "[CalendarPlugin] - Fetching weekly events for lock screen")
+                val events = actions.getWeeklyEvents()
+                actions.eventBus?.publishEvent(WeeklyEventsFetchedEvent(events))
             }
         }
     }
@@ -221,9 +218,17 @@ class CalendarPlugin(
         Log.d("Remmi", "[CalendarPlugin] - [onLoad] executed")
         Log.d("Remmi", "Loading Calendar Plugin...")
         CoroutineScope(Dispatchers.IO).launch {
-            actions.sync()
+            refresh()
         }
         Log.d("Remmi", "Calendar Plugin Loaded")
+    }
+
+    /**                                   Refresh
+     * Sync calendar events with the database.
+     */
+    override suspend fun refresh() {
+        Log.d("Remmi", "[CalendarPlugin] - Refreshing data")
+        actions.sync()
     }
 
     /**                                   On Unload
@@ -238,6 +243,6 @@ class CalendarPlugin(
      */
     override suspend fun reformat() {
         Log.d("Remmi", "[CalendarPlugin] - [reformat] executed")
-        _repository?.clear()
+        _repository.clear()
     }
 }

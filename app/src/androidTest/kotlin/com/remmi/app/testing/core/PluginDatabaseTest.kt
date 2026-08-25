@@ -44,7 +44,13 @@ data class DatabaseTestLog(
     val operation: String, // INSERT, UPDATE, DELETE, GET_ALL
     val status: TestStatus,
     @SerialName("error_message")
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+
+    @SerialName("source_plugin")
+    override val sourcePlugin: String? = null,
+
+    @SerialName("source_item_id")
+    override val sourceItemId: String? = null
 ) : RemmiModel
 
 @Serializable

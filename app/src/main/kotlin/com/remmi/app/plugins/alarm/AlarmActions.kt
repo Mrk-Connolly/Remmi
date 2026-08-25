@@ -1,13 +1,16 @@
 package com.remmi.app.plugins.alarm
 
 import android.util.Log
-import com.remmi.app.core.events.*
-import com.remmi.app.core.events.events.AlarmCreatedEvent
-import com.remmi.app.core.events.events.AlarmDeletedEvent
-import com.remmi.app.core.events.events.AlarmUpdatedEvent
+import com.remmi.app.core.eventBus.CreationContext
+import com.remmi.app.core.eventBus.DeletionContext
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.events.AlarmCreatedEvent
+import com.remmi.app.core.eventBus.events.AlarmDeletedEvent
+import com.remmi.app.core.eventBus.events.AlarmUpdatedEvent
+import com.remmi.app.plugins.alarm.models.AlarmItem
 import com.remmi.app.core.plugin.actions.RemmiAction
-import com.remmi.app.core.service.android.AlarmService
-import kotlin.time.Instant
+import com.remmi.app.core.android.alarms.AlarmService
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.util.UUID
@@ -85,7 +88,12 @@ class AlarmActions(
         custom: List<String> = emptyList(),
         syncToSystem: Boolean = true,
         useSound: Boolean = true,
-        useVibration: Boolean = true
+        useVibration: Boolean = true,
+        sourcePlugin: String? = null,
+        sourceItemId: String? = null,
+        correlationId: String? = null,
+        causationId: String? = null,
+        creationContext: CreationContext? = null
     ): Boolean {
         Log.d("Remmi", "[AlarmActions] - [addAlarm] executed")
         return try {
@@ -101,7 +109,9 @@ class AlarmActions(
                 repeatable = repeatable,
                 custom = custom,
                 useSound = useSound,
-                useVibration = useVibration
+                useVibration = useVibration,
+                sourcePlugin = sourcePlugin,
+                sourceItemId = sourceItemId
             )
             repository.insert(alarm)
             Log.d("AlarmActions", "Alarm inserted into repository: ${alarm.id}")
@@ -119,7 +129,12 @@ class AlarmActions(
             // Publish Fact
             Log.i("Remmi", "[AlarmActions] - Successfully created alarm: ${alarm.id}. Publishing event...")
             eventBus?.publishEvent(
-                AlarmCreatedEvent(alarmId = alarm.id)
+                AlarmCreatedEvent(
+                    alarmId = alarm.id,
+                    correlationId = correlationId,
+                    causationId = causationId,
+                    creationContext = creationContext
+                )
             )
             
             true
@@ -136,22 +151,22 @@ class AlarmActions(
         Log.d("Remmi", "[AlarmActions] - [updateAlarm] executed")
         return try {
             Log.d("AlarmActions", "Updating alarm in repository: ${alarm.id}")
-            alarm.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-            repository.updateCloud(alarm)
+            val updatedAlarm = alarm.copy(modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()))
+            repository.updateCloud(updatedAlarm)
             
             // Reschedule internal system alarm
-            Log.d("AlarmActions", "Rescheduling system alarm for: ${alarm.time}")
-            alarmService?.setAlarm(alarm.id, alarm.title, alarm.time.toEpochMilliseconds(), alarm.useSound, alarm.useVibration)
+            Log.d("AlarmActions", "Rescheduling system alarm for: ${updatedAlarm.time}")
+            alarmService?.setAlarm(updatedAlarm.id, updatedAlarm.title, updatedAlarm.time.toEpochMilliseconds(), updatedAlarm.useSound, updatedAlarm.useVibration)
             
             // Optionally push to external Clock app
             if (syncToSystem) {
-                alarmService?.syncToSystemClock(alarm.title, alarm.time.toEpochMilliseconds())
+                alarmService?.syncToSystemClock(updatedAlarm.title, updatedAlarm.time.toEpochMilliseconds())
             }
 
             // Publish Fact
-            Log.i("Remmi", "[AlarmActions] - Successfully updated alarm: ${alarm.id}. Publishing event...")
+            Log.i("Remmi", "[AlarmActions] - Successfully updated alarm: ${updatedAlarm.id}. Publishing event...")
             eventBus?.publishEvent(
-                AlarmUpdatedEvent(alarmId = alarm.id)
+                AlarmUpdatedEvent(alarmId = updatedAlarm.id)
             )
             
             true
@@ -164,7 +179,12 @@ class AlarmActions(
     /**                                 Delete Alarm
      * Deletes an alarm from the repository and cancels system scheduling
      */
-    suspend fun deleteAlarm(id: String): Boolean {
+    suspend fun deleteAlarm(
+        id: String,
+        correlationId: String? = null,
+        causationId: String? = null,
+        deletionContext: DeletionContext? = null
+    ): Boolean {
         Log.d("Remmi", "[AlarmActions] - [deleteAlarm] executed")
         return try {
             val alarmToDelete = repository.get(id)
@@ -176,9 +196,6 @@ class AlarmActions(
             alarmService?.cancelAlarm(id)
 
             // If it was synced to system clock, we try to remove it from there too if possible
-            // Note: Android doesn't allow easy deletion of specific alarms in other apps by ID, 
-            // but we can try to find it by time/label if we extend the service.
-            // For now, internal cancellation is guaranteed.
             if (alarmToDelete != null) {
                 alarmService?.removeFromSystemClock(alarmToDelete.title, alarmToDelete.time.toEpochMilliseconds())
             }
@@ -186,7 +203,12 @@ class AlarmActions(
             // Publish Fact
             Log.i("Remmi", "[AlarmActions] - Successfully deleted alarm: $id. Publishing event...")
             eventBus?.publishEvent(
-                AlarmDeletedEvent(alarmId = id)
+                AlarmDeletedEvent(
+                    alarmId = id,
+                    correlationId = correlationId,
+                    causationId = causationId,
+                    deletionContext = deletionContext
+                )
             )
             
             true

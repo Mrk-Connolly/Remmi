@@ -2,10 +2,8 @@ package com.remmi.app.plugins.ingredients.repository
 
 import android.util.Log
 import com.remmi.app.core.plugin.repository.CloudRepository
-import com.remmi.app.core.service.database.DatabaseService
-import com.remmi.app.plugins.ingredients.models.IngredientMetadata
-import com.remmi.app.plugins.ingredients.models.StockBatch
-import com.remmi.app.plugins.ingredients.models.UserStock
+import com.remmi.app.core.database.DatabaseService
+import com.remmi.app.plugins.ingredients.models.*
 
 class MetadataRepository(databaseService: DatabaseService) : CloudRepository<IngredientMetadata>(
     databaseService = databaseService,

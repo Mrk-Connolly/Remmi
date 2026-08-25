@@ -2,16 +2,11 @@ package com.remmi.app.core.controller
 
 import android.content.Context
 import android.util.Log
-import androidx.compose.runtime.mutableStateOf
-import com.remmi.app.core.automation.AutomationEngine
-import com.remmi.app.core.automation.AutomationSettingsRepository
-import com.remmi.app.core.events.EventBus
-import com.remmi.app.core.plugin.PluginContext
+import com.remmi.app.core.automation.engine.AutomationEngine
+import com.remmi.app.core.eventBus.EventBus
 import com.remmi.app.core.plugin.PluginManager
-import com.remmi.app.core.service.database.DatabaseServiceManager
-import com.remmi.app.core.service.file.FileServiceManager
-import com.remmi.app.core.service.android.AndroidServiceManager
-import com.remmi.app.core.service.android.implementations.AndroidAutomationScheduler
+import com.remmi.app.core.database.DatabaseManager
+import com.remmi.app.core.android.services.AndroidServiceManager
 
 /**
  * REMMI CONTROLLER
@@ -29,20 +24,12 @@ class RemmiController(val androidContext: Context) {
     val eventBus = EventBus()
 
     /** Core System Managers */
-    val databaseManager = DatabaseServiceManager()
-    val fileManager = FileServiceManager(androidContext)
+    val databaseManager = DatabaseManager(eventBus)
     val androidManager = AndroidServiceManager(androidContext, eventBus)
-    
-    val pluginManager = PluginManager()
-    val automationEngine = AutomationEngine(eventBus)
+    val pluginManager = PluginManager(databaseManager, androidManager, eventBus)
+    val automationEngine = AutomationEngine(eventBus, androidManager)
 
-    /** Shared Plugin Context */
-    private val pluginContext = PluginContext(databaseManager, fileManager, androidManager, eventBus)
-
-    /** UI State Tracking */
-    val isEditorActive = mutableStateOf(false)
-    val isMenuVisible = mutableStateOf(true)
-
+    private var isStarted = false
 
     // ----------------------------------------------------------------------------
     //                                 CONSTRUCTOR
@@ -61,76 +48,85 @@ class RemmiController(val androidContext: Context) {
      * Orchestrate the startup sequence of all core systems.
      */
     suspend fun start() {
+        if (isStarted) {
+            Log.d("Remmi", "[RemmiController] - System already started, skipping")
+            return
+        }
         Log.d("Remmi", "[RemmiController] - Starting system")
+        isStarted = true
 
         // 1. Start Messaging Bus
         eventBus.start()
 
         // 2. Discover Plugins using FileService
-        pluginManager.readPlugins(fileManager.service)
-
-        // 3. Subscribe Command and Event Listeners
-        eventBus.subscribeCommand(pluginManager)
-        eventBus.subscribeCommand(databaseManager)
-        eventBus.subscribeCommand(androidManager)
-        eventBus.subscribeCommand(automationEngine)
-        eventBus.subscribeEvent(pluginManager)
-
-        // 4. Load plugins
+        pluginManager.readPlugins(androidManager.fileService)
+        
+        // 3. Load plugins (MUST BE BEFORE SUBSCRIPTION)
         pluginManager.loadPlugins()
 
-        initializePlugins()
-    }
+        // 4. Initialize Plugins with Context
+        pluginManager.plugins.values.forEach { it.initialize() }
 
-    /**                                 Initialize Plugins
-     * Complete the startup sequence.
-     */
-    suspend fun initializePlugins() {
-        Log.d("Remmi", "[RemmiController] - Initializing plugins")
-        
-        // 1. Initialize Plugins with Shared Context
-        pluginManager.initializeAll(pluginContext)
+        // 5. Subscribe Command and Event Listeners
+        subscribeAll()
 
-        // 2. Load Plugin Data
-        pluginManager.loadAll()
-
-        // 3. Start Engines and Services
-        androidManager.start()
+        // 6. Start Engines
         automationEngine.start()
-
-        // 4. Check and ensure Daily Briefing Schedule
-        checkDailyBriefingSchedule()
-    }
-
-    private fun checkDailyBriefingSchedule() {
-        val repository = AutomationSettingsRepository(androidContext)
-        val settings = repository.getBriefingSettings()
-        if (settings.enabled) {
-            val scheduler = AndroidAutomationScheduler(androidContext)
-            scheduler.scheduleDailyBriefing(settings)
-        }
+        
+        // 7. Initial sync/load for plugins
+        pluginManager.plugins.values.forEach { it.onLoad() }
     }
 
     /**                                 Stop
      * Orchestrate the teardown sequence of all core systems.
      */
     fun stop() {
+        if (!isStarted) {
+            Log.d("Remmi", "[RemmiController] - System not started, skipping")
+            return
+        }
         Log.d("Remmi", "[RemmiController] - Stopping system")
+        isStarted = false
 
-        // 1. Stop Automation (Unsubscribe from facts)
+        // 1. Stop Engines
         automationEngine.stop()
 
-        // 2. Stop Core Services and Command Channel
+        // 2. Unsubscribe all listeners
+        unsubscribeAll()
+        
+        // 3. Stop Core Services
+        eventBus.stop()
+        androidManager.stop()
+
+        // 4. Unload Plugins
+        pluginManager.stop()
+    }
+
+    private fun subscribeAll() {
+        // Register Managers
+        eventBus.subscribeCommand(pluginManager)
+        eventBus.subscribeCommand(databaseManager)
+        eventBus.subscribeCommand(androidManager)
+        eventBus.subscribeCommand(automationEngine)
+        
+        eventBus.subscribeEvent(pluginManager)
+        eventBus.subscribeEvent(automationEngine)
+        
+        // Register Plugins directly
+        pluginManager.subscribePlugins(eventBus)
+    }
+
+    private fun unsubscribeAll() {
+        // Unregister Managers
         eventBus.unsubscribeCommand(pluginManager)
         eventBus.unsubscribeCommand(databaseManager)
         eventBus.unsubscribeCommand(androidManager)
         eventBus.unsubscribeCommand(automationEngine)
-        eventBus.subscribeEvent(pluginManager)
-        eventBus.stop()
         
-        androidManager.stop()
-
-        // 3. Unload Plugins
-        pluginManager.stop()
+        eventBus.unsubscribeEvent(pluginManager)
+        eventBus.unsubscribeEvent(automationEngine)
+        
+        // Unregister Plugins directly
+        pluginManager.unsubscribePlugins(eventBus)
     }
 }

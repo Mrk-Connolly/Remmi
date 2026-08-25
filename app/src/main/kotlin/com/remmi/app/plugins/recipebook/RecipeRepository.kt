@@ -2,7 +2,7 @@ package com.remmi.app.plugins.recipebook
 
 import android.util.Log
 import com.remmi.app.core.plugin.repository.CloudRepository
-import com.remmi.app.core.service.database.DatabaseService
+import com.remmi.app.core.database.DatabaseService
 import com.remmi.app.plugins.recipebook.models.RecipeItem
 
 class RecipeRepository(databaseService: DatabaseService) : CloudRepository<RecipeItem>(

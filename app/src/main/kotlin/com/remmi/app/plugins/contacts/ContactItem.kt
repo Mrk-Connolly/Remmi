@@ -31,7 +31,13 @@ data class ContactItem(
     val inGiftList: Boolean = false,
 
     @SerialName("user_id")
-    override val userId: String? = null
+    override val userId: String? = null,
+
+    @SerialName("source_plugin")
+    override val sourcePlugin: String? = null,
+
+    @SerialName("source_item_id")
+    override val sourceItemId: String? = null
 ) : RemmiModel {
     init {
         Log.d("Remmi", "[ContactItem] - [constructor] executed")

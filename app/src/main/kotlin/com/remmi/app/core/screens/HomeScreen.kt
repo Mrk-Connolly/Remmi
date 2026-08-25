@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.plugin.PluginManager
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -56,8 +55,7 @@ fun HomeScreen(
         {
             scope.launch {
                 isRefreshing = true
-                // In the future, this could trigger a global sync
-                delay(500)
+                pluginManager.refreshAllPlugins()
                 isRefreshing = false
             }
         }
