@@ -1,4 +1,4 @@
-package com.remmi.app.plugins.calendar.screens
+package com.remmi.app.plugins.calendar.ui.screens
 
 import android.util.Log
 import android.content.res.Configuration
@@ -751,7 +751,7 @@ fun WeekScheduleView(
                         text = date.dayOfMonth.toString(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (date == JavaLocalDate.now().toKotlinLocalDate()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        color = if (date == Instant.fromEpochMilliseconds(System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     )
                 }
             }

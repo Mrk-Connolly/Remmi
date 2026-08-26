@@ -1,33 +1,47 @@
-# Walkthrough - Maps Plugin Redo
+# Walkthrough - Calendar Event Creation and Plugin Integration
 
-I have successfully redone the Maps plugin from scratch, fixing the `IllegalStateException` and simplifying it to only provide a map view. The plugin now follows the canonical Remmi Architecture.
+I have successfully resolved the calendar event creation error and implemented the requested linked creation flow between plugins.
 
 ## Changes
 
-### [Maps Plugin]
+### 1. Database Schema Synchronization
+- Updated `startup.sql` to include missing columns in the `calendar` table:
+    - `is_repeatable`, `repeatable_type`
+    - `create_alarm`, `create_task`, `create_location`, `create_contact`
+- Added `linked_calendar_event` column to `saved_locations` table to support cleanup.
 
-- **Canonical Structure**: Restructured the plugin to follow the required hierarchy:
-    - [MapsPlugin.kt](file:///home/mark/StudioProjects/Remmi/app/src/main/kotlin/com/remmi/app/plugins/maps/MapsPlugin.kt)
-    - [MapsActions.kt](file:///home/mark/StudioProjects/Remmi/app/src/main/kotlin/com/remmi/app/plugins/maps/MapsActions.kt)
-    - [MapsWidgets.kt](file:///home/mark/StudioProjects/Remmi/app/src/main/kotlin/com/remmi/app/plugins/maps/MapsWidgets.kt)
-    - [MapsRepository.kt](file:///home/mark/StudioProjects/Remmi/app/src/main/kotlin/com/remmi/app/plugins/maps/MapsRepository.kt)
-    - [ui/screens/MapsScreen.kt](file:///home/mark/StudioProjects/Remmi/app/src/main/kotlin/com/remmi/app/plugins/maps/ui/screens/MapsScreen.kt)
-- **Simplified Functionality**: Removed all previous logic for saving locations, geocoding, and location picking. The plugin now only renders a `MaplibreMap`.
-- **Crash Fix**: Resolved the `java.lang.IllegalStateException` by correctly implementing the `MapsScreen` without style-dependent components outside the `MaplibreMap` scope.
+### 2. Calendar Plugin Enhancements
+- **Model Update**: Aligned `CalendarItem.kt` with the new schema and mandatory/optional field structure.
+- **Actions Update**: Updated `CalendarActions.kt` to handle the new fields and publish events with the correct flags.
+- **UI Redesign**:
+    - Moved `CalendarScreen.kt` and `CalendarScreenEditor.kt` to `ui/screens/` to follow canonical structure.
+    - Implemented the requested **row of 4 icon buttons** (Alarm, Task, Location, Contact) with equal weight.
+    - Updated logic: toggling these buttons now triggers a configuration popup from the respective plugin via `GlobalUIState`.
+    - Implemented the `LocationPickedEvent` listener to update the event's location list.
 
-### [Core Updates]
+### 3. Linked Item Configuration Popups
+- **Alarm**: Updated `AlarmConfigurationDialog.kt` with day/month/year fields and easy selection icons (Calendar and Clock).
+- **Tasks**: Redesigned `TaskConfigurationDialog.kt` to support a draft list of tasks with an "Add Another Task" option.
+- **Maps**: Implemented `LocationPickerPopup.kt` with a `MapLibre` view and a search bar for cities and streets.
 
-- **PluginManager**: Updated the registry to instantiate the new `MapsPlugin`.
-- **AppMenu**:
-    - Updated navigation to use the new `MapsPlugin` screen.
-    - Removed the global `LocationPickerPopup` overlay.
-    - Removed the `PickLocationCommand` listener for the map plugin.
+### 4. Cross-Plugin Integration & Cleanup
+- Updated `AlarmPlugin.kt`, `TasksPlugin.kt`, and `MapsPlugin.kt` to listen for `CalendarEventDeletedEvent` and perform cascading deletes of linked items.
+- Standardized `GlobalUIState.kt` to manage cross-plugin creation requests.
+- Updated `AppMenu.kt` to host the new global `LocationPickerPopup`.
+
+### 5. Bug Fixes
+- Resolved `Unresolved reference 'System'` errors by migrating from `Clock.System` to `Instant.fromEpochMilliseconds(System.currentTimeMillis())` for better compatibility with the current environment.
+- Fixed various import and package visibility issues caused by the restructuring.
 
 ## Verification Results
 
 ### Automated Tests
-- Executed `:app:assembleDebug`: **BUILD SUCCESSFUL**.
+- Executed `./gradlew :app:assembleDebug`: **BUILD SUCCESSFUL**.
 
-### Manual Verification Required
-- Deploy the app and open the "Map" plugin to verify the map renders correctly.
-- Note that the location picking functionality in the Calendar plugin will no longer work, as the Map plugin no longer supports this feature.
+### Manual Verification Path
+1. Open the Calendar plugin.
+2. Click "+" to create a new event.
+3. Observe the 4 icon buttons below the group selection.
+4. Toggle each button and verify the specialized popups appear.
+5. Save the event and verify (via logs or DB) that linked items are requested.
+6. Delete an event and verify linked items are cleaned up.

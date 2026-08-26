@@ -14,7 +14,10 @@ import com.remmi.app.core.android.services.AndroidServiceManager
  * Central coordinator for system-level managers, plugin lifecycles, and messaging orchestration.
  * Manages the initialization, subscription, and teardown of core engines and services.
  */
-class RemmiController(val androidContext: Context) {
+class RemmiController(
+    val androidContext: Context,
+    databaseService: com.remmi.app.core.database.DatabaseService = com.remmi.app.core.database.SupabaseService
+) {
 
     // ----------------------------------------------------------------------------
     //                                  VARIABLES
@@ -24,7 +27,7 @@ class RemmiController(val androidContext: Context) {
     val eventBus = EventBus()
 
     /** Core System Managers */
-    val databaseManager = DatabaseManager(eventBus)
+    val databaseManager = DatabaseManager(eventBus, databaseService)
     val androidManager = AndroidServiceManager(androidContext, eventBus)
     val pluginManager = PluginManager(databaseManager, androidManager, eventBus)
     val automationEngine = AutomationEngine(eventBus, androidManager)

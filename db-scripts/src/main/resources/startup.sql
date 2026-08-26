@@ -8,14 +8,17 @@ CREATE TABLE alarms (
     id                    TEXT PRIMARY KEY,
     created               TIMESTAMPTZ NOT NULL,
     modified              TIMESTAMPTZ NOT NULL,
+    user_id               UUID DEFAULT auth.uid(),
     title                 TEXT NOT NULL,
     description           TEXT,
     is_priority           BOOLEAN NOT NULL DEFAULT FALSE,
-    linked_calendar_event TEXT,
-    linked_task           TEXT,
     time                  TIMESTAMPTZ NOT NULL,
     repeatable            TEXT[] NOT NULL DEFAULT '{}',
-    custom                TEXT[] NOT NULL DEFAULT '{}'
+    custom                TEXT[] NOT NULL DEFAULT '{}',
+    use_sound             BOOLEAN NOT NULL DEFAULT TRUE,
+    use_vibration         BOOLEAN NOT NULL DEFAULT TRUE,
+    source_plugin         TEXT,
+    source_item_id        TEXT
 );
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE alarms TO anon;
@@ -39,6 +42,7 @@ CREATE TABLE calendar (
     id              TEXT PRIMARY KEY,
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,
+    user_id         UUID DEFAULT auth.uid(),
     title           TEXT NOT NULL,
     description     TEXT,
     starting_date   DATE NOT NULL,
@@ -51,7 +55,15 @@ CREATE TABLE calendar (
     repeat          TEXT[] NOT NULL DEFAULT '{}',
     location        TEXT[] NOT NULL DEFAULT '{}',
     linked_tasks    TEXT[] NOT NULL DEFAULT '{}',
-    linked_alarm    TEXT
+    linked_alarm    TEXT,
+    is_repeatable   BOOLEAN NOT NULL DEFAULT FALSE,
+    repeatable_type TEXT,
+    create_alarm    BOOLEAN NOT NULL DEFAULT FALSE,
+    create_task     BOOLEAN NOT NULL DEFAULT FALSE,
+    create_location BOOLEAN NOT NULL DEFAULT FALSE,
+    create_contact  BOOLEAN NOT NULL DEFAULT FALSE,
+    source_plugin   TEXT,
+    source_item_id  TEXT
 );
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE calendar TO anon;
@@ -75,6 +87,7 @@ CREATE TABLE contacts (
     id              TEXT PRIMARY KEY,
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,
+    user_id         UUID DEFAULT auth.uid(),
     name            TEXT NOT NULL,
     surname         TEXT NOT NULL,
     nickname        TEXT,
@@ -83,7 +96,9 @@ CREATE TABLE contacts (
     birthday        TEXT,
     group_name      TEXT NOT NULL,
     is_favorite     BOOLEAN NOT NULL DEFAULT FALSE,
-    in_gift_list    BOOLEAN NOT NULL DEFAULT FALSE
+    in_gift_list    BOOLEAN NOT NULL DEFAULT FALSE,
+    source_plugin   TEXT,
+    source_item_id  TEXT
 );
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE contacts TO anon;
@@ -107,12 +122,15 @@ CREATE TABLE gift_ideas (
     id              TEXT PRIMARY KEY,
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,
+    user_id         UUID DEFAULT auth.uid(),
     contact_id      TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
     name            TEXT NOT NULL,
     description     TEXT,
     link            TEXT,
     price           DOUBLE PRECISION,
-    event           TEXT CHECK (event IN ('Christmas', 'Birthday', 'FathersDay', 'ValentinesDay', 'MothersDay', 'Anniversary', 'Other'))
+    event           TEXT CHECK (event IN ('Christmas', 'Birthday', 'FathersDay', 'ValentinesDay', 'MothersDay', 'Anniversary', 'Other')),
+    source_plugin   TEXT,
+    source_item_id  TEXT
 );
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE gift_ideas TO anon;
@@ -144,10 +162,17 @@ CREATE TABLE ingredient_metadata (
     icon                TEXT,
     brand               TEXT,
 
+    allowed_units       JSONB DEFAULT '[]',
     conversions         JSONB DEFAULT '[]',
     base_nutrition      JSONB DEFAULT '{}',
     nutrition_basis     JSONB DEFAULT NULL,
-    preparation_methods JSONB DEFAULT '[]'
+    preparation_methods JSONB DEFAULT '[]',
+
+    estimated_shelf_life_min_days INTEGER,
+    estimated_shelf_life_max_days INTEGER,
+
+    source_plugin       TEXT,
+    source_item_id      TEXT
 );
 
 -- 2. User Stock Table (Linking user to metadata with specific settings)
@@ -161,7 +186,10 @@ CREATE TABLE user_stock (
     metadata_id         TEXT REFERENCES ingredient_metadata(id) ON DELETE CASCADE,
     storage_location    TEXT NOT NULL,
     primary_unit        TEXT NOT NULL,
-    minimum_stock       DOUBLE PRECISION
+    minimum_stock       DOUBLE PRECISION,
+
+    source_plugin       TEXT,
+    source_item_id      TEXT
 );
 
 -- 3. Batches Table (Physical stock with expiry dates)
@@ -175,7 +203,10 @@ CREATE TABLE stock_batches (
     stock_id            TEXT REFERENCES user_stock(id) ON DELETE CASCADE,
     quantity            DOUBLE PRECISION NOT NULL DEFAULT 0,
     purchase_date       DATE NOT NULL,
-    expiry_date         DATE
+    expiry_date         DATE,
+
+    source_plugin       TEXT,
+    source_item_id      TEXT
 );
 
 -- PERMISSIONS
@@ -238,7 +269,9 @@ CREATE TABLE recipes (
     serving_size          TEXT,
     nutrition_per_serving JSONB NOT NULL DEFAULT '{}',
     instructions          JSONB NOT NULL DEFAULT '[]',
-    meal_type             TEXT NOT NULL
+    meal_type             TEXT NOT NULL,
+    source_plugin         TEXT,
+    source_item_id        TEXT
 );
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE recipes TO authenticated;
@@ -273,7 +306,10 @@ CREATE TABLE saved_locations (
     address         TEXT,
     latitude        DOUBLE PRECISION,
     longitude       DOUBLE PRECISION,
-    category        TEXT DEFAULT 'General'
+    category        TEXT DEFAULT 'General',
+    linked_calendar_event TEXT,
+    source_plugin   TEXT,
+    source_item_id  TEXT
 );
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE saved_locations TO anon;
@@ -295,6 +331,7 @@ CREATE TABLE tasks (
     id              TEXT PRIMARY KEY,
     created         TIMESTAMPTZ NOT NULL,
     modified        TIMESTAMPTZ NOT NULL,
+    user_id         UUID DEFAULT auth.uid(),
     title           TEXT NOT NULL,
     description     TEXT,
     completed       BOOLEAN NOT NULL DEFAULT FALSE,
@@ -302,10 +339,13 @@ CREATE TABLE tasks (
     is_priority     BOOLEAN NOT NULL DEFAULT FALSE,
     group_name      TEXT,
     parent_task     TEXT,
-    linked_calendar TEXT,
     repeat          JSONB,
     reminders       TEXT[] NOT NULL DEFAULT '{}',
-    relationships   TEXT[] NOT NULL DEFAULT '{}'
+    relationships   TEXT[] NOT NULL DEFAULT '{}',
+    create_calendar BOOLEAN NOT NULL DEFAULT FALSE,
+    create_alarm    BOOLEAN NOT NULL DEFAULT FALSE,
+    source_plugin   TEXT,
+    source_item_id  TEXT
 );
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE tasks TO anon;

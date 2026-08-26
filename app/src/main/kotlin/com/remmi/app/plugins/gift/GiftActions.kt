@@ -6,7 +6,7 @@ import com.remmi.app.core.eventBus.events.GiftIdeaCreatedEvent
 import com.remmi.app.core.eventBus.events.GiftIdeaDeletedEvent
 import com.remmi.app.core.eventBus.events.GiftIdeaUpdatedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import java.util.UUID
 
 /**

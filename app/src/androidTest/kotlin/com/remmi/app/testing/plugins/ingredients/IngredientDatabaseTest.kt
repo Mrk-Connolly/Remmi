@@ -1,7 +1,7 @@
 package com.remmi.app.testing.plugins.ingredients
 
 import com.remmi.app.testing.core.*
-import com.remmi.app.core.model.ingredients.*
+import com.remmi.app.plugins.ingredients.models.*
 import com.remmi.app.plugins.ingredients.repository.*
 import kotlinx.datetime.*
 import java.util.UUID

@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 
 /**
@@ -25,6 +26,8 @@ fun RemmiEditorScaffold(
     //                                CORE FUNCTIONS
     // ----------------------------------------------------------------------------
 
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     Scaffold(
         bottomBar = {
             Column {
@@ -38,13 +41,19 @@ fun RemmiEditorScaffold(
                     ) {
                         OutlinedButton(
                             modifier = Modifier.weight(1f),
-                            onClick = onBack
+                            onClick = {
+                                keyboardController?.hide()
+                                onBack()
+                            }
                         ) {
                             Text("Back")
                         }
                         Button(
                             modifier = Modifier.weight(1f),
-                            onClick = onSave,
+                            onClick = {
+                                keyboardController?.hide()
+                                onSave()
+                            },
                             enabled = saveEnabled
                         ) {
                             Text("Save")

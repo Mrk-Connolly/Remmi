@@ -20,7 +20,7 @@ class SystemTest {
         val coreTest = CoreManagersTest()
         runStep("Core: Setup", results) { coreTest.setup() }
         runStep("Core: Database Manager", results) { coreTest.testDatabaseManager() }
-        runStep("Core: File Manager", results) { coreTest.testFileManager() }
+        runStep("Core: File Service", results) { coreTest.testFileService() }
         runStep("Core: Android Manager", results) { coreTest.testAndroidManager() }
 
         // 2. Plugin Database Integration

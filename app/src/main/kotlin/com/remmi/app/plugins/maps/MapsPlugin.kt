@@ -14,6 +14,9 @@ import com.remmi.app.core.plugin.repository.RemmiRepository
 import com.remmi.app.core.plugin.widgets.RemmiWidget
 import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.plugins.maps.ui.screens.MapsScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Redone Maps Plugin from scratch.
@@ -25,8 +28,8 @@ class MapsPlugin(
     private val eventBus: EventBus
 ) : RemmiPlugin {
 
-    private val _repository = MapsRepository()
-    private val _actions = MapsActions().apply {
+    private val _repository = MapsRepository(databaseManager.service)
+    private val _actions = MapsActions(_repository).apply {
         this.eventBus = this@MapsPlugin.eventBus
     }
     private val _widget = MapsWidgets(metadata)
@@ -45,9 +48,24 @@ class MapsPlugin(
 
     override suspend fun initialize() {}
     override suspend fun onCommand(command: RemmiCommand) {}
-    override suspend fun onEvent(event: RemmiEvent) {}
-    override fun onLoad() {}
-    override suspend fun refresh() {}
+    override suspend fun onEvent(event: RemmiEvent) {
+        when (event) {
+            is com.remmi.app.core.eventBus.events.CalendarEventDeletedEvent -> {
+                val locations = _actions.getAllSavedLocations().filter { it.linkedCalendarEvent == event.itemId }
+                locations.forEach { loc ->
+                    _actions.deleteLocation(loc.id)
+                }
+            }
+        }
+    }
+    override fun onLoad() {
+        CoroutineScope(Dispatchers.IO).launch {
+            refresh()
+        }
+    }
+    override suspend fun refresh() {
+        _actions.sync()
+    }
     override fun onUnload() {}
     override suspend fun reformat() {
         _repository.clear()
