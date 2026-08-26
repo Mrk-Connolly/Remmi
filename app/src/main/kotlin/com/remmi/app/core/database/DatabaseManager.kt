@@ -11,10 +11,10 @@ import com.remmi.app.core.plugin.model.models.RemmiModel
  *
  * Specialized manager for database-specific commands and service lifecycle.
  */
-class DatabaseManager(private val eventBus: EventBus) : CommandListener {
-
-    /** Database Service implementation */
+class DatabaseManager(
+    private val eventBus: EventBus,
     val service: DatabaseService = SupabaseService
+) : CommandListener {
 
     init {
         Log.d("Remmi", "[DatabaseManager] - Constructor initialized")

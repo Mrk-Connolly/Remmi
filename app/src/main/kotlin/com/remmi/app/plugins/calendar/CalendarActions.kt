@@ -62,11 +62,15 @@ class CalendarActions(
         endingTime: LocalTime? = null,
         isPriority: Boolean = false,
         group: String? = null,
+        isRepeatable: Boolean = false,
+        repeatableType: String? = null,
         participants: List<String> = emptyList(),
         repeat: List<String> = emptyList(),
         location: List<String> = emptyList(),
         createAlarm: Boolean = false,
         createTask: Boolean = false,
+        createLocation: Boolean = false,
+        createContact: Boolean = false,
         correlationId: String? = null,
         causationId: String? = null,
         creationContext: CreationContext? = null
@@ -82,15 +86,19 @@ class CalendarActions(
                 description = description,
                 startingDate = startingDate,
                 startingTime = startingTime,
-                endingDate = endingDate,
+                endingDate = endingDate ?: startingDate,
                 endingTime = endingTime,
                 isPriority = isPriority,
                 group = group,
+                isRepeatable = isRepeatable,
+                repeatableType = repeatableType,
                 participants = participants,
                 repeat = repeat,
                 location = location,
                 createAlarm = createAlarm,
-                createTask = createTask
+                createTask = createTask,
+                createLocation = createLocation,
+                createContact = createContact
             )
             repository.insert(item)
             Log.d(TAG, "Event inserted successfully")
@@ -103,7 +111,9 @@ class CalendarActions(
                     isPriority = item.isPriority,
                     linkedRequests = LinkedCreationRequest(
                         createAlarm = item.createAlarm,
-                        createTask = item.createTask
+                        createTask = item.createTask,
+                        createLocation = item.createLocation,
+                        createContact = item.createContact
                     ),
                     correlationId = correlationId,
                     causationId = causationId,

@@ -15,7 +15,9 @@ import java.util.UUID
  */
 data class LinkedCreationRequest(
     val createAlarm: Boolean = false,
-    val createTask: Boolean = false
+    val createTask: Boolean = false,
+    val createLocation: Boolean = false,
+    val createContact: Boolean = false
 )
 
 /**

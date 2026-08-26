@@ -5,6 +5,7 @@ import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.plugins.alarm.AlarmPlugin
 import com.remmi.app.plugins.calendar.CalendarPlugin
 import com.remmi.app.plugins.tasks.TasksPlugin
+import com.remmi.app.testing.core.MockDatabaseService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -23,7 +24,7 @@ class RelationshipIntegrationTest {
     @Before
     fun setup() = runTest {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        controller = RemmiController(appContext)
+        controller = RemmiController(appContext, MockDatabaseService())
         controller.start()
     }
 
@@ -117,10 +118,11 @@ class RelationshipIntegrationTest {
             title = "Source Event",
             description = "Standalone Desc",
             startingDate = today,
+            startingTime = LocalTime(10, 0),
             createAlarm = true
         )
         
-        delay(2.seconds)
+        delay(5.seconds)
         
         val linkedAlarm = alarmPlugin.actions.getAllAlarms().find { it.alarm.sourceItemId == eventId }
         assertNotNull(linkedAlarm)

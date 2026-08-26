@@ -1,7 +1,7 @@
 package com.remmi.app.testing.plugins.calendar
 
 import com.remmi.app.testing.core.*
-import com.remmi.app.core.model.calendar.CalendarItem
+import com.remmi.app.plugins.calendar.models.CalendarItem
 import com.remmi.app.plugins.calendar.CalendarRepository
 import kotlinx.datetime.*
 import java.util.UUID

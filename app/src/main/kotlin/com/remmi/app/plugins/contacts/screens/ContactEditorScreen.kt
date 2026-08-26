@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -58,9 +59,12 @@ fun ContactEditorScreen(
     var isGroupExpanded by remember { mutableStateOf(false) }
     var showAddGroupDialog by remember { mutableStateOf(false) }
     var newGroupName by remember { mutableStateOf("") }
+    
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     val onSaveCallback = remember {
         {
+            keyboardController?.hide()
             scope.launch {
                 val finalPhone = phone.takeIf { it.isNotBlank() }
                 val finalEmail = email.takeIf { it.isNotBlank() }
@@ -100,7 +104,10 @@ fun ContactEditorScreen(
     }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            keyboardController?.hide()
+            onDismiss()
+        },
         confirmButton = {
             Button(
                 onClick = { onSaveCallback() },
@@ -110,7 +117,10 @@ fun ContactEditorScreen(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = {
+                keyboardController?.hide()
+                onDismiss()
+            }) { Text("Cancel") }
         },
         title = {
             Text(if (initialContact == null) "Add Contact" else "Edit Contact")

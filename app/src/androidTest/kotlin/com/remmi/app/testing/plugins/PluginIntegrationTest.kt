@@ -10,6 +10,7 @@ import com.remmi.app.testing.plugins.gift.*
 import com.remmi.app.testing.plugins.ingredients.*
 import com.remmi.app.testing.plugins.recipebook.*
 import com.remmi.app.testing.plugins.tasks.*
+import com.remmi.app.testing.plugins.maps.*
 import com.remmi.app.testing.plugins.weather.*
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
@@ -24,7 +25,7 @@ class PluginIntegrationTest {
     @Before
     fun setup() = runTest {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        controller = RemmiController(appContext)
+        controller = RemmiController(appContext, MockDatabaseService())
         controller.start()
         testRepo = DatabaseTestRepository(controller.databaseManager.service)
     }
@@ -120,24 +121,35 @@ class PluginIntegrationTest {
         // Register all action tests
         (controller.pluginManager.plugins["alarm"] as? com.remmi.app.plugins.alarm.AlarmPlugin)?.let { 
             manager.registerTest(AddAlarmActionTest(it.actions)) 
+            manager.registerTest(AlarmFullFlowActionTest(it.actions))
         }
         (controller.pluginManager.plugins["calendar"] as? com.remmi.app.plugins.calendar.CalendarPlugin)?.let { 
             manager.registerTest(AddCalendarEventActionTest(it.actions)) 
+            manager.registerTest(CalendarFullFlowActionTest(it.actions))
         }
         (controller.pluginManager.plugins["contacts"] as? com.remmi.app.plugins.contacts.ContactPlugin)?.let { 
             manager.registerTest(AddContactActionTest(it.actions)) 
+            manager.registerTest(ContactFullFlowActionTest(it.actions))
         }
         (controller.pluginManager.plugins["gift"] as? com.remmi.app.plugins.gift.GiftPlugin)?.let { 
             manager.registerTest(AddGiftIdeaActionTest(it.actions)) 
+            manager.registerTest(GiftFullFlowActionTest(it.actions))
         }
         (controller.pluginManager.plugins["ingredient_stock"] as? com.remmi.app.plugins.ingredients.IngredientPlugin)?.let { 
             manager.registerTest(AddIngredientActionTest(it.actions)) 
+            manager.registerTest(IngredientFullFlowActionTest(it.actions))
+        }
+        (controller.pluginManager.plugins["maps"] as? com.remmi.app.plugins.maps.MapsPlugin)?.let { 
+            manager.registerTest(AddSavedLocationActionTest(it.actions)) 
+            manager.registerTest(MapsFullFlowActionTest(it.actions))
         }
         (controller.pluginManager.plugins["recipe_book"] as? com.remmi.app.plugins.recipebook.RecipePlugin)?.let { 
             manager.registerTest(AddRecipeActionTest(it.actions)) 
+            manager.registerTest(RecipeFullFlowActionTest(it.actions))
         }
         (controller.pluginManager.plugins["tasks"] as? com.remmi.app.plugins.tasks.TasksPlugin)?.let { 
             manager.registerTest(AddTaskActionTest(it.actions)) 
+            manager.registerTest(TasksFullFlowActionTest(it.actions))
         }
         (controller.pluginManager.plugins["weather"] as? com.remmi.app.plugins.weather.WeatherPlugin)?.let { 
             manager.registerTest(FetchWeatherActionTest(it.actions)) 

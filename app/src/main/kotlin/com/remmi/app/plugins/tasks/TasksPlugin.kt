@@ -161,9 +161,9 @@ class TasksPlugin(
                         sourcePlugin = "calendar",
                         sourceItemId = event.itemId,
                         serializer = TaskItem.serializer(),
-                        correlationId = event.correlationId ?: event.eventId,
+                        correlationId = "tasks_plugin_cleanup_${event.itemId}",
                         causationId = event.eventId,
-                        source = "tasks_plugin_cleanup"
+                        source = "tasks_plugin"
                     )
                 )
             }
@@ -198,7 +198,7 @@ class TasksPlugin(
                     )
                 )
             }
-            else if (firstItem is TaskItem && event.causationId?.contains("tasks_plugin_cleanup") == true) {
+            else if (firstItem is TaskItem && event.correlationId?.startsWith("tasks_plugin_cleanup") == true) {
                 event.items.forEach { task ->
                     if (task is TaskItem) {
                         actions.eventBus?.publishCommand(
