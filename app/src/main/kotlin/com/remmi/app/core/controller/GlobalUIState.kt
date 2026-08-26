@@ -17,12 +17,12 @@ object GlobalUIState {
 
     /** Location Picker State */
     val showLocationPicker = mutableStateOf(false)
-    val locationPickerRequestId = mutableStateOf("")
-    val locationPickerInitialSearch = mutableStateOf<String?>(null)
+    val locationPickerData = mutableStateOf<LinkedCreationData?>(null)
 
     /** Linked Item Creation Popups */
     val pendingAlarmRequest = mutableStateOf<LinkedCreationData?>(null)
     val pendingTaskRequest = mutableStateOf<LinkedCreationData?>(null)
+    val pendingContactRequest = mutableStateOf<LinkedCreationData?>(null)
 }
 
 /**

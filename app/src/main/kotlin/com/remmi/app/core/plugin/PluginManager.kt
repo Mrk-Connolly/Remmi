@@ -18,7 +18,7 @@ import com.remmi.app.plugins.ingredients.IngredientPlugin
 import com.remmi.app.plugins.recipebook.RecipePlugin
 import com.remmi.app.plugins.tasks.TasksPlugin
 import com.remmi.app.plugins.weather.WeatherPlugin
-import com.remmi.app.plugins.maps.MapPlugin
+import com.remmi.app.plugins.maps.MapsPlugin
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -60,7 +60,7 @@ class PluginManager(
         "recipe_book" to { RecipePlugin(it, databaseManager, eventBus) },
         "ingredient_stock" to { IngredientPlugin(it, databaseManager, eventBus) },
         "weather" to { WeatherPlugin(it, databaseManager, androidManager, eventBus) },
-        "maps" to { MapPlugin(it, databaseManager, eventBus) }
+        "maps" to { MapsPlugin(it, databaseManager, eventBus) }
     )
 
 

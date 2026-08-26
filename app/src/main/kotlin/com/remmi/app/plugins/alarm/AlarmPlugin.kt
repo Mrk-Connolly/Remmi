@@ -179,9 +179,9 @@ class AlarmPlugin(
                         sourcePlugin = "calendar",
                         sourceItemId = event.itemId,
                         serializer = AlarmItem.serializer(),
-                        correlationId = event.correlationId ?: event.eventId,
+                        correlationId = "alarm_plugin_cleanup_${event.itemId}",
                         causationId = event.eventId,
-                        source = "alarm_plugin_cleanup"
+                        source = "alarm_plugin"
                     )
                 )
             }
@@ -226,7 +226,7 @@ class AlarmPlugin(
                 }
             }
             // Handle cleanup deletions
-            else if (item is AlarmItem && event.causationId?.startsWith("alarm_plugin_cleanup") == true) {
+            else if (item is AlarmItem && event.correlationId?.startsWith("alarm_plugin_cleanup") == true) {
                  event.items.forEach { alarm ->
                      if (alarm is AlarmItem) {
                         actions.eventBus?.publishCommand(

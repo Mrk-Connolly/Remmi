@@ -26,7 +26,7 @@ import com.remmi.app.core.screens.RemmiScreen
 import com.remmi.app.plugins.calendar.models.CalendarItem
 import com.remmi.app.core.plugin.widgets.RemmiWidget
 import com.remmi.app.core.database.DatabaseManager
-import com.remmi.app.plugins.calendar.screens.CalendarScreen
+import com.remmi.app.plugins.calendar.ui.screens.CalendarScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -111,11 +111,15 @@ class CalendarPlugin(
                     endingTime = command.endingTime,
                     isPriority = command.isPriority,
                     group = command.group,
+                    isRepeatable = command.isRepeatable,
+                    repeatableType = command.repeatableType,
                     participants = command.participants,
                     repeat = command.repeat,
                     location = command.location,
                     createAlarm = command.createLinkedAlarm,
                     createTask = command.createLinkedTask,
+                    createLocation = command.createLinkedLocation,
+                    createContact = command.createLinkedContact,
                     userId = null
                 )
                 
@@ -139,7 +143,9 @@ class CalendarPlugin(
                         isPriority = item.isPriority,
                         linkedRequests = LinkedCreationRequest(
                             createAlarm = item.createAlarm,
-                            createTask = item.createTask
+                            createTask = item.createTask,
+                            createLocation = item.createLocation,
+                            createContact = item.createContact
                         ),
                         correlationId = command.correlationId ?: command.commandId,
                         causationId = command.commandId,

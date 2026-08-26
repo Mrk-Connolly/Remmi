@@ -8,7 +8,7 @@ This document is the architectural source of truth.
 
 Your highest priority is:
 
-**PRESERVE THE EXISTING APPLICATION WHILE MAKING THE SMALLEST POSSIBLE CHANGE REQUIRED BY THE TASK.**
+PRESERVE THE EXISTING APPLICATION WHILE MAKING THE SMALLEST POSSIBLE CHANGE REQUIRED BY THE TASK.
 
 Do not redesign the application.
 
@@ -20,10 +20,9 @@ Do not replace existing systems with alternatives simply because you prefer anot
 
 When uncertain:
 
-**PRESERVE THE CURRENT STRUCTURE.**
+PRESERVE THE CURRENT STRUCTURE.
 
 ============================================================
-
 1. CURRENT PROJECT STRUCTURE
    ============================================================
 
@@ -48,14 +47,16 @@ RemmiApplication.kt
 
 ============================================================
 2. TOP-LEVEL OWNERSHIP
-   ======================
+   ============================================================
 
 The hierarchy is:
 
 RemmiHost
-? creates and starts
+?
+creates and starts
 RemmiController
-? creates and owns
+?
+creates and owns
 ??? PluginManager
 ??? DatabaseServiceManager / database services
 ??? AndroidServiceManager
@@ -87,7 +88,7 @@ to RemmiController.
 
 ============================================================
 3. COMMUNICATION LAW
-   ====================
+   ============================================================
 
 ALL communication between:
 
@@ -140,7 +141,7 @@ Direct calls between architectural components are prohibited unless they are exp
 
 ============================================================
 4. PLUGIN ISOLATION LAW
-   =======================
+   ============================================================
 
 A plugin owns all plugin-specific functionality.
 
@@ -168,74 +169,249 @@ Examples of plugin-specific code:
 
 ============================================================
 5. REQUIRED PLUGIN STRUCTURE
-   ============================
+   ============================================================
 
-The preferred plugin structure is:
+Every plugin MUST use the following canonical structure:
 
-plugins/ <pluginName>/ <PluginName>Actions.kt <PluginName>Plugin.kt <PluginName>Repository.kt <PluginName>Widget.kt
+plugins/
+<pluginName>/
+<PluginName>Plugin.kt
+<PluginName>Actions.kt
+<PluginName>Widgets.kt
+<PluginName>Repository.kt
 
-```
-    models/
-        ...
-
-    logic/
-        ...
-        (only if meaningful)
-
-    repository/
-        ...
-        (only if multiple repository files are required)
-
-    ui/
-        screens/
-            <PluginName>MainScreen.kt
+        models/
             ...
-            secondary screens
 
-        popups/
-            ...
-            internal plugin popups
+        ui/
+            screens/
+                ...
 
-        external/
-            ...
-            popups/interactions exposed to other plugins
-```
+            popups/
+                ...
 
-Do not create empty directories.
+The canonical structure is:
 
-Do not create extra layers without a real purpose.
-
-If the current plugin uses:
-
+<PluginName>Plugin.kt
+<PluginName>Actions.kt
+<PluginName>Widgets.kt
+<PluginName>Repository.kt
+models/
+ui/
 screens/
 popups/
-ui/
 
-outside the desired structure, only migrate it when explicitly requested or when required by the current task.
+This structure is the default structure for every plugin.
 
-Do not reorganize every plugin during an unrelated task.
+------------------------------------------------------------
+5.1 PLUGIN ROOT FILES
+------------------------------------------------------------
 
-============================================================
-6. INTERNAL VS EXTERNAL PLUGIN UI
-   =================================
+The following plugin files MUST be directly inside the plugin directory:
 
-Internal plugin UI:
-
-plugins/<plugin>/ui/popups/
-
-These are used internally by the owning plugin.
-
-External plugin UI:
-
-plugins/<plugin>/ui/external/
-
-These interactions may be requested by other plugins.
+<PluginName>Plugin.kt
+<PluginName>Actions.kt
+<PluginName>Widgets.kt
+<PluginName>Repository.kt
 
 Example:
 
-Alarm plugin owns:
+plugins/example/
+ExamplePlugin.kt
+ExampleActions.kt
+ExampleWidgets.kt
+ExampleRepository.kt
 
-plugins/alarm/ui/external/
+Do NOT put these files inside additional directories.
+
+For example, this is WRONG:
+
+plugins/example/repository/ExampleRepository.kt
+
+The correct structure is:
+
+plugins/example/ExampleRepository.kt
+
+------------------------------------------------------------
+5.2 MODELS
+------------------------------------------------------------
+
+Plugin-specific models MUST be inside:
+
+plugins/<pluginName>/models/
+
+Example:
+
+plugins/example/models/
+ExampleModel.kt
+ExampleSettings.kt
+
+Do not place plugin-specific models in core/.
+
+------------------------------------------------------------
+5.3 UI
+------------------------------------------------------------
+
+ALL plugin UI MUST be inside:
+
+plugins/<pluginName>/ui/
+
+The ui directory MUST contain:
+
+screens/
+popups/
+
+Screens MUST be inside:
+
+plugins/<pluginName>/ui/screens/
+
+Popups MUST be inside:
+
+plugins/<pluginName>/ui/popups/
+
+Correct:
+
+plugins/example/
+ExamplePlugin.kt
+ExampleActions.kt
+ExampleWidgets.kt
+ExampleRepository.kt
+
+    models/
+        ExampleModel.kt
+
+    ui/
+        screens/
+            ExampleMainScreen.kt
+            ExampleSettingsScreen.kt
+
+        popups/
+            ExampleEditPopup.kt
+            ExampleDeletePopup.kt
+
+The following structures are WRONG:
+
+plugins/example/screens/
+plugins/example/popups/
+
+plugins/example/ui/ExampleMainScreen.kt
+
+plugins/example/ui/ExampleEditPopup.kt
+
+Plugin screens and popups MUST NOT exist outside:
+
+ui/screens/
+ui/popups/
+
+------------------------------------------------------------
+5.4 REPOSITORY DIRECTORY RESTRICTION
+------------------------------------------------------------
+
+Do NOT create:
+
+plugins/<pluginName>/repository/
+
+when the plugin has only one repository file.
+
+A single repository file MUST be:
+
+plugins/<pluginName>/<PluginName>Repository.kt
+
+Do not create a directory simply to contain one file.
+
+If a plugin genuinely requires multiple repository files, a repository directory MAY be introduced only when explicitly justified by the implementation.
+
+Do not create empty directories.
+
+Do not create additional architectural layers merely to make the project appear more structured.
+
+------------------------------------------------------------
+5.5 LOGIC DIRECTORY RESTRICTION
+------------------------------------------------------------
+
+Do NOT create:
+
+plugins/<pluginName>/logic/
+
+by default.
+
+Do not create generic logic directories unless the task explicitly requires a separate logical subsystem and there is a real architectural reason for it.
+
+Plugin logic should remain in the appropriate existing plugin files unless a separate file is genuinely necessary.
+
+------------------------------------------------------------
+5.6 NO ADDITIONAL DEFAULT PLUGIN DIRECTORIES
+------------------------------------------------------------
+
+The canonical plugin structure contains only:
+
+<PluginName>Plugin.kt
+<PluginName>Actions.kt
+<PluginName>Widgets.kt
+<PluginName>Repository.kt
+models/
+ui/
+screens/
+popups/
+
+Do NOT add additional plugin directories such as:
+
+repository/
+logic/
+external/
+services/
+components/
+dialogs/
+
+unless explicitly required by the task and justified by a real architectural responsibility.
+
+Do not invent additional layers.
+
+------------------------------------------------------------
+5.7 EXISTING PLUGINS
+------------------------------------------------------------
+
+If an existing plugin already follows the canonical structure, do not reorganize it.
+
+If an existing plugin does NOT follow the canonical structure, do not automatically migrate it during an unrelated task.
+
+Only migrate an existing plugin structure when:
+
+* Explicitly requested.
+* Directly required by the current task.
+* Performing an approved architecture cleanup.
+
+Do not reorganize every plugin during unrelated work.
+
+============================================================
+6. INTERNAL VS EXTERNAL PLUGIN UI
+   ============================================================
+
+Plugin UI is owned by the plugin that implements the functionality.
+
+Internal plugin UI belongs in:
+
+plugins/<plugin>/ui/
+
+Screens belong in:
+
+plugins/<plugin>/ui/screens/
+
+Popups belong in:
+
+plugins/<plugin>/ui/popups/
+
+Do NOT create a separate:
+
+ui/external/
+
+directory as part of the default plugin structure.
+
+If another plugin needs to request UI interaction from a plugin, the owning plugin remains responsible for that UI.
+
+Example:
+
+Alarm plugin owns its alarm configuration UI.
 
 If Calendar needs the user to configure an alarm:
 
@@ -247,7 +423,14 @@ Alarm-specific configuration UI
 
 Calendar should request the Alarm plugin interaction through EventBus/plugin action contracts.
 
-Alarm owns the alarm UI.
+The Alarm plugin owns the alarm UI.
+
+The alarm UI remains inside:
+
+plugins/alarm/ui/screens/
+plugins/alarm/ui/popups/
+
+Do not move UI ownership to the requesting plugin.
 
 This rule applies to:
 
@@ -262,7 +445,7 @@ This rule applies to:
 
 ============================================================
 7. SPECIFIC EXISTING VIOLATION RULE
-   ===================================
+   ============================================================
 
 Do not create new cross-plugin UI ownership.
 
@@ -286,7 +469,7 @@ Only fix it when:
 
 ============================================================
 8. EVENT BUS LAW
-   ================
+   ============================================================
 
 There must be exactly one application EventBus system.
 
@@ -326,7 +509,7 @@ RemmiMessage.kt
 
 ============================================================
 9. COMMAND AND EVENT LAW
-   ========================
+   ============================================================
 
 Commands and events are different.
 
@@ -377,7 +560,7 @@ Do not move all command/event implementation back into EventBus.kt.
 
 ============================================================
 10. EXTENSIBILITY LAW
-    =====================
+    ============================================================
 
 The EventBus communication system must allow future communication types.
 
@@ -398,7 +581,7 @@ Do not pollute EventBus.kt with unrelated type-specific behavior.
 
 ============================================================
 11. PLUGIN DATABASE ACCESS LAW
-    ==============================
+    ============================================================
 
 Plugins must NEVER directly access:
 
@@ -436,7 +619,7 @@ Plugins may listen to those events.
 
 ============================================================
 12. PLUGIN REPOSITORY RULE
-    ==========================
+    ============================================================
 
 Plugin repositories may exist.
 
@@ -459,9 +642,15 @@ Do not delete repositories automatically.
 
 Do not replace repositories without inspecting current usage.
 
+A single plugin repository belongs at the plugin root:
+
+plugins/<pluginName>/<PluginName>Repository.kt
+
+Do not create a repository directory for a single repository file.
+
 ============================================================
 13. ANDROID CONTEXT LAW
-    =======================
+    ============================================================
 
 Android Context access is restricted.
 
@@ -518,7 +707,7 @@ Expose specific operations/contracts.
 
 ============================================================
 14. ANDROID SERVICE OWNERSHIP
-    =============================
+    ============================================================
 
 Android-specific functionality belongs inside the Android service boundary.
 
@@ -563,7 +752,7 @@ Plugins interact with file functionality through EventBus and the appropriate fi
 
 ============================================================
 15. AUTOMATION OWNERSHIP
-    ========================
+    ============================================================
 
 AutomationEngine owns automation execution.
 
@@ -589,7 +778,7 @@ Feature-specific logic must not be placed directly inside AutomationEngine unles
 
 ============================================================
 16. DATABASE OWNERSHIP
-    ======================
+    ============================================================
 
 Database functionality belongs under:
 
@@ -611,8 +800,148 @@ screens/
 popups/
 
 ============================================================
-17. FILE SERVICE OWNERSHIP
-    ==========================
+17. DATABASE SCHEMA SYNCHRONIZATION LAW
+    ============================================================
+
+The database schema and startup definitions MUST remain synchronized with plugin-owned persisted item structures.
+
+When a plugin changes the structure of an item that is persisted in the database, the corresponding database definition MUST be checked and updated in:
+
+db-scripts/src/main/resources/startup.sql
+
+This applies whenever a plugin:
+
+* Adds a new persisted item.
+* Adds a new persisted field/column.
+* Removes a persisted item.
+* Removes a persisted field/column.
+* Renames a persisted item.
+* Renames a persisted field/column.
+* Changes the type of a persisted field.
+* Changes constraints.
+* Changes relationships.
+* Changes indexes.
+* Changes defaults.
+* Changes other database structure required by the changed item.
+
+A plugin item structure change is NOT complete until startup.sql has been checked.
+
+------------------------------------------------------------
+17.1 REQUIRED SYNCHRONIZATION WORKFLOW
+------------------------------------------------------------
+
+When modifying a plugin's persisted item structure:
+
+1. Inspect the plugin's existing model/item structure.
+2. Inspect the corresponding database definition in:
+
+db-scripts/src/main/resources/startup.sql
+
+3. Determine whether the database schema must change.
+4. If the schema must change, update startup.sql in the same task.
+5. Keep the database definition consistent with the plugin's current persisted structure.
+6. Verify that the resulting schema matches the plugin's expected fields, types, relationships, and constraints.
+
+Example:
+
+If a plugin changes:
+
+ExampleItem
+name
+description
+
+to:
+
+ExampleItem
+name
+description
+priority
+
+then the corresponding database definition in:
+
+db-scripts/src/main/resources/startup.sql
+
+MUST also be updated to include the new persisted field.
+
+------------------------------------------------------------
+17.2 DELETED OR RENAMED STRUCTURES
+------------------------------------------------------------
+
+If a plugin removes or renames a persisted item or field, inspect startup.sql and update the corresponding database definition when required.
+
+Do not leave obsolete schema definitions behind when the task explicitly changes the persisted structure.
+
+Do not delete database structures blindly.
+
+Before removing a database item or field:
+
+1. Search for references.
+2. Verify that the structure is owned by the affected plugin.
+3. Verify that it is safe to remove.
+4. Update startup.sql.
+5. Build and verify affected code.
+
+------------------------------------------------------------
+17.3 DATABASE OWNERSHIP REMAINS UNCHANGED
+------------------------------------------------------------
+
+This rule does NOT give plugins direct database access.
+
+Plugins must still follow the Plugin Database Access Law.
+
+Plugins communicate database operations through:
+
+Plugin
+?
+EventBus
+?
+Database service
+?
+Database
+
+The plugin owns its domain/item structure.
+
+The database service owns database implementation.
+
+startup.sql defines the database startup schema.
+
+These responsibilities must remain separate.
+
+------------------------------------------------------------
+17.4 MINIMAL SCHEMA CHANGES
+------------------------------------------------------------
+
+Only modify the relevant database definitions in:
+
+db-scripts/src/main/resources/startup.sql
+
+Do not redesign the database schema.
+
+Do not modify unrelated tables, fields, relationships, indexes, policies, or other database definitions.
+
+Do not change existing database structure unless it is required by the current plugin change or explicitly requested.
+
+------------------------------------------------------------
+17.5 UI-ONLY AND NON-PERSISTED CHANGES
+------------------------------------------------------------
+
+Do NOT modify startup.sql for changes that do not affect persisted database structure.
+
+Examples:
+
+* UI-only changes.
+* Screen layout changes.
+* Popup changes.
+* Widget appearance changes.
+* Non-persisted state changes.
+* Local UI behavior changes.
+* Business logic changes that do not alter persisted structure.
+
+Only synchronize startup.sql when the plugin's persisted item/database structure requires it.
+
+============================================================
+18. FILE SERVICE OWNERSHIP
+    ============================================================
 
 File functionality belongs to the Android service boundary.
 
@@ -659,8 +988,8 @@ Do not move file implementation into Database services.
 Do not expose Android Context to plugins for file operations.
 
 ============================================================
-18. PLUGIN MANAGER LAW
-    ======================
+19. PLUGIN MANAGER LAW
+    ============================================================
 
 PluginManager owns generic plugin lifecycle and generic plugin operations.
 
@@ -686,8 +1015,8 @@ PluginManager must NOT become:
 Plugin-specific behavior remains in the plugin.
 
 ============================================================
-19. AUTOMATION AND PLUGIN ACCESS
-    ================================
+20. AUTOMATION AND PLUGIN ACCESS
+    ============================================================
 
 Plugins do not directly access:
 
@@ -704,8 +1033,8 @@ Do not inject all managers into plugins.
 Do not create a PluginContext replacement.
 
 ============================================================
-20. NO MEGA CONTEXT OR SERVICE LOCATOR
-    ======================================
+21. NO MEGA CONTEXT OR SERVICE LOCATOR
+    ============================================================
 
 Do not create:
 
@@ -722,8 +1051,8 @@ Classes receive only the specific dependency or contract they need.
 Do not replace one mega-context with another mega-context.
 
 ============================================================
-21. UI OWNERSHIP
-    ================
+22. UI OWNERSHIP
+    ============================================================
 
 Shared application UI belongs under:
 
@@ -749,15 +1078,23 @@ AppMenu
 
 Plugin-specific UI belongs inside its plugin.
 
+The canonical plugin UI structure is:
+
+plugins/<pluginName>/ui/
+screens/
+popups/
+
 Do not create:
 
 core/ui/
 
 Do not create global plugin UI directories outside the plugin.
 
+Do not place plugin-specific screens or popups directly under the plugin root.
+
 ============================================================
-22. GLOBAL UI STATE RULE
-    ========================
+23. GLOBAL UI STATE RULE
+    ============================================================
 
 Avoid global UI state managers.
 
@@ -792,8 +1129,8 @@ Move each state responsibility to its proper owner.
 Do not blindly delete it.
 
 ============================================================
-23. WIDGET OWNERSHIP
-    ====================
+24. WIDGET OWNERSHIP
+    ============================================================
 
 Plugin-specific widgets belong to the plugin that owns their functionality.
 
@@ -805,6 +1142,12 @@ CalendarWidget
 
 Generic Android widget infrastructure belongs under the Android boundary.
 
+The primary plugin widget file belongs at the plugin root:
+
+plugins/<pluginName>/<PluginName>Widgets.kt
+
+Do not create a widgets directory for the primary plugin widget file unless explicitly required.
+
 Do not move plugin-specific widget business logic into core.
 
 Dashboard/widget infrastructure should be inspected carefully before moving.
@@ -812,8 +1155,8 @@ Dashboard/widget infrastructure should be inspected carefully before moving.
 Do not restructure it during unrelated work.
 
 ============================================================
-24. MODEL OWNERSHIP
-    ===================
+25. MODEL OWNERSHIP
+    ============================================================
 
 Plugin-specific models belong inside their plugin.
 
@@ -830,8 +1173,8 @@ Do not create generic dumping folders.
 Do not place plugin-specific models in core.
 
 ============================================================
-25. FEATURE OWNERSHIP
-    =====================
+26. FEATURE OWNERSHIP
+    ============================================================
 
 Before adding a class, determine:
 
@@ -852,8 +1195,8 @@ Place the class with its owner.
 Never place a feature inside another unrelated feature.
 
 ============================================================
-26. MINIMAL CHANGE LAW
-    ======================
+27. MINIMAL CHANGE LAW
+    ============================================================
 
 Before creating a new class:
 
@@ -875,9 +1218,11 @@ If file functionality already exists inside the Android service boundary, reuse 
 
 Do not create a new FileManager or FileServiceManager to duplicate or wrap the existing file service.
 
+When changing a persisted plugin item structure, update only the corresponding startup.sql definition required by that change.
+
 ============================================================
-27. FILE MODIFICATION SAFETY
-    ============================
+28. FILE MODIFICATION SAFETY
+    ============================================================
 
 Do not:
 
@@ -905,9 +1250,16 @@ When migrating file functionality into the Android service boundary:
 * Remove obsolete manager layers only after references are migrated.
 * Do not perform unrelated Android-service refactoring.
 
+When changing persisted plugin data structures:
+
+* Inspect startup.sql before making the change.
+* Search for references to the affected database structure.
+* Update only the required schema definition.
+* Do not modify unrelated database structures.
+
 ============================================================
-28. REQUIRED WORKFLOW
-    =====================
+29. REQUIRED WORKFLOW
+    ============================================================
 
 For every task:
 
@@ -929,6 +1281,8 @@ Inspect only those files.
 
 Do not scan the entire project unless required.
 
+For plugin data/model changes, inspect the corresponding startup.sql definition.
+
 STEP 4 ? PLAN
 
 Briefly state:
@@ -936,6 +1290,7 @@ Briefly state:
 * Existing structure being used.
 * Files that will change.
 * Why each file changes.
+* Whether startup.sql must change.
 
 STEP 5 ? IMPLEMENT
 
@@ -950,6 +1305,7 @@ Check:
 * Dependencies.
 * Compilation.
 * Relevant tests.
+* Database schema consistency when persisted plugin structures changed.
 
 STEP 7 ? REPORT
 
@@ -962,8 +1318,8 @@ Return only:
 * Remaining issues.
 
 ============================================================
-29. STRUCTURAL CHANGE SAFETY
-    ============================
+30. STRUCTURAL CHANGE SAFETY
+    ============================================================
 
 If a task requires architectural restructuring:
 
@@ -988,6 +1344,10 @@ After each major step:
 * Fix errors.
 * Continue.
 
+------------------------------------------------------------
+30.1 FILE-SERVICE MIGRATION
+------------------------------------------------------------
+
 For file-service migration specifically:
 
 Before removing any old file manager/service boundary:
@@ -1000,11 +1360,59 @@ Before removing any old file manager/service boundary:
 6. Remove obsolete layers only after all references are migrated.
 7. Build and verify affected functionality.
 
-Do not combine the file-service migration with unrelated architectural cleanup.
+------------------------------------------------------------
+30.2 PLUGIN STRUCTURE MIGRATION
+------------------------------------------------------------
+
+For plugin structure changes:
+
+1. Inspect the existing plugin structure.
+2. Do not automatically reorganize existing plugins.
+3. If the task explicitly requires structural migration, compare the current structure with the canonical structure in Section 5.
+4. Move only files that violate the required structure.
+5. Update package declarations/imports/references as necessary.
+6. Do not introduce repository/, logic/, external/, or other directories unless explicitly required by the task.
+7. Build and verify after the migration.
+
+The target structure is:
+
+plugins/<pluginName>/
+<PluginName>Plugin.kt
+<PluginName>Actions.kt
+<PluginName>Widgets.kt
+<PluginName>Repository.kt
+
+    models/
+
+    ui/
+        screens/
+        popups/
+
+Do not combine plugin structure cleanup with unrelated feature work.
+
+------------------------------------------------------------
+30.3 DATABASE STRUCTURE MIGRATION
+------------------------------------------------------------
+
+When a task changes a persisted plugin item structure:
+
+1. Identify the affected plugin item/model.
+2. Locate its corresponding database definition in:
+
+db-scripts/src/main/resources/startup.sql
+
+3. Compare the current plugin structure with the current database definition.
+4. Determine the minimum required schema change.
+5. Update startup.sql in the same task if required.
+6. Do not modify unrelated database definitions.
+7. Build and verify the affected code.
+8. Verify that the plugin structure and startup.sql remain synchronized.
+
+Do not change database schema merely because a plugin's UI or non-persisted implementation changed.
 
 ============================================================
-30. FORBIDDEN ACTIONS
-    =====================
+31. FORBIDDEN ACTIONS
+    ============================================================
 
 NEVER:
 
@@ -1021,6 +1429,11 @@ NEVER:
 * Give plugins direct Android API access.
 * Add PluginContext or equivalent mega-context.
 * Put plugin-specific UI in core.
+* Put plugin screens outside ui/screens/.
+* Put plugin popups outside ui/popups/.
+* Create ui/external/ by default.
+* Create repository/ for a single repository file.
+* Create logic/ by default.
 * Put one plugin's popup inside another plugin.
 * Move unrelated code.
 * Refactor unrelated code.
@@ -1031,14 +1444,19 @@ NEVER:
 * Create unnecessary abstractions.
 * Create a separate FileManager/FileServiceManager when the responsibility already belongs to AndroidServiceManager.
 * Bypass EventBus for plugin-to-file-service communication.
+* Reorganize existing plugins during unrelated tasks.
+* Change a persisted plugin item structure without checking startup.sql.
+* Leave startup.sql inconsistent with a plugin's persisted item structure.
+* Modify unrelated database definitions while synchronizing a plugin's persisted structure.
+* Modify startup.sql for UI-only or non-persisted changes.
 
 ============================================================
-31. WHEN UNCERTAIN
-    ==================
+32. WHEN UNCERTAIN
+    ============================================================
 
 When unsure:
 
-**DO NOT GUESS.**
+DO NOT GUESS.
 
 Inspect the relevant code.
 
@@ -1050,6 +1468,6 @@ Ask for clarification before destructive changes.
 
 The preferred solution is always:
 
-**The smallest change
+The smallest change
 that preserves the architecture
-and does not break working code.**
+and does not break working code.

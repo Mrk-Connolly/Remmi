@@ -14,7 +14,7 @@ class CoreManagersTest {
     @Before
     fun setup() = runTest {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        controller = RemmiController(appContext)
+        controller = RemmiController(appContext, MockDatabaseService())
         controller.start()
     }
 
@@ -25,9 +25,8 @@ class CoreManagersTest {
     }
 
     @Test
-    fun testFileManager() = runTest {
-        assertNotNull(controller.fileManager)
-        assertNotNull(controller.fileManager.service)
+    fun testFileService() = runTest {
+        assertNotNull(controller.androidManager.fileService)
     }
 
     @Test

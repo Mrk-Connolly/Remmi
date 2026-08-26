@@ -104,10 +104,7 @@ fun AppNavigation(runtime: RemmiController) {
     // Listen for Map Commands
     LaunchedEffect(Unit) {
         runtime.eventBus.commands.collect { command ->
-            if (command is com.remmi.app.core.eventBus.commands.PickLocationCommand) {
-                val mapsPlugin = runtime.pluginManager.plugins["maps"] as? com.remmi.app.plugins.maps.MapPlugin
-                mapsPlugin?.handleCommandWithController(command, runtime)
-            }
+            // Map plugin commands handled here if any in the future
         }
     }
 
@@ -230,20 +227,21 @@ fun AppNavigation(runtime: RemmiController) {
         }
 
         // Global Overlays
+        // Global Overlays
         if (GlobalUIState.showLocationPicker.value) {
-            val mapsPlugin = runtime.pluginManager.plugins["maps"] as? com.remmi.app.plugins.maps.MapPlugin
-            if (mapsPlugin != null) {
-                com.remmi.app.plugins.maps.popups.LocationPickerPopup(
+            val mapsPlugin = runtime.pluginManager.plugins["maps"] as? com.remmi.app.plugins.maps.MapsPlugin
+            val data = GlobalUIState.locationPickerData.value
+            if (mapsPlugin != null && data != null) {
+                com.remmi.app.plugins.maps.ui.popups.LocationPickerPopup(
                     actions = mapsPlugin.actions,
                     controller = runtime,
-                    requestId = GlobalUIState.locationPickerRequestId.value,
-                    initialSearch = GlobalUIState.locationPickerInitialSearch.value,
+                    requestId = data.sourceItemId, // Using sourceItemId as request ID for now
+                    initialSearch = data.title,
                     onDismiss = { GlobalUIState.showLocationPicker.value = false }
                 )
             }
         }
 
-        // Pending Linked Creation Dialogs
         GlobalUIState.pendingAlarmRequest.value?.let { data ->
             com.remmi.app.plugins.alarm.popups.AlarmConfigurationDialog(
                 data = data,

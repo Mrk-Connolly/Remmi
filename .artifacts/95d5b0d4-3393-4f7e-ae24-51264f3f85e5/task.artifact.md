@@ -1,0 +1,20 @@
+- [x] Create canonical plugin structure for Maps
+    - [x] Create `MapsPlugin.kt`
+    - [x] Create `MapsActions.kt`
+    - [x] Create `MapsWidgets.kt`
+    - [x] Create `MapsRepository.kt`
+    - [x] Create `ui/screens/MapsScreen.kt`
+- [x] Update Core references
+    - [x] Update `PluginManager.kt`
+    - [x] Update `AppMenu.kt`
+- [x] Delete old files
+    - [x] Delete `app/src/main/kotlin/com/remmi/app/plugins/maps/MapPlugin.kt`
+    - [x] Delete `app/src/main/kotlin/com/remmi/app/plugins/maps/MapActions.kt`
+    - [x] Delete `app/src/main/kotlin/com/remmi/app/plugins/maps/repository/MapRepository.kt`
+    - [x] Delete `app/src/main/kotlin/com/remmi/app/plugins/maps/screens/MapScreen.kt`
+    - [x] Delete `app/src/main/kotlin/com/remmi/app/plugins/maps/popups/LocationPickerPopup.kt`
+    - [x] Delete `app/src/main/kotlin/com/remmi/app/plugins/maps/models/SavedLocation.kt`
+- [x] Cleanup directories
+- [x] Verify
+    - [x] Build project
+    - [ ] Manual verification (by user)

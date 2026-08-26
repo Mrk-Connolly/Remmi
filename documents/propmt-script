@@ -1,0 +1,26 @@
+Read and follow:
+
+documents/AI_ARCHITECTURE_CONTRACT.md
+
+These rules are mandatory.
+
+CURRENT TASK:
+
+[DESCRIBE TASK HERE]
+
+SCOPE:
+
+Only inspect files directly related to this task.
+
+Do not modify unrelated files.
+
+TASK-SPECIFIC RULES:
+
+[OPTIONAL RULES]
+
+Before modifying code:
+
+1. List relevant files.
+2. Briefly explain the minimal changes.
+3. Implement.
+4. Build and verify.
