@@ -24,6 +24,7 @@ data class AlarmItem(
 
     val description: String = "",
 
+    @SerialName("is_priority")
     val isPriority: Boolean = false,
 
     val time: Instant,
@@ -32,8 +33,10 @@ data class AlarmItem(
 
     val custom: List<String> = emptyList(),
 
+    @SerialName("use_sound")
     val useSound: Boolean = true,
 
+    @SerialName("use_vibration")
     val useVibration: Boolean = true,
 
     @SerialName("user_id")
