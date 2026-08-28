@@ -52,6 +52,15 @@ class GiftPlugin(
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content(controller: RemmiController) {
             Log.d("Remmi", "[GiftPlugin] - [Content] (screen) executed")
+            val contactPlugin = controller.pluginManager.plugins["contacts"] as? com.remmi.app.plugins.contacts.ContactPlugin
+            if (contactPlugin != null) {
+                com.remmi.app.plugins.gift.screens.GiftListScreen(
+                    giftActions = actions,
+                    contactActions = contactPlugin.actions
+                )
+            } else {
+                androidx.compose.material3.Text("Contacts plugin not found")
+            }
         }
     }
 

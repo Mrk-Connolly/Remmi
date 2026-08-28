@@ -250,5 +250,11 @@ class CalendarPlugin(
     override suspend fun reformat() {
         Log.d("Remmi", "[CalendarPlugin] - [reformat] executed")
         _repository.clear()
+        // Clear groups as well
+        try {
+            databaseManager.service.clearTable("calendar_groups")
+        } catch (e: Exception) {
+            Log.e("Remmi", "Failed to clear calendar groups", e)
+        }
     }
 }

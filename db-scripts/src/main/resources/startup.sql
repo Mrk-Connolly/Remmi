@@ -77,6 +77,30 @@ INSERT INTO calendar (id, created, modified, title, starting_date, is_priority, 
 ('cal_ex_1', now(), now(), 'Work Meeting', CURRENT_DATE + 1, FALSE, 'Work'),
 ('cal_ex_2', now(), now(), 'Doctor Appointment', CURRENT_DATE + 2, TRUE, 'Personal'),
 ('cal_ex_3', now(), now(), 'Birthday Party', CURRENT_DATE + 5, FALSE, 'Social');
+
+-- ============================================================
+-- CALENDAR GROUPS
+-- ============================================================
+
+DROP TABLE IF EXISTS calendar_groups CASCADE;
+
+CREATE TABLE calendar_groups (
+    id              TEXT PRIMARY KEY,
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+    user_id         UUID DEFAULT auth.uid(),
+    name            TEXT NOT NULL UNIQUE,
+    color_hex       TEXT NOT NULL DEFAULT '#6200EE'
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE calendar_groups TO anon;
+ALTER TABLE calendar_groups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "calendar_groups_all" ON calendar_groups FOR ALL TO anon USING (true) WITH CHECK (true);
+
+INSERT INTO calendar_groups (id, created, modified, name, color_hex) VALUES
+('cg_1', now(), now(), 'Work', '#2196F3'),
+('cg_2', now(), now(), 'Personal', '#E91E63'),
+('cg_3', now(), now(), 'Social', '#FF9800');
 -- ============================================================
 -- CONTACTS PLUGIN SCHEMA
 -- ============================================================

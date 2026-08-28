@@ -73,6 +73,18 @@ class IngredientPlugin(
     }
 
     override suspend fun onEvent(event: RemmiEvent) {
+        when (event) {
+            is com.remmi.app.core.eventBus.events.ReceiptImageSelectedEvent -> {
+                Log.i("Remmi", "[IngredientPlugin] - Receipt image selected, requesting OCR")
+                eventBus.publishCommand(
+                    com.remmi.app.core.eventBus.commands.RequestOCRCommand(
+                        imageUri = event.imageUri,
+                        requestId = event.requestId,
+                        correlationId = event.correlationId
+                    )
+                )
+            }
+        }
     }
 
     override fun onLoad() {

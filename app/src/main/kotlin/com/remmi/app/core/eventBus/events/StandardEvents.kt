@@ -341,6 +341,55 @@ data class LocationPickedEvent(
     override val deletionContext: DeletionContext? = null
 ) : RemmiEvent
 
+/**
+ * CURRENT LOCATION RESPONDED EVENT
+ */
+data class CurrentLocationRespondedEvent(
+    val latitude: Double,
+    val longitude: Double,
+    override val source: String = "android",
+    override val eventId: String = UUID.randomUUID().toString(),
+    override val type: EventType = EventType.LOADED,
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiEvent
+
+// ----------------------------------------------------------------------------
+//                               OCR / RECEIPT EVENTS
+// ----------------------------------------------------------------------------
+
+/**
+ * RECEIPT IMAGE SELECTED EVENT
+ */
+data class ReceiptImageSelectedEvent(
+    val imageUri: String,
+    val requestId: String,
+    override val source: String = "android",
+    override val eventId: String = UUID.randomUUID().toString(),
+    override val type: EventType = EventType.LOADED,
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiEvent
+
+/**
+ * RECEIPT TEXT RECOGNIZED EVENT
+ */
+data class ReceiptTextRecognizedEvent(
+    val text: String,
+    val requestId: String,
+    override val source: String = "android",
+    override val eventId: String = UUID.randomUUID().toString(),
+    override val type: EventType = EventType.LOADED,
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiEvent
+
 // ----------------------------------------------------------------------------
 //                               AUTOMATION EVENTS
 // ----------------------------------------------------------------------------

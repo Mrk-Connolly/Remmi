@@ -1,0 +1,18 @@
+- `[ ]` Final Navigation Fix - `AppMenu.kt`
+    - `[ ]` Remove the second redundant bottom bar in `UnifiedDockMenu`
+    - `[ ]` Align core icons for perfect 90dp peek visibility
+- `[ ]` Calendar Screen Polishing - `CalendarScreen.kt`
+    - `[ ]` Implement Scroll-to-Date highlighting logic
+    - `[ ]` Circle the active `DateHeader`
+    - `[ ]` Shade the active day in the top `SelectableCalendar`
+    - `[ ]` Box/Highlight events of the active date
+    - `[ ] ]` Shrink unhighlighted events slightly
+    - `[ ]` Populate Group Filter dropdown with real data
+    - `[ ]` Adjust FAB position to `bottom = 16.dp`
+- `[ ]` Calendar Editor Fixes - `CalendarScreenEditor.kt`
+    - `[ ]` Move `description` under `title`
+    - `[ ]` Fix group dropdown visibility and sync
+- `[ ]` Verification
+    - `[ ]` Verify menu stability
+    - `[ ]` Test scroll highlighting synchronization
+    - `[ ]` Build and run

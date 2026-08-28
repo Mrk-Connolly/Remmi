@@ -7,13 +7,18 @@ import com.remmi.app.core.eventBus.commands.CommandListener
 import com.remmi.app.core.eventBus.commands.FetchWeatherCommand
 import com.remmi.app.core.eventBus.commands.PostNotificationCommand
 import com.remmi.app.core.eventBus.commands.RemmiCommand
+import kotlinx.coroutines.launch
 import com.remmi.app.core.eventBus.events.WeatherFetchedEvent
 import com.remmi.app.core.android.alarms.AlarmService
 import com.remmi.app.core.android.alarms.implementations.SystemAlarmService
 import com.remmi.app.core.android.notifications.NotificationService
 import com.remmi.app.core.android.notifications.implementations.SystemNotificationService
 import com.remmi.app.core.android.system.WeatherService
+import com.remmi.app.core.android.system.LocationService
+import com.remmi.app.core.android.system.OCRService
 import com.remmi.app.core.android.system.implementations.AndroidWeatherService
+import com.remmi.app.core.android.system.implementations.AndroidLocationService
+import com.remmi.app.core.android.system.implementations.AndroidOCRService
 import com.remmi.app.core.android.files.FileService
 import com.remmi.app.core.android.files.AndroidFileService
 
@@ -31,6 +36,8 @@ class AndroidServiceManager(
     val alarmService: AlarmService = SystemAlarmService(context)
     val notificationService: NotificationService = SystemNotificationService(context)
     val weatherService: WeatherService = AndroidWeatherService()
+    val locationService: LocationService = AndroidLocationService()
+    val ocrService: OCRService = AndroidOCRService(context)
     val settingsService: SystemSettingsService = SystemSettingsService(context)
     val widgetService: AndroidWidgetService = AndroidWidgetService(context)
     val fileService: FileService = AndroidFileService(context)
@@ -59,6 +66,28 @@ class AndroidServiceManager(
                 Log.i("Remmi", "[AndroidServiceManager] - Fetching weather requested")
                 val weather = weatherService.getTodayWeather()
                 eventBus.publishEvent(WeatherFetchedEvent(weather))
+            }
+            is com.remmi.app.core.eventBus.commands.RequestLocationCommand -> {
+                Log.i("Remmi", "[AndroidServiceManager] - Location requested")
+                locationService.requestCurrentLocation { lat, lon ->
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        eventBus.publishEvent(com.remmi.app.core.eventBus.events.CurrentLocationRespondedEvent(lat, lon))
+                    }
+                }
+            }
+            is com.remmi.app.core.eventBus.commands.RequestOCRCommand -> {
+                Log.i("Remmi", "[AndroidServiceManager] - OCR requested for: ${command.imageUri}")
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    val text = ocrService.recognizeText(command.imageUri)
+                    eventBus.publishEvent(
+                        com.remmi.app.core.eventBus.events.ReceiptTextRecognizedEvent(
+                            text = text,
+                            requestId = command.requestId,
+                            causationId = command.commandId,
+                            correlationId = command.correlationId
+                        )
+                    )
+                }
             }
             is PostNotificationCommand -> {
                 Log.i("Remmi", "[AndroidServiceManager] - Posting notification: ${command.title}")

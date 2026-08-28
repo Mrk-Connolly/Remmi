@@ -2,11 +2,13 @@ package com.remmi.app.plugins.calendar
 
 import android.util.Log
 import com.remmi.app.core.eventBus.*
+import com.remmi.app.core.eventBus.commands.UpsertDataCommand
 import com.remmi.app.core.eventBus.events.CalendarEventCreatedEvent
 import com.remmi.app.core.eventBus.events.CalendarEventDeletedEvent
 import com.remmi.app.core.eventBus.events.CalendarEventUpdatedEvent
 import com.remmi.app.core.eventBus.events.LinkedCreationRequest
 import com.remmi.app.core.plugin.actions.RemmiAction
+import com.remmi.app.plugins.calendar.models.CalendarGroup
 import com.remmi.app.plugins.calendar.models.CalendarItem
 import kotlinx.datetime.*
 import java.util.UUID
@@ -27,6 +29,8 @@ class CalendarActions(
 
     /** Shared system event bus */
     override var eventBus: EventBus? = null
+
+    private var _cachedGroups = mutableListOf<CalendarGroup>()
 
     companion object {
         private const val TAG = "CalendarActions"
@@ -275,6 +279,53 @@ class CalendarActions(
      * */
     suspend fun getAllGroups(): List<String> {
         Log.d("Remmi", "[CalendarActions] - [getAllGroups] executed")
-        return repository.getAll().mapNotNull { it.group }.distinct().sorted()
+        return getCalendarGroups().map { it.name }.distinct().sorted()
+    }
+
+    /**                                 Get Calendar Groups
+     * Retrieve all calendar groups with their colors
+     * */
+    suspend fun getCalendarGroups(): List<CalendarGroup> {
+        Log.d("Remmi", "[CalendarActions] - [getCalendarGroups] executed")
+        return try {
+            // For now, we use a simple fetch through the repository's database service
+            // but normally this should be a separate repository if it grows.
+            // Following the contract, we use the EventBus for persistence,
+            // but for reading we might need a sync mechanism.
+            repository.databaseService.getAll("calendar_groups", CalendarGroup.serializer())
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to retrieve calendar groups", e)
+            emptyList()
+        }
+    }
+
+    /**                                 Add Calendar Group
+     * Create and insert a new calendar group
+     * */
+    suspend fun addCalendarGroup(name: String, colorHex: String): String? {
+        Log.d("Remmi", "[CalendarActions] - [addCalendarGroup] executed")
+        return try {
+            val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+            val group = CalendarGroup(
+                id = UUID.randomUUID().toString(),
+                created = now,
+                modified = now,
+                name = name,
+                colorHex = colorHex
+            )
+            
+            eventBus?.publishCommand(
+                UpsertDataCommand(
+                    tableName = "calendar_groups",
+                    item = group,
+                    serializer = CalendarGroup.serializer(),
+                    source = "calendar"
+                )
+            )
+            group.id
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to add calendar group", e)
+            null
+        }
     }
 }

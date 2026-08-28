@@ -7,10 +7,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.plugins.maps.MapsActions
+import kotlinx.coroutines.flow.filterIsInstance
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.rememberCameraState
 import org.maplibre.compose.map.MaplibreMap
@@ -24,8 +25,24 @@ fun MapsScreen(
     controller: RemmiController
 ) {
     val cameraState = rememberCameraState(
-        firstPosition = CameraPosition(target = Position(0.0, 0.0), zoom = 1.0)
+        firstPosition = CameraPosition(target = Position(2.3522, 48.8566), zoom = 12.0) // Paris default
     )
+
+    LaunchedEffect(Unit) {
+        // Request current location
+        controller.eventBus.publishCommand(
+            com.remmi.app.core.eventBus.commands.RequestLocationCommand()
+        )
+        
+        // Listen for response
+        controller.eventBus.events
+            .filterIsInstance<com.remmi.app.core.eventBus.events.CurrentLocationRespondedEvent>()
+            .collect { event ->
+                cameraState.animateTo(
+                    CameraPosition(target = Position(event.longitude, event.latitude), zoom = 14.0)
+                )
+            }
+    }
 
     Scaffold(
         topBar = {

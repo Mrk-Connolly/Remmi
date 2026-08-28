@@ -84,7 +84,7 @@ fun AlarmScreen(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { editorMode = AlarmEditorMode.Create },
-                    modifier = Modifier.padding(bottom = 168.dp)
+                    modifier = Modifier.padding(bottom = 16.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Alarm")
                 }
