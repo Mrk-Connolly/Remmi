@@ -386,6 +386,19 @@ data class PickLocationCommand(
 ) : RemmiCommand
 
 /**
+ * REQUEST CURRENT LOCATION COMMAND
+ * Request system location service to provide current coordinates.
+ */
+data class RequestLocationCommand(
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+/**
  * SHOW MAP COMMAND
  * Navigate to the main map screen.
  */
@@ -393,6 +406,40 @@ data class ShowMapCommand(
     val focusId: String? = null,
     override val commandId: String = UUID.randomUUID().toString(),
     override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+// ----------------------------------------------------------------------------
+//                               OCR / RECEIPT COMMANDS
+// ----------------------------------------------------------------------------
+
+/**
+ * REQUEST RECEIPT IMAGE COMMAND
+ * Request a receipt image from camera or gallery.
+ */
+data class RequestReceiptImageCommand(
+    val useCamera: Boolean,
+    val requestId: String = UUID.randomUUID().toString(),
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "ingredients",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+/**
+ * REQUEST OCR COMMAND
+ * Request OCR processing for a given image.
+ */
+data class RequestOCRCommand(
+    val imageUri: String,
+    val requestId: String = UUID.randomUUID().toString(),
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "ingredients",
     override val correlationId: String? = null,
     override val causationId: String? = null,
     override val creationContext: CreationContext? = null,

@@ -8,7 +8,7 @@ This document is the architectural source of truth.
 
 Your highest priority is:
 
-PRESERVE THE EXISTING APPLICATION WHILE MAKING THE SMALLEST POSSIBLE CHANGE REQUIRED BY THE TASK.
+**PRESERVE THE EXISTING APPLICATION WHILE MAKING THE SMALLEST POSSIBLE CHANGE REQUIRED BY THE TASK.**
 
 Do not redesign the application.
 
@@ -20,9 +20,10 @@ Do not replace existing systems with alternatives simply because you prefer anot
 
 When uncertain:
 
-PRESERVE THE CURRENT STRUCTURE.
+**PRESERVE THE CURRENT STRUCTURE.**
 
 ============================================================
+
 1. CURRENT PROJECT STRUCTURE
    ============================================================
 
@@ -47,7 +48,7 @@ RemmiApplication.kt
 
 ============================================================
 2. TOP-LEVEL OWNERSHIP
-   ============================================================
+   ======================
 
 The hierarchy is:
 
@@ -88,7 +89,7 @@ to RemmiController.
 
 ============================================================
 3. COMMUNICATION LAW
-   ============================================================
+   ====================
 
 ALL communication between:
 
@@ -141,7 +142,7 @@ Direct calls between architectural components are prohibited unless they are exp
 
 ============================================================
 4. PLUGIN ISOLATION LAW
-   ============================================================
+   =======================
 
 A plugin owns all plugin-specific functionality.
 
@@ -169,33 +170,27 @@ Examples of plugin-specific code:
 
 ============================================================
 5. REQUIRED PLUGIN STRUCTURE
-   ============================================================
+   ============================
 
 Every plugin MUST use the following canonical structure:
 
-plugins/
-<pluginName>/
-<PluginName>Plugin.kt
-<PluginName>Actions.kt
-<PluginName>Widgets.kt
-<PluginName>Repository.kt
+plugins/ <pluginName>/ <PluginName>Plugin.kt <PluginName>Actions.kt <PluginName>Widgets.kt <PluginName>Repository.kt
 
-        models/
+```
+    models/
+        ...
+
+    ui/
+        screens/
             ...
 
-        ui/
-            screens/
-                ...
-
-            popups/
-                ...
+        popups/
+            ...
+```
 
 The canonical structure is:
 
-<PluginName>Plugin.kt
-<PluginName>Actions.kt
-<PluginName>Widgets.kt
-<PluginName>Repository.kt
+<PluginName>Plugin.kt <PluginName>Actions.kt <PluginName>Widgets.kt <PluginName>Repository.kt
 models/
 ui/
 screens/
@@ -203,16 +198,13 @@ popups/
 
 This structure is the default structure for every plugin.
 
-------------------------------------------------------------
-5.1 PLUGIN ROOT FILES
-------------------------------------------------------------
+---
+
+## 5.1 PLUGIN ROOT FILES
 
 The following plugin files MUST be directly inside the plugin directory:
 
-<PluginName>Plugin.kt
-<PluginName>Actions.kt
-<PluginName>Widgets.kt
-<PluginName>Repository.kt
+<PluginName>Plugin.kt <PluginName>Actions.kt <PluginName>Widgets.kt <PluginName>Repository.kt
 
 Example:
 
@@ -232,9 +224,9 @@ The correct structure is:
 
 plugins/example/ExampleRepository.kt
 
-------------------------------------------------------------
-5.2 MODELS
-------------------------------------------------------------
+---
+
+## 5.2 MODELS
 
 Plugin-specific models MUST be inside:
 
@@ -248,9 +240,9 @@ ExampleSettings.kt
 
 Do not place plugin-specific models in core/.
 
-------------------------------------------------------------
-5.3 UI
-------------------------------------------------------------
+---
+
+## 5.3 UI
 
 ALL plugin UI MUST be inside:
 
@@ -277,17 +269,19 @@ ExampleActions.kt
 ExampleWidgets.kt
 ExampleRepository.kt
 
-    models/
-        ExampleModel.kt
+```
+models/
+    ExampleModel.kt
 
-    ui/
-        screens/
-            ExampleMainScreen.kt
-            ExampleSettingsScreen.kt
+ui/
+    screens/
+        ExampleMainScreen.kt
+        ExampleSettingsScreen.kt
 
-        popups/
-            ExampleEditPopup.kt
-            ExampleDeletePopup.kt
+    popups/
+        ExampleEditPopup.kt
+        ExampleDeletePopup.kt
+```
 
 The following structures are WRONG:
 
@@ -303,9 +297,9 @@ Plugin screens and popups MUST NOT exist outside:
 ui/screens/
 ui/popups/
 
-------------------------------------------------------------
-5.4 REPOSITORY DIRECTORY RESTRICTION
-------------------------------------------------------------
+---
+
+## 5.4 REPOSITORY DIRECTORY RESTRICTION
 
 Do NOT create:
 
@@ -325,9 +319,9 @@ Do not create empty directories.
 
 Do not create additional architectural layers merely to make the project appear more structured.
 
-------------------------------------------------------------
-5.5 LOGIC DIRECTORY RESTRICTION
-------------------------------------------------------------
+---
+
+## 5.5 LOGIC DIRECTORY RESTRICTION
 
 Do NOT create:
 
@@ -339,16 +333,13 @@ Do not create generic logic directories unless the task explicitly requires a se
 
 Plugin logic should remain in the appropriate existing plugin files unless a separate file is genuinely necessary.
 
-------------------------------------------------------------
-5.6 NO ADDITIONAL DEFAULT PLUGIN DIRECTORIES
-------------------------------------------------------------
+---
+
+## 5.6 NO ADDITIONAL DEFAULT PLUGIN DIRECTORIES
 
 The canonical plugin structure contains only:
 
-<PluginName>Plugin.kt
-<PluginName>Actions.kt
-<PluginName>Widgets.kt
-<PluginName>Repository.kt
+<PluginName>Plugin.kt <PluginName>Actions.kt <PluginName>Widgets.kt <PluginName>Repository.kt
 models/
 ui/
 screens/
@@ -367,9 +358,9 @@ unless explicitly required by the task and justified by a real architectural res
 
 Do not invent additional layers.
 
-------------------------------------------------------------
-5.7 EXISTING PLUGINS
-------------------------------------------------------------
+---
+
+## 5.7 EXISTING PLUGINS
 
 If an existing plugin already follows the canonical structure, do not reorganize it.
 
@@ -385,7 +376,7 @@ Do not reorganize every plugin during unrelated work.
 
 ============================================================
 6. INTERNAL VS EXTERNAL PLUGIN UI
-   ============================================================
+   =================================
 
 Plugin UI is owned by the plugin that implements the functionality.
 
@@ -445,7 +436,7 @@ This rule applies to:
 
 ============================================================
 7. SPECIFIC EXISTING VIOLATION RULE
-   ============================================================
+   ===================================
 
 Do not create new cross-plugin UI ownership.
 
@@ -469,7 +460,7 @@ Only fix it when:
 
 ============================================================
 8. EVENT BUS LAW
-   ============================================================
+   ================
 
 There must be exactly one application EventBus system.
 
@@ -509,7 +500,7 @@ RemmiMessage.kt
 
 ============================================================
 9. COMMAND AND EVENT LAW
-   ============================================================
+   ========================
 
 Commands and events are different.
 
@@ -560,7 +551,7 @@ Do not move all command/event implementation back into EventBus.kt.
 
 ============================================================
 10. EXTENSIBILITY LAW
-    ============================================================
+    =====================
 
 The EventBus communication system must allow future communication types.
 
@@ -581,7 +572,7 @@ Do not pollute EventBus.kt with unrelated type-specific behavior.
 
 ============================================================
 11. PLUGIN DATABASE ACCESS LAW
-    ============================================================
+    ==============================
 
 Plugins must NEVER directly access:
 
@@ -619,7 +610,7 @@ Plugins may listen to those events.
 
 ============================================================
 12. PLUGIN REPOSITORY RULE
-    ============================================================
+    ==========================
 
 Plugin repositories may exist.
 
@@ -650,7 +641,7 @@ Do not create a repository directory for a single repository file.
 
 ============================================================
 13. ANDROID CONTEXT LAW
-    ============================================================
+    =======================
 
 Android Context access is restricted.
 
@@ -707,7 +698,7 @@ Expose specific operations/contracts.
 
 ============================================================
 14. ANDROID SERVICE OWNERSHIP
-    ============================================================
+    =============================
 
 Android-specific functionality belongs inside the Android service boundary.
 
@@ -752,7 +743,7 @@ Plugins interact with file functionality through EventBus and the appropriate fi
 
 ============================================================
 15. AUTOMATION OWNERSHIP
-    ============================================================
+    ========================
 
 AutomationEngine owns automation execution.
 
@@ -778,7 +769,7 @@ Feature-specific logic must not be placed directly inside AutomationEngine unles
 
 ============================================================
 16. DATABASE OWNERSHIP
-    ============================================================
+    ======================
 
 Database functionality belongs under:
 
@@ -801,7 +792,7 @@ popups/
 
 ============================================================
 17. DATABASE SCHEMA SYNCHRONIZATION LAW
-    ============================================================
+    =======================================
 
 The database schema and startup definitions MUST remain synchronized with plugin-owned persisted item structures.
 
@@ -826,9 +817,9 @@ This applies whenever a plugin:
 
 A plugin item structure change is NOT complete until startup.sql has been checked.
 
-------------------------------------------------------------
-17.1 REQUIRED SYNCHRONIZATION WORKFLOW
-------------------------------------------------------------
+---
+
+## 17.1 REQUIRED SYNCHRONIZATION WORKFLOW
 
 When modifying a plugin's persisted item structure:
 
@@ -863,9 +854,9 @@ db-scripts/src/main/resources/startup.sql
 
 MUST also be updated to include the new persisted field.
 
-------------------------------------------------------------
-17.2 DELETED OR RENAMED STRUCTURES
-------------------------------------------------------------
+---
+
+## 17.2 DELETED OR RENAMED STRUCTURES
 
 If a plugin removes or renames a persisted item or field, inspect startup.sql and update the corresponding database definition when required.
 
@@ -881,9 +872,9 @@ Before removing a database item or field:
 4. Update startup.sql.
 5. Build and verify affected code.
 
-------------------------------------------------------------
-17.3 DATABASE OWNERSHIP REMAINS UNCHANGED
-------------------------------------------------------------
+---
+
+## 17.3 DATABASE OWNERSHIP REMAINS UNCHANGED
 
 This rule does NOT give plugins direct database access.
 
@@ -907,9 +898,9 @@ startup.sql defines the database startup schema.
 
 These responsibilities must remain separate.
 
-------------------------------------------------------------
-17.4 MINIMAL SCHEMA CHANGES
-------------------------------------------------------------
+---
+
+## 17.4 MINIMAL SCHEMA CHANGES
 
 Only modify the relevant database definitions in:
 
@@ -921,9 +912,15 @@ Do not modify unrelated tables, fields, relationships, indexes, policies, or oth
 
 Do not change existing database structure unless it is required by the current plugin change or explicitly requested.
 
-------------------------------------------------------------
-17.5 UI-ONLY AND NON-PERSISTED CHANGES
-------------------------------------------------------------
+IMPORTANT:
+
+The requirement to preserve the complete startup.sql file does NOT mean that unrelated schema definitions should be changed.
+
+Unrelated definitions must remain unchanged and must continue to be present.
+
+---
+
+## 17.5 UI-ONLY AND NON-PERSISTED CHANGES
 
 Do NOT modify startup.sql for changes that do not affect persisted database structure.
 
@@ -939,9 +936,392 @@ Examples:
 
 Only synchronize startup.sql when the plugin's persisted item/database structure requires it.
 
+---
+
+## 17.6 STARTUP.SQL MUST ALWAYS BE A COMPLETE DATABASE DEFINITION
+
+`db-scripts/src/main/resources/startup.sql` is the COMPLETE and AUTHORITATIVE database bootstrap definition for the Remmi application.
+
+`startup.sql` MUST always contain the complete database structure required to initialize the Remmi database from an empty state.
+
+`startup.sql` MUST contain the definitions and instructions for ALL Remmi database tables.
+
+It must NOT contain only:
+
+* The table currently being edited.
+* The table currently being created.
+* The latest database change.
+* The latest plugin's database structure.
+* The SQL required for the current task.
+
+When any database table is modified, `startup.sql` MUST still contain the complete definitions for every other existing database table.
+
+For example, if the database contains:
+
+Table A
+Table B
+Table C
+Table D
+
+and Table B is modified, the final `startup.sql` MUST still contain:
+
+* The required destruction/reset instructions.
+* Complete definition for Table A.
+* Complete definition for Table B, including the requested change.
+* Complete definition for Table C.
+* Complete definition for Table D.
+* All required relationships.
+* All required constraints.
+* All required indexes.
+* All required defaults.
+* All required policies.
+* All required triggers/functions or other database objects.
+
+Do NOT remove unchanged tables simply because they are unrelated to the current task.
+
+---
+
+## 17.7 STARTUP.SQL IS A FULL DATABASE REBUILD SCRIPT
+
+`startup.sql` MUST be treated as a complete database reconstruction/bootstrap script.
+
+The script must contain everything required to recreate the current Remmi database schema from a clean/empty state according to the project's existing database setup.
+
+Where required by the existing implementation, the startup sequence must support:
+
+1. Destroying/removing existing Remmi database structures required for a clean rebuild.
+2. Recreating all required tables.
+3. Recreating all required columns and data types.
+4. Recreating all required primary keys.
+5. Recreating all required foreign keys and relationships.
+6. Recreating all required constraints.
+7. Recreating all required indexes.
+8. Recreating all required defaults.
+9. Recreating all required policies.
+10. Recreating all required triggers/functions.
+11. Recreating all other required database objects.
+12. Leaving the database in the complete schema expected by the current application.
+
+Do not redesign the database as part of this requirement.
+
+Preserve the existing database architecture and structure unless the current task explicitly requires a change.
+
+---
+
+## 17.8 STARTUP.SQL MUST CONTAIN ALL TABLES
+
+Whenever `startup.sql` is created or modified, it MUST contain every current Remmi database table.
+
+This applies even when the current task only affects one table.
+
+If the database contains:
+
+users
+tasks
+alarms
+calendar_events
+
+and the `tasks` table changes, the final `startup.sql` MUST still define:
+
+users
+tasks
+alarms
+calendar_events
+
+The `tasks` definition must contain the requested change.
+
+The other tables must remain fully defined.
+
+The agent MUST NOT replace the existing startup.sql with:
+
+CREATE TABLE tasks (...)
+
+or:
+
+DROP TABLE tasks;
+CREATE TABLE tasks (...);
+
+while removing the other tables from the file.
+
+The complete schema must remain.
+
+---
+
+## 17.9 STARTUP.SQL MUST CONTAIN COMPLETE TABLE DEFINITIONS
+
+It is not sufficient for startup.sql to merely mention every table.
+
+Every table must have its complete current definition.
+
+For every table, preserve the applicable:
+
+* Columns.
+* Data types.
+* Primary keys.
+* Foreign keys.
+* Relationships.
+* Constraints.
+* Defaults.
+* Indexes.
+* Policies.
+* Triggers.
+* Other required table/database configuration.
+
+If a table is unchanged by the current task, its complete existing definition must remain in startup.sql.
+
+---
+
+## 17.10 STARTUP.SQL MUST CONTAIN DESTRUCTION/RESET INSTRUCTIONS
+
+`startup.sql` must preserve the project's established destruction/reset instructions required to rebuild the complete database.
+
+When a table is added or modified, do NOT remove destruction/reset instructions for other existing tables simply because those tables were not changed.
+
+The startup process must be able to move from an existing database state to the complete schema represented by the script according to the project's established reset strategy.
+
+When modifying destruction order:
+
+* Respect foreign-key dependencies.
+* Preserve the existing project's approach where possible.
+* Do not introduce destructive behavior beyond the established startup/rebuild strategy.
+* Do not remove existing reset instructions without verifying their purpose.
+
+If the existing script uses DROP TABLE statements, preserve the complete set required for the full schema.
+
+If the existing script uses another reset mechanism, preserve that mechanism.
+
+Do not invent a new reset architecture.
+
+---
+
+## 17.11 STARTUP.SQL IS NOT A MIGRATION-ONLY FILE
+
+`startup.sql` is NOT a migration-only file.
+
+Do not convert it into a file containing only:
+
+* ALTER TABLE statements for the latest change.
+* The newly added table.
+* The newly added column.
+* The latest database modification.
+* A partial schema.
+* Only structures touched by the current task.
+
+If a separate migration system exists, follow it only when explicitly required.
+
+Do not invent a separate migration system merely to avoid maintaining the complete startup.sql.
+
+`startup.sql` must remain a complete bootstrap/rebuild definition.
+
+---
+
+## 17.12 PRESERVE ALL EXISTING TABLE DEFINITIONS
+
+When editing startup.sql, existing table definitions MUST be preserved unless the current task explicitly requires them to change.
+
+Do not accidentally remove tables because they were not part of the current task.
+
+Do not omit tables because they are owned by another plugin.
+
+Do not omit tables because they were not recently modified.
+
+Do not omit tables because the current task only concerns one plugin.
+
+Do not rewrite unchanged table definitions unnecessarily.
+
+If an existing table is part of the Remmi database schema, its complete definition must remain represented in startup.sql.
+
+---
+
+## 17.13 FULL SCHEMA REBUILD AFTER A SINGLE-TABLE CHANGE
+
+If a task changes one table, the expected behavior is:
+
+1. Read the existing complete startup.sql.
+2. Preserve all existing tables.
+3. Preserve all existing destruction/reset instructions.
+4. Modify only the required table definition.
+5. Preserve all other database definitions.
+6. Verify that startup.sql still represents the complete schema.
+
+Example:
+
+Before:
+
+users
+tasks
+alarms
+calendar_events
+
+Task:
+
+Add `priority` to tasks.
+
+After:
+
+users
+tasks with priority
+alarms
+calendar_events
+
+NOT:
+
+tasks with priority
+
+The final startup.sql must still contain the complete schema.
+
+---
+
+## 17.14 NEW TABLE REQUIREMENT
+
+When a new persisted plugin item requires a new database table:
+
+1. Add the new table definition to startup.sql.
+2. Preserve all existing table definitions.
+3. Add the required destruction/reset instruction for the new table where appropriate.
+4. Respect foreign-key and dependency ordering.
+5. Preserve all existing relationships and database objects.
+6. Verify that the startup script can recreate the complete database.
+
+Adding one table must NEVER result in removing or omitting existing tables.
+
+---
+
+## 17.15 TABLE REMOVAL REQUIREMENT
+
+When a persisted database table is intentionally removed:
+
+1. Search for all references to the table.
+2. Verify ownership and dependencies.
+3. Verify that removal is explicitly required.
+4. Remove the table definition from startup.sql.
+5. Remove or update its destruction/reset instruction as appropriate.
+6. Update dependent relationships, indexes, policies, triggers, functions, or other objects when required.
+7. Verify that every remaining table is still represented.
+8. Verify that startup.sql remains a complete rebuildable schema.
+
+Removing one table does NOT mean rebuilding startup.sql around the edited table.
+
+The resulting script must still contain every remaining database table.
+
+---
+
+## 17.16 STARTUP.SQL COMPLETENESS CHECK
+
+Whenever startup.sql is modified, the agent MUST verify that it still contains the complete database schema.
+
+At minimum, verify:
+
+1. Every existing Remmi database table is represented.
+2. Every table has a complete current definition.
+3. The affected table contains the requested change.
+4. Required relationships are still represented.
+5. Required constraints are still represented.
+6. Required indexes are still represented.
+7. Required defaults are still represented.
+8. Required policies are still represented.
+9. Required triggers/functions are still represented when applicable.
+10. Required destruction/reset instructions remain present.
+11. Creation order is compatible with dependencies.
+12. No unrelated table was accidentally removed.
+13. No unrelated database object was accidentally removed.
+14. startup.sql remains capable of recreating the complete current database schema.
+
+If the project contains another authoritative source listing database tables, compare startup.sql against that source.
+
+Do not assume that the table being modified is the only table that needs to appear in startup.sql.
+
+---
+
+## 17.17 STARTUP.SQL IS THE DATABASE BOOTSTRAP SOURCE OF TRUTH
+
+For database bootstrap purposes:
+
+# startup.sql
+
+complete current Remmi database schema.
+
+The agent MUST NOT interpret startup.sql as:
+
+"SQL needed for the current task."
+
+The agent MUST interpret startup.sql as:
+
+"Complete SQL needed to recreate the current Remmi database."
+
+Therefore:
+
+Every modification to startup.sql must preserve the completeness of the file.
+
+A successful database schema change is:
+
+"The complete startup script still represents the entire current database schema, including the requested change."
+
+It is NOT merely:
+
+"The requested table or column exists."
+
+---
+
+## 17.18 CRITICAL AI AGENT RULE
+
+NEVER replace the existing complete startup.sql with a partial SQL script.
+
+Before modifying startup.sql, assume:
+
+**THIS FILE MUST ALWAYS BE COMPLETE.**
+
+If the current task modifies one table:
+
+The final file must still contain ALL existing tables.
+
+If the current task modifies one column:
+
+The final file must still contain ALL existing tables and the complete definition of every table.
+
+If the current task adds one table:
+
+The final file must still contain ALL existing tables plus the new table.
+
+If the current task removes one table:
+
+The final file must still contain ALL remaining tables.
+
+If the current task changes one relationship:
+
+The final file must still contain ALL tables and ALL other required database objects.
+
+The agent must preserve the complete schema unless the task explicitly changes the schema itself.
+
+============================================================
+17.19 DATABASE OWNERSHIP REMAINS UNCHANGED
+==========================================
+
+The complete startup.sql requirement does NOT give plugins direct database access.
+
+Plugins must still follow the Plugin Database Access Law.
+
+Plugins communicate database operations through:
+
+Plugin
+?
+EventBus
+?
+Database service
+?
+Database
+
+The plugin owns its domain/item structure.
+
+The database service owns database implementation.
+
+startup.sql owns the complete database bootstrap definition.
+
+These responsibilities remain separate.
+
 ============================================================
 18. FILE SERVICE OWNERSHIP
-    ============================================================
+    ==========================
 
 File functionality belongs to the Android service boundary.
 
@@ -989,7 +1369,7 @@ Do not expose Android Context to plugins for file operations.
 
 ============================================================
 19. PLUGIN MANAGER LAW
-    ============================================================
+    ======================
 
 PluginManager owns generic plugin lifecycle and generic plugin operations.
 
@@ -1016,7 +1396,7 @@ Plugin-specific behavior remains in the plugin.
 
 ============================================================
 20. AUTOMATION AND PLUGIN ACCESS
-    ============================================================
+    ================================
 
 Plugins do not directly access:
 
@@ -1034,7 +1414,7 @@ Do not create a PluginContext replacement.
 
 ============================================================
 21. NO MEGA CONTEXT OR SERVICE LOCATOR
-    ============================================================
+    ======================================
 
 Do not create:
 
@@ -1052,7 +1432,7 @@ Do not replace one mega-context with another mega-context.
 
 ============================================================
 22. UI OWNERSHIP
-    ============================================================
+    ================
 
 Shared application UI belongs under:
 
@@ -1094,7 +1474,7 @@ Do not place plugin-specific screens or popups directly under the plugin root.
 
 ============================================================
 23. GLOBAL UI STATE RULE
-    ============================================================
+    ========================
 
 Avoid global UI state managers.
 
@@ -1130,7 +1510,7 @@ Do not blindly delete it.
 
 ============================================================
 24. WIDGET OWNERSHIP
-    ============================================================
+    ====================
 
 Plugin-specific widgets belong to the plugin that owns their functionality.
 
@@ -1156,7 +1536,7 @@ Do not restructure it during unrelated work.
 
 ============================================================
 25. MODEL OWNERSHIP
-    ============================================================
+    ===================
 
 Plugin-specific models belong inside their plugin.
 
@@ -1174,7 +1554,7 @@ Do not place plugin-specific models in core.
 
 ============================================================
 26. FEATURE OWNERSHIP
-    ============================================================
+    =====================
 
 Before adding a class, determine:
 
@@ -1196,7 +1576,7 @@ Never place a feature inside another unrelated feature.
 
 ============================================================
 27. MINIMAL CHANGE LAW
-    ============================================================
+    ======================
 
 Before creating a new class:
 
@@ -1218,11 +1598,23 @@ If file functionality already exists inside the Android service boundary, reuse 
 
 Do not create a new FileManager or FileServiceManager to duplicate or wrap the existing file service.
 
-When changing a persisted plugin item structure, update only the corresponding startup.sql definition required by that change.
+When changing a persisted plugin item structure, update startup.sql as required.
+
+IMPORTANT:
+
+For database changes, "minimal change" refers to the amount of schema that is actually changed.
+
+It does NOT mean that startup.sql should contain only the changed table.
+
+startup.sql MUST remain complete.
+
+The correct approach is:
+
+**Minimal schema modification + complete startup.sql preservation.**
 
 ============================================================
 28. FILE MODIFICATION SAFETY
-    ============================================================
+    ============================
 
 Do not:
 
@@ -1254,20 +1646,24 @@ When changing persisted plugin data structures:
 
 * Inspect startup.sql before making the change.
 * Search for references to the affected database structure.
-* Update only the required schema definition.
-* Do not modify unrelated database structures.
+* Update the required schema definition.
+* Preserve ALL other database definitions.
+* Preserve ALL existing tables.
+* Preserve required destruction/reset instructions.
+* Verify that startup.sql remains a complete database bootstrap script.
+* Do not modify unrelated database definitions unnecessarily.
 
 ============================================================
 29. REQUIRED WORKFLOW
-    ============================================================
+    =====================
 
 For every task:
 
-STEP 1 ? READ RULES
+STEP 1 — READ RULES
 
 Read this architecture contract.
 
-STEP 2 ? DEFINE SCOPE
+STEP 2 — DEFINE SCOPE
 
 Identify the minimum relevant:
 
@@ -1275,7 +1671,7 @@ Identify the minimum relevant:
 * Directories.
 * Dependencies.
 
-STEP 3 ? INSPECT
+STEP 3 — INSPECT
 
 Inspect only those files.
 
@@ -1283,7 +1679,9 @@ Do not scan the entire project unless required.
 
 For plugin data/model changes, inspect the corresponding startup.sql definition.
 
-STEP 4 ? PLAN
+For database-related tasks, inspect the COMPLETE startup.sql, not only the affected table.
+
+STEP 4 — PLAN
 
 Briefly state:
 
@@ -1291,12 +1689,20 @@ Briefly state:
 * Files that will change.
 * Why each file changes.
 * Whether startup.sql must change.
+* If startup.sql changes, confirm that ALL existing tables and required database objects will remain represented.
 
-STEP 5 ? IMPLEMENT
+STEP 5 — IMPLEMENT
 
 Make the smallest possible change.
 
-STEP 6 ? VERIFY
+For database changes:
+
+* Preserve the complete startup.sql.
+* Modify only the required schema definitions.
+* Do not remove unchanged tables.
+* Do not create a partial startup.sql.
+
+STEP 6 — VERIFY
 
 Check:
 
@@ -1306,8 +1712,14 @@ Check:
 * Compilation.
 * Relevant tests.
 * Database schema consistency when persisted plugin structures changed.
+* startup.sql completeness.
+* All existing tables are still represented.
+* All existing table definitions remain complete.
+* Required destruction/reset instructions remain present.
+* Database creation order remains valid.
+* No unrelated database definitions were accidentally removed.
 
-STEP 7 ? REPORT
+STEP 7 — REPORT
 
 Return only:
 
@@ -1317,9 +1729,16 @@ Return only:
 * Build/test result.
 * Remaining issues.
 
+For database changes, explicitly confirm:
+
+* `startup.sql` remains a complete database bootstrap script.
+* All existing tables remain represented.
+* The requested schema change was applied.
+* No unrelated database definitions were removed.
+
 ============================================================
 30. STRUCTURAL CHANGE SAFETY
-    ============================================================
+    ============================
 
 If a task requires architectural restructuring:
 
@@ -1344,9 +1763,9 @@ After each major step:
 * Fix errors.
 * Continue.
 
-------------------------------------------------------------
-30.1 FILE-SERVICE MIGRATION
-------------------------------------------------------------
+---
+
+## 30.1 FILE-SERVICE MIGRATION
 
 For file-service migration specifically:
 
@@ -1360,9 +1779,9 @@ Before removing any old file manager/service boundary:
 6. Remove obsolete layers only after all references are migrated.
 7. Build and verify affected functionality.
 
-------------------------------------------------------------
-30.2 PLUGIN STRUCTURE MIGRATION
-------------------------------------------------------------
+---
+
+## 30.2 PLUGIN STRUCTURE MIGRATION
 
 For plugin structure changes:
 
@@ -1376,43 +1795,86 @@ For plugin structure changes:
 
 The target structure is:
 
-plugins/<pluginName>/
-<PluginName>Plugin.kt
-<PluginName>Actions.kt
-<PluginName>Widgets.kt
-<PluginName>Repository.kt
+plugins/<pluginName>/ <PluginName>Plugin.kt <PluginName>Actions.kt <PluginName>Widgets.kt <PluginName>Repository.kt
 
-    models/
+```
+models/
 
-    ui/
-        screens/
-        popups/
+ui/
+    screens/
+    popups/
+```
 
 Do not combine plugin structure cleanup with unrelated feature work.
 
-------------------------------------------------------------
-30.3 DATABASE STRUCTURE MIGRATION
-------------------------------------------------------------
+---
+
+## 30.3 DATABASE STRUCTURE MIGRATION
 
 When a task changes a persisted plugin item structure:
 
 1. Identify the affected plugin item/model.
-2. Locate its corresponding database definition in:
 
-db-scripts/src/main/resources/startup.sql
+2. Read the COMPLETE:
 
-3. Compare the current plugin structure with the current database definition.
-4. Determine the minimum required schema change.
-5. Update startup.sql in the same task if required.
-6. Do not modify unrelated database definitions.
-7. Build and verify the affected code.
-8. Verify that the plugin structure and startup.sql remain synchronized.
+   db-scripts/src/main/resources/startup.sql
 
-Do not change database schema merely because a plugin's UI or non-persisted implementation changed.
+3. Identify ALL existing database tables.
+
+4. Identify ALL existing database objects required for startup.
+
+5. Locate the corresponding database definition.
+
+6. Compare the plugin structure with the database definition.
+
+7. Determine the minimum required schema change.
+
+8. Apply the change to the affected definition.
+
+9. Preserve EVERY unrelated table definition.
+
+10. Preserve EVERY unrelated database object definition.
+
+11. Preserve required destruction/reset instructions.
+
+12. Verify dependency and creation order.
+
+13. Verify that the entire startup.sql remains a complete database bootstrap script.
+
+14. Build and verify the affected code.
+
+15. Confirm that the plugin structure and complete startup.sql remain synchronized.
+
+The final startup.sql MUST represent the entire current database schema, not merely the database changes introduced by the current task.
+
+============================================================
+30.4 DATABASE STARTUP.SQL CHANGE SAFETY
+=======================================
+
+Whenever startup.sql is modified:
+
+1. NEVER start by replacing the file with a new partial script.
+2. Read the existing startup.sql first.
+3. Identify every existing table.
+4. Identify every required database object.
+5. Identify the existing destruction/reset strategy.
+6. Preserve all existing tables.
+7. Preserve all existing database objects.
+8. Modify only the required definitions.
+9. Add new definitions only when required.
+10. Remove definitions only when explicitly required and verified safe.
+11. Verify the complete script after modification.
+12. Ensure the file can still represent a full database rebuild.
+
+If the agent cannot determine whether an existing table/object should remain:
+
+**KEEP IT.**
+
+Do not remove database definitions merely because they are not related to the current task.
 
 ============================================================
 31. FORBIDDEN ACTIONS
-    ============================================================
+    =====================
 
 NEVER:
 
@@ -1447,27 +1909,71 @@ NEVER:
 * Reorganize existing plugins during unrelated tasks.
 * Change a persisted plugin item structure without checking startup.sql.
 * Leave startup.sql inconsistent with a plugin's persisted item structure.
-* Modify unrelated database definitions while synchronizing a plugin's persisted structure.
+* Modify unrelated database definitions unnecessarily while synchronizing a plugin's persisted structure.
 * Modify startup.sql for UI-only or non-persisted changes.
+* Replace startup.sql with a partial schema.
+* Keep only the table currently being edited in startup.sql.
+* Remove unchanged tables from startup.sql.
+* Remove unchanged database objects from startup.sql.
+* Convert startup.sql into a migration-only script.
+* Remove destruction/reset instructions for unchanged tables merely because they were not modified.
+* Assume another plugin's table does not belong in startup.sql.
+* Recreate only the affected table when modifying database structure.
+* Treat "minimal change" as permission to omit the rest of the database schema.
+* Leave startup.sql unable to recreate the complete current database schema.
+* Accidentally delete existing table definitions while adding or modifying another table.
+* Create a new startup.sql containing only the latest database change.
+* Remove complete table definitions merely because they were not involved in the current task.
 
 ============================================================
 32. WHEN UNCERTAIN
-    ============================================================
+    ==================
 
 When unsure:
 
-DO NOT GUESS.
+**DO NOT GUESS.**
 
 Inspect the relevant code.
 
 If still unclear:
 
-Preserve the existing implementation.
+**PRESERVE THE EXISTING IMPLEMENTATION.**
 
-Ask for clarification before destructive changes.
+When unsure whether a table belongs in startup.sql:
+
+**KEEP IT.**
+
+When unsure whether an unchanged table should remain in startup.sql:
+
+**KEEP IT.**
+
+When unsure whether a destruction/reset instruction should remain:
+
+**KEEP IT** unless there is clear evidence that it is obsolete and its removal is explicitly required.
+
+When unsure whether a database definition is unrelated:
+
+Do not remove it.
+
+When unsure whether a change requires startup.sql modification:
+
+Inspect the persisted structure and existing startup.sql before deciding.
+
+The safe database default is:
+
+**Preserve the complete existing startup schema**
++
+**apply the smallest required database change**
++
+**preserve all other tables and database objects**
++
+**preserve required destruction/reset instructions**
++
+**verify the complete schema remains rebuildable.**
 
 The preferred solution is always:
 
-The smallest change
-that preserves the architecture
-and does not break working code.
+**The smallest change**
+that **preserves the architecture**
+and **does not break working code**
+while keeping **startup.sql as a complete, authoritative, rebuildable representation of the entire Remmi database schema.**

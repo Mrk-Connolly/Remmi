@@ -23,7 +23,18 @@ object GlobalUIState {
     val pendingAlarmRequest = mutableStateOf<LinkedCreationData?>(null)
     val pendingTaskRequest = mutableStateOf<LinkedCreationData?>(null)
     val pendingContactRequest = mutableStateOf<LinkedCreationData?>(null)
+
+    /** Receipt Scan State */
+    val pendingReceiptImageRequest = mutableStateOf<ReceiptImageData?>(null)
 }
+
+/**
+ * Data required for receipt image request.
+ */
+data class ReceiptImageData(
+    val requestId: String,
+    val useCamera: Boolean
+)
 
 /**
  * Data required to pre-fill a linked item creation popup.

@@ -16,6 +16,7 @@ data class PluginMetadata(
     val enabled: Boolean,
     val showInNavigation: Boolean,
     val showWidget: Boolean,
+    val group: String = "personal",
     val icon: String? = null
 ) {
 

@@ -110,6 +110,35 @@ data class IngredientMetadata(
 ) : RemmiModel
 
 /**
+ * RECEIPT SCAN MODELS
+ */
+@Serializable
+data class ScannedReceiptItem(
+    val originalText: String,
+    val detectedName: String,
+    val quantity: Double? = null,
+    val unit: MeasurementUnit? = null,
+    val price: Double? = null,
+    val confidence: MatchConfidence = MatchConfidence.UNKNOWN
+)
+
+@Serializable
+enum class MatchConfidence {
+    HIGH, MEDIUM, LOW, UNKNOWN
+}
+
+data class ReceiptItemMatch(
+    val receiptItem: ScannedReceiptItem,
+    val matchedIngredient: IngredientMetadata? = null,
+    val confidence: MatchConfidence = MatchConfidence.UNKNOWN,
+    val status: MatchStatus = MatchStatus.PENDING
+)
+
+enum class MatchStatus {
+    PENDING, CONFIRMED, IGNORED, NEW_INGREDIENT
+}
+
+/**
  * USER-SPECIFIC STOCK ASSOCIATION
  */
 @Serializable

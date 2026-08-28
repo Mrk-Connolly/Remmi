@@ -109,7 +109,7 @@ fun TasksScreen(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { editorMode = TaskEditorMode.Create },
-                    modifier = Modifier.padding(bottom = 176.dp)
+                    modifier = Modifier.padding(bottom = 16.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Task")
                 }
@@ -204,7 +204,7 @@ fun TasksScreen(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 180.dp)
+                            contentPadding = PaddingValues(bottom = 80.dp)
                         ) {
                             taskSections.forEach { (sectionName, tasksInSection) ->
                                 item { TaskSectionHeader(sectionName) }

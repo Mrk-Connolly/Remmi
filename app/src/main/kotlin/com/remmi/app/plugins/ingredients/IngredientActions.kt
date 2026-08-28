@@ -6,6 +6,8 @@ import com.remmi.app.core.eventBus.events.IngredientCreatedEvent
 import com.remmi.app.core.eventBus.events.IngredientUpdatedEvent
 import com.remmi.app.core.eventBus.events.IngredientStockAdjustedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
+import com.remmi.app.plugins.ingredients.logic.IngredientReceiptMatcher
+import com.remmi.app.plugins.ingredients.logic.ReceiptParser
 import com.remmi.app.plugins.ingredients.models.*
 import com.remmi.app.plugins.ingredients.repository.*
 import kotlinx.datetime.*
@@ -172,5 +174,73 @@ class IngredientActions(
         metadataRepo.sync()
         stockRepo.sync()
         batchRepo.sync()
+    }
+
+    // ----------------------------------------------------------------------------
+    //                               RECEIPT SCANNING
+    // ----------------------------------------------------------------------------
+
+    /**
+     * Start the receipt scanning process.
+     */
+    suspend fun startReceiptScan(useCamera: Boolean) {
+        Log.i("Remmi", "[IngredientActions] - Starting receipt scan (useCamera: $useCamera)")
+        eventBus?.publishCommand(
+            com.remmi.app.core.eventBus.commands.RequestReceiptImageCommand(useCamera = useCamera)
+        )
+    }
+
+    /**
+     * Process recognized text into items and match them.
+     */
+    suspend fun processRecognizedText(text: String): List<ReceiptItemMatch> {
+        Log.i("Remmi", "[IngredientActions] - Processing recognized text")
+        val parser = ReceiptParser()
+        val items = parser.parse(text)
+        
+        val matcher = IngredientReceiptMatcher(metadataRepo.getAll())
+        return matcher.match(items)
+    }
+
+    /**
+     * Finalize stock updates from confirmed receipt items.
+     */
+    suspend fun processConfirmedReceiptItems(confirmedMatches: List<ReceiptItemMatch>) {
+        Log.i("Remmi", "[IngredientActions] - Processing ${confirmedMatches.size} confirmed items")
+        val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+        val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+        confirmedMatches.filter { it.status == MatchStatus.CONFIRMED && it.matchedIngredient != null }.forEach { match ->
+            val ingredient = match.matchedIngredient!!
+            val item = match.receiptItem
+            
+            // Find existing user stock for this metadata
+            val userStock = stockRepo.getAll().find { it.metadataId == ingredient.id }
+            
+            if (userStock != null) {
+                // Adjust existing stock
+                adjustStock(
+                    stockId = userStock.id,
+                    delta = item.quantity ?: 1.0,
+                    expiryDate = null // Future enhancement: predict expiry
+                )
+            } else {
+                // Create new stock association and batch
+                addIngredient(
+                    name = ingredient.name,
+                    foodGroup = ingredient.foodGroup,
+                    initialQuantity = item.quantity ?: 1.0,
+                    unit = item.unit ?: MeasurementUnit.UNITS,
+                    expiryDate = null,
+                    brand = ingredient.brand,
+                    description = ingredient.description,
+                    storageLocation = StorageLocation.PANTRY,
+                    allowedUnits = ingredient.allowedUnits,
+                    conversions = ingredient.conversions,
+                    baseNutrition = ingredient.baseNutrition,
+                    shelfLife = ingredient.estimatedShelfLifeMinDays to ingredient.estimatedShelfLifeMaxDays
+                )
+            }
+        }
     }
 }

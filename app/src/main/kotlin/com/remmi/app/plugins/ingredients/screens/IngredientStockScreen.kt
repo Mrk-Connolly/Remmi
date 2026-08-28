@@ -25,6 +25,7 @@ import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.plugins.ingredients.IngredientActions
 import com.remmi.app.plugins.ingredients.models.*
 import com.remmi.app.plugins.ingredients.popups.*
+import com.remmi.app.plugins.ingredients.popups.ReceiptScanResultsPopup
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
@@ -51,6 +52,21 @@ fun IngredientStockScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedItemForDetail by remember { mutableStateOf<IngredientUiModel?>(null) }
     var selectedItemForAdjustment by remember { mutableStateOf<IngredientUiModel?>(null) }
+
+    var showScanResults by remember { mutableStateOf(false) }
+    var scanResults by remember { mutableStateOf<List<ReceiptItemMatch>>(emptyList()) }
+    var isScanning by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        controller.eventBus.events.collect { event ->
+            if (event is com.remmi.app.core.eventBus.events.ReceiptTextRecognizedEvent) {
+                val matches = actions.processRecognizedText(event.text)
+                scanResults = matches
+                showScanResults = true
+                isScanning = false
+            }
+        }
+    }
 
     val onRefresh: () -> Unit = remember {
         {
@@ -87,11 +103,48 @@ fun IngredientStockScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddDialog = true },
-                modifier = Modifier.padding(bottom = 168.dp)
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Ingredient")
+                var showScanOptions by remember { mutableStateOf(false) }
+                
+                if (showScanOptions) {
+                    SmallFloatingActionButton(
+                        onClick = { 
+                            scope.launch { actions.startReceiptScan(true) }
+                            isScanning = true
+                            showScanOptions = false
+                        },
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Icon(Icons.Default.PhotoCamera, contentDescription = "Camera")
+                    }
+                    SmallFloatingActionButton(
+                        onClick = { 
+                            scope.launch { actions.startReceiptScan(false) }
+                            isScanning = true
+                            showScanOptions = false
+                        },
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Icon(Icons.Default.Image, contentDescription = "Gallery")
+                    }
+                }
+
+                FloatingActionButton(
+                    onClick = { showScanOptions = !showScanOptions },
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    Icon(if (showScanOptions) Icons.Default.Close else Icons.Default.Receipt, contentDescription = "Scan Receipt")
+                }
+                
+                FloatingActionButton(
+                    onClick = { showAddDialog = true },
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Ingredient")
+                }
             }
         }
     ) { padding ->
@@ -107,11 +160,15 @@ fun IngredientStockScreen(
             )
 
             PullToRefreshBox(
-                isRefreshing = isRefreshing,
+                isRefreshing = isRefreshing || isScanning,
                 onRefresh = onRefresh,
                 modifier = Modifier.fillMaxSize()
             ) {
-                if (inventory.isEmpty()) {
+                if (isScanning) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else if (inventory.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text("No ingredients in your stock yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -122,7 +179,7 @@ fun IngredientStockScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 180.dp)
+                        contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
                         items(filteredAndSorted, key = { it.stock.id }) { item ->
                             IngredientRow(
@@ -181,6 +238,20 @@ fun IngredientStockScreen(
                     actions.adjustStock(item.stock.id, delta, expiry)
                     inventory = actions.getInventory()
                     selectedItemForAdjustment = null
+                }
+            }
+        )
+    }
+
+    if (showScanResults) {
+        ReceiptScanResultsPopup(
+            results = scanResults,
+            onDismiss = { showScanResults = false },
+            onConfirm = { confirmedItems ->
+                scope.launch {
+                    actions.processConfirmedReceiptItems(confirmedItems)
+                    inventory = actions.getInventory()
+                    showScanResults = false
                 }
             }
         )

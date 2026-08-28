@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remmi.app.plugins.contacts.ContactItem
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +37,8 @@ fun UserGiftListScreen(
     
     var showSortMenu by remember { mutableStateOf(false) }
     var showFilterMenu by remember { mutableStateOf(false) }
+    var showAddGiftDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(contact.id) {
         gifts = actions.getGiftIdeasForContact(contact.id)
@@ -74,6 +78,14 @@ fun UserGiftListScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddGiftDialog = true },
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Gift")
+            }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
@@ -103,6 +115,20 @@ fun UserGiftListScreen(
                 current = filterByEvent,
                 onDismiss = { showFilterMenu = false },
                 onSelect = { filterByEvent = it; showFilterMenu = false }
+            )
+        }
+
+        if (showAddGiftDialog) {
+            AddGiftDialog(
+                contactId = contact.id,
+                actions = actions,
+                onDismiss = { showAddGiftDialog = false },
+                onSave = {
+                    scope.launch {
+                        gifts = actions.getGiftIdeasForContact(contact.id)
+                        showAddGiftDialog = false
+                    }
+                }
             )
         }
     }

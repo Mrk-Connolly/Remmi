@@ -85,7 +85,7 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { editorMode = ContactEditorMode.Create },
-                modifier = Modifier.padding(bottom = 224.dp) // Above search and menu
+                modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Contact")
             }
@@ -96,8 +96,7 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
                 onValueChange = { searchQuery = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 160.dp), // Above island menu
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 placeholder = { Text("Search by name...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 shape = CircleShape,
@@ -151,7 +150,7 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 180.dp)
+                        contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
                         items(filteredContacts, key = { it.id }) { contact ->
                             ContactRow(

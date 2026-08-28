@@ -86,7 +86,7 @@ fun RecipeScreen(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { isAddingRecipe = true },
-                    modifier = Modifier.padding(bottom = 176.dp)
+                    modifier = Modifier.padding(bottom = 16.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Recipe")
                 }
@@ -124,7 +124,7 @@ fun RecipeScreen(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 180.dp)
+                            contentPadding = PaddingValues(bottom = 80.dp)
                         ) {
                             items(filteredRecipes, key = { it.id }) { recipe ->
                                 RecipeCard(
