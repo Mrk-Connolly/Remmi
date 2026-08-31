@@ -1,12 +1,12 @@
 package com.remmi.app.plugins.alarm.screens
 
 import android.util.Log
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.plugin.screens.RemmiMainScreen
 import com.remmi.app.core.eventBus.commands.DeleteAlarmCommand
 import com.remmi.app.plugins.alarm.AlarmActions
 import com.remmi.app.plugins.alarm.AlarmUiModel
@@ -80,13 +81,18 @@ fun AlarmScreen(
             }
         )
     } else {
-        Scaffold(
+        RemmiMainScreen(
+            title = "Alarms",
             floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { editorMode = AlarmEditorMode.Create },
-                    modifier = Modifier.padding(bottom = 16.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Alarm")
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                    FloatingActionButton(
+                        onClick = { editorMode = AlarmEditorMode.Create },
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        shape = CircleShape,
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Alarm")
+                    }
                 }
             }
         ) { padding ->
@@ -95,25 +101,23 @@ fun AlarmScreen(
                 onRefresh = onRefresh,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    Text(
-                        text = "My Alarms",
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
-                    )
-
                     if (alarms.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No alarms yet. Tap + to add one.")
+                            Text(
+                                "No alarms set.", 
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
                         }
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 180.dp)
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             items(alarms, key = { it.alarm.id }) { uiModel ->
                                 AlarmRow(
@@ -160,25 +164,21 @@ fun AlarmRow(
     val localDateTime = alarm.time.toLocalDateTime(timeZone)
     val timeStr = "${localDateTime.hour.toString().padStart(2, '0')}:${localDateTime.minute.toString().padStart(2, '0')}"
 
-    val cardColor = if (alarm.isPriority) MaterialTheme.colorScheme.errorContainer else if (uiModel.isLocal) {
-        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
+    val cardColor = if (alarm.isPriority) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) 
+                    else if (uiModel.isLocal) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                    else MaterialTheme.colorScheme.surface
 
-    Card(
+    com.remmi.app.core.ui.RemmiCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             ),
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        border = if (alarm.isPriority) BorderStroke(2.dp, MaterialTheme.colorScheme.error) else null
+        containerColor = cardColor
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -186,38 +186,54 @@ fun AlarmRow(
                     Text(
                         text = timeStr,
                         style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Black,
+                        color = if (alarm.isPriority) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                     )
                     if (alarm.isPriority) {
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(12.dp))
                         Icon(
                             imageVector = Icons.Default.PriorityHigh,
                             contentDescription = "Priority",
-                            tint = MaterialTheme.colorScheme.error
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     if (uiModel.isLocal) {
-                        Spacer(Modifier.width(8.dp))
-                        SuggestionChip(
-                            onClick = { onLongClick() },
-                            label = { Text("Local Alarm", style = MaterialTheme.typography.labelSmall) }
-                        )
+                        Spacer(Modifier.width(12.dp))
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            shape = androidx.compose.foundation.shape.CircleShape
+                        ) {
+                            Text(
+                                "SYSTEM", 
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
                 }
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = alarm.title,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
                 if (alarm.description.isNotEmpty()) {
                     Text(
                         text = alarm.description,
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
             }
             if (!uiModel.isLocal) {
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                IconButton(
+                    onClick = onDelete,
+                    colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(20.dp))
                 }
             }
         }

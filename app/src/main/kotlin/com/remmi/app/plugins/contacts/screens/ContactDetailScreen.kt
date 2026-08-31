@@ -7,10 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cake
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,8 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.plugin.screens.RemmiSecondaryScreen
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactDetailScreen(
     contact: ContactItem,
@@ -27,49 +24,53 @@ fun ContactDetailScreen(
     onDismiss: () -> Unit
 ) {
     Log.d("Remmi", "[ContactDetailScreen] - [ContactDetailScreen] executed")
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(onClick = onToggleGiftList) {
-                    Text(if (contact.inGiftList) "Remove from Gift List" else "Add to Gift List")
-                }
-                TextButton(onClick = onDismiss) { Text("Close") }
+    
+    RemmiSecondaryScreen(
+        title = "Contact Details",
+        onBack = onDismiss,
+        topBarActions = {
+            IconButton(onClick = onToggleGiftList) {
+                Icon(
+                    imageVector = Icons.Default.Redeem, 
+                    contentDescription = "Toggle Gift List",
+                    tint = if (contact.inGiftList) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                )
             }
-        },
-        title = {
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
             Column {
                 Text(
                     text = "${contact.name} ${contact.surname}",
-                    style = MaterialTheme.typography.headlineSmall
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold
                 )
                 if (!contact.nickname.isNullOrEmpty()) {
                     Text(
                         text = "(\"${contact.nickname}\")",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
             }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                DetailItem(Icons.Default.Phone, "Mobile", contact.mobilePhone)
-                DetailItem(Icons.Default.Email, "Email", contact.email)
-                DetailItem(Icons.Default.Cake, "Birthday", contact.birthday)
-                DetailItem(Icons.Default.Group, "Group", contact.group)
-            }
+
+            HorizontalDivider()
+
+            DetailItem(Icons.Default.Phone, "Mobile", contact.mobilePhone)
+            DetailItem(Icons.Default.Email, "Email", contact.email)
+            DetailItem(Icons.Default.Cake, "Birthday", contact.birthday)
+            DetailItem(Icons.Default.Group, "Group", contact.group)
+            
+            Spacer(Modifier.height(40.dp))
         }
-    )
+    }
 }
 
 @Composable
@@ -83,9 +84,9 @@ fun DetailItem(icon: ImageVector, label: String, value: String?) {
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(28.dp)
         )
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(20.dp))
         Column {
             Text(
                 text = label,
@@ -94,7 +95,7 @@ fun DetailItem(icon: ImageVector, label: String, value: String?) {
             )
             Text(
                 text = if (value.isNullOrEmpty()) "Not set" else value,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium
             )
         }

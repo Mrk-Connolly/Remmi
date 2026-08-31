@@ -67,6 +67,13 @@ class RemmiController(
         // 3. Load plugins (MUST BE BEFORE SUBSCRIPTION)
         pluginManager.loadPlugins()
 
+        // 3.5 Initialize Appearance from settings
+        val settings = androidManager.settingsService
+        val themeStr = settings.getString("theme_pref", RemmiThemeMode.SYSTEM.name)
+        GlobalUIState.themePreference.value = RemmiThemeMode.valueOf(themeStr ?: RemmiThemeMode.SYSTEM.name)
+        val colorHex = settings.getString("primary_color_hex", "#7F3DFF")
+        GlobalUIState.primaryColorHex.value = colorHex ?: "#7F3DFF"
+
         // 4. Initialize Plugins with Context
         pluginManager.plugins.values.forEach { it.initialize() }
 

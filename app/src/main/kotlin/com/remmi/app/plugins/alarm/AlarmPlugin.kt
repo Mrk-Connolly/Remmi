@@ -185,6 +185,20 @@ class AlarmPlugin(
                     )
                 )
             }
+            is TaskDeletedEvent -> {
+                Log.i("Remmi", "[AlarmPlugin] - Source task ${event.taskId} deleted. Cleaning up linked alarms...")
+                eventBus.publishCommand(
+                    FetchDataBySourceCommand(
+                        tableName = "alarms",
+                        sourcePlugin = "tasks",
+                        sourceItemId = event.taskId,
+                        serializer = AlarmItem.serializer(),
+                        correlationId = "alarm_plugin_cleanup_${event.taskId}",
+                        causationId = event.eventId,
+                        source = "alarm_plugin"
+                    )
+                )
+            }
             is DataFetchedEvent<*> -> {
                 handleDataFetched(event)
             }

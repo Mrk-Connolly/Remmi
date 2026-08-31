@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -33,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.plugin.screens.RemmiAddScreen
 import com.remmi.app.plugins.ingredients.IngredientActions
 import com.remmi.app.plugins.ingredients.models.*
 import com.remmi.app.plugins.recipebook.RecipeActions
@@ -53,14 +56,6 @@ fun AddRecipeScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
-    // Manage Global Menu Visibility
-    DisposableEffect(Unit) {
-        com.remmi.app.core.controller.GlobalUIState.isEditorActive.value = true
-        onDispose {
-            com.remmi.app.core.controller.GlobalUIState.isEditorActive.value = false
-        }
-    }
-
     val ingredientPlugin = controller.pluginManager.plugins["ingredient_stock"]
     val ingredientActions = ingredientPlugin?.actions as? IngredientActions
     
@@ -89,11 +84,9 @@ fun AddRecipeScreen(
     }
 
     val onSave = {
-        // SAVE LOGIC
         val id = UUID.randomUUID().toString()
         val now = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
         
-        // Handle Image Save
         var savedImagePath: String? = null
         imageUri?.let { uri ->
             try {
@@ -124,7 +117,7 @@ fun AddRecipeScreen(
             restingTime = restingTime,
             totalIngredientIds = selectedIngredients.map { it.metadata.id },
             steps = steps,
-            mealType = MealType.OTHER // Simplified for now
+            mealType = MealType.OTHER
         )
         
         scope.launch {
@@ -133,179 +126,136 @@ fun AddRecipeScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("New Recipe") }
-            )
-        },
-        bottomBar = {
-            Surface(
-                tonalElevation = 8.dp,
-                shadowElevation = 8.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .navigationBarsPadding(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onBack,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Cancel")
-                    }
-                    Button(
-                        onClick = { onSave() },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Save Recipe")
-                    }
-                }
-            }
-        }
+    RemmiAddScreen(
+        title = "New Recipe",
+        onBack = onBack,
+        onSave = { onSave() },
+        saveEnabled = title.isNotBlank()
     ) { padding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Image Section
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable { imagePickerLauncher.launch("image/*") },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (imageUri != null) {
-                        AsyncImage(
-                            model = imageUri,
-                            contentDescription = "Recipe Image",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.AddAPhoto, contentDescription = null, modifier = Modifier.size(48.dp))
-                            Text("Add Photo", style = MaterialTheme.typography.labelLarge)
-                        }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { imagePickerLauncher.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                if (imageUri != null) {
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = "Recipe Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.AddAPhoto, contentDescription = null, modifier = Modifier.size(48.dp))
+                        Text("Add Photo", style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }
 
-            // Basic Info
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text("Title") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text("Description") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2
-                    )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Servings", style = MaterialTheme.typography.titleMedium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { if (servings > 1) servings-- }) {
+                        Icon(Icons.Default.Remove, null)
+                    }
+                    Text("$servings", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 8.dp))
+                    IconButton(onClick = { servings++ }) {
+                        Icon(Icons.Default.Add, null)
+                    }
                 }
             }
 
-            // Servings
-            item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Total Time: $totalTime min", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        TimeInputItem(Icons.Default.Timer, "Prep", prepTime) { prepTime = it }
+                        TimeInputItem(Icons.Default.OutdoorGrill, "Cook", cookingTime) { cookingTime = it }
+                        TimeInputItem(Icons.Default.SoupKitchen, "Oven", ovenTime) { ovenTime = it }
+                        TimeInputItem(Icons.Default.HourglassEmpty, "Rest", restingTime) { restingTime = it }
+                    }
+                }
+            }
+
+            Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Servings", style = MaterialTheme.typography.titleMedium)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { if (servings > 1) servings-- }) {
-                            Icon(Icons.Default.Remove, null)
-                        }
-                        Text("$servings", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 8.dp))
-                        IconButton(onClick = { servings++ }) {
-                            Icon(Icons.Default.Add, null)
-                        }
+                    Text("Ingredients", style = MaterialTheme.typography.titleMedium)
+                    TextButton(onClick = { showIngredientPicker = true }) {
+                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Select")
                     }
                 }
-            }
-
-            // Times
-            item {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Total Time: $totalTime min", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            TimeInputItem(Icons.Default.Timer, "Prep", prepTime) { prepTime = it }
-                            TimeInputItem(Icons.Default.OutdoorGrill, "Cook", cookingTime) { cookingTime = it }
-                            TimeInputItem(Icons.Default.SoupKitchen, "Oven", ovenTime) { ovenTime = it }
-                            TimeInputItem(Icons.Default.HourglassEmpty, "Rest", restingTime) { restingTime = it }
-                        }
-                    }
-                }
-            }
-
-            // Ingredients Section
-            item {
-                Column {
-                    Row(
+                
+                if (selectedIngredients.isEmpty()) {
+                    Text("No ingredients selected.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                } else {
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Ingredients", style = MaterialTheme.typography.titleMedium)
-                        TextButton(onClick = { showIngredientPicker = true }) {
-                            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Select")
+                        selectedIngredients.forEach { ing ->
+                            InputChip(
+                                selected = true,
+                                onClick = { selectedIngredients = selectedIngredients - ing },
+                                label = { Text(ing.metadata.name) },
+                                trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp)) }
+                            )
                         }
                     }
-                    
-                    if (selectedIngredients.isEmpty()) {
-                        Text("No ingredients selected.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    } else {
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            selectedIngredients.forEach { ing ->
-                                InputChip(
-                                    selected = true,
-                                    onClick = { selectedIngredients = selectedIngredients - ing },
-                                    label = { Text(ing.metadata.name) },
-                                    trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp)) }
-                                )
-                            }
-                        }
-                    }
-                    
-                    TextButton(onClick = { showAddIngredientDialog = true }) {
-                        Text("Can't find it? Add new ingredient", style = MaterialTheme.typography.labelSmall)
-                    }
+                }
+                
+                TextButton(onClick = { showAddIngredientDialog = true }) {
+                    Text("Can't find it? Add new ingredient", style = MaterialTheme.typography.labelSmall)
                 }
             }
 
-            // Steps Section
-            item {
-                Text("Steps", style = MaterialTheme.typography.titleMedium)
-            }
+            Text("Steps", style = MaterialTheme.typography.titleMedium)
 
-            itemsIndexed(steps) { index, step ->
+            steps.forEachIndexed { index, step ->
                 StepItem(
                     step = step,
                     index = index,
@@ -323,23 +273,21 @@ fun AddRecipeScreen(
                 )
             }
 
-            item {
-                Button(
-                    onClick = { steps = steps + RecipeStep(steps.size + 1, "") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
-                ) {
-                    Icon(Icons.Default.Add, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Add Step")
-                }
+            Button(
+                onClick = { steps = steps + RecipeStep(steps.size + 1, "") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Add, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Add Step")
             }
             
-            item { Spacer(modifier = Modifier.height(100.dp)) }
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 
-    // Dialogs
     if (showIngredientPicker && ingredientActions != null) {
         IngredientPickerDialog(
             actions = ingredientActions,
@@ -413,7 +361,8 @@ fun StepItem(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -513,7 +462,6 @@ fun StepIngredientDialog(
     var selectedItem by remember { mutableStateOf<IngredientUiModel?>(null) }
     var amount by remember { mutableStateOf("") }
     
-    // Default to GRAMS, but we'll update it when ingredient is selected
     var unit by remember { mutableStateOf(MeasurementUnit.GRAMS) }
     
     val allowedUnits = remember(selectedItem) {
@@ -535,7 +483,6 @@ fun StepIngredientDialog(
         title = { Text("Add Ingredient to Step") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Ingredient Dropdown
                 var expanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                     OutlinedTextField(
@@ -681,9 +628,8 @@ fun AddIngredientDialog(
         title = { Text("New Ingredient") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name*") }, modifier = Modifier.fillMaxWidth())
                 
-                Text("Food Group", style = MaterialTheme.typography.labelSmall)
                 var expanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                     OutlinedTextField(
@@ -709,7 +655,6 @@ fun AddIngredientDialog(
                 onClick = {
                     scope.launch {
                         actions.addIngredient(name, foodGroup, 0.0, MeasurementUnit.GRAMS, allowedUnits = listOf(MeasurementUnit.GRAMS, MeasurementUnit.UNITS))
-                        // Fetch the new one
                         val inventory = actions.getInventory()
                         inventory.find { it.metadata.name == name }?.let { onIngredientAdded(it) }
                     }

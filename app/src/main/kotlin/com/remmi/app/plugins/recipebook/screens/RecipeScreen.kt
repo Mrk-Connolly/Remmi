@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -19,6 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.plugin.screens.RemmiMainScreen
 import com.remmi.app.core.screens.components.RecipeNutritionRadarGraph
 import com.remmi.app.plugins.recipebook.RecipeActions
 import com.remmi.app.plugins.recipebook.models.MealType
@@ -82,11 +82,14 @@ fun RecipeScreen(
             }
         )
     } else {
-        Scaffold(
+        RemmiMainScreen(
+            title = "Recipes",
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { isAddingRecipe = true },
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    shape = CircleShape,
+                    elevation = FloatingActionButtonDefaults.elevation(0.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Recipe")
                 }
@@ -95,7 +98,6 @@ fun RecipeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
             ) {
                 // Header with Search and Filters
                 HeaderSection(
@@ -124,7 +126,8 @@ fun RecipeScreen(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 80.dp)
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             items(filteredRecipes, key = { it.id }) { recipe ->
                                 RecipeCard(
@@ -304,14 +307,12 @@ fun RecipeCard(
     recipe: RecipeItem,
     onClick: () -> Unit
 ) {
-    Card(
+    com.remmi.app.core.ui.RemmiCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .clickable { onClick() }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(24.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -324,13 +325,15 @@ fun RecipeCard(
                     modifier = Modifier.weight(1f)
                 )
                 Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(4.dp)
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Text(
                         text = recipe.mealType.name,
                         style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
             }
@@ -338,19 +341,20 @@ fun RecipeCard(
             Text(
                 text = recipe.description,
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 12.dp)
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                NutritionSnippet("Prot", "${recipe.nutritionPerServing.proteins ?: "--"}g")
-                NutritionSnippet("Carbs", "${recipe.nutritionPerServing.carbohydrates ?: "--"}g")
-                NutritionSnippet("Fat", "${recipe.nutritionPerServing.fats ?: "--"}g")
-                NutritionSnippet("Cal", "${recipe.nutritionPerServing.calories?.toInt() ?: "--"}")
+                NutritionSnippet("PROT", "${recipe.nutritionPerServing.proteins ?: "--"}g")
+                NutritionSnippet("CARBS", "${recipe.nutritionPerServing.carbohydrates ?: "--"}g")
+                NutritionSnippet("FAT", "${recipe.nutritionPerServing.fats ?: "--"}g")
+                NutritionSnippet("KCAL", "${recipe.nutritionPerServing.calories?.toInt() ?: "--"}")
             }
         }
     }

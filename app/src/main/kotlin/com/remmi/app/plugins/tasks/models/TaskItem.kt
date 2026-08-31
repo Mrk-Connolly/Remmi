@@ -27,6 +27,9 @@ data class TaskItem(
 
     val completed: Boolean = false,
 
+    @SerialName("completed_at")
+    val completedAt: Instant? = null,
+
     @SerialName("due_date")
     val dueDate: Instant? = null,
 
@@ -35,6 +38,8 @@ data class TaskItem(
 
     @SerialName("group_name")
     val group: String? = null,
+
+    val subgroup: String? = null,
 
     val repeat: RepeatRule? = null,
 

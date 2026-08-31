@@ -3,6 +3,7 @@ package com.remmi.app.core.automation.engine
 import android.util.Log
 import com.remmi.app.core.automation.AutomationSettingsRepository
 import com.remmi.app.core.automation.features.LockScreenManager
+import com.remmi.app.core.automation.features.databasecleaner.DatabaseCleaner
 import com.remmi.app.plugins.dashboard.logic.RemmiWidgetUpdateManager
 import com.remmi.app.core.eventBus.*
 import com.remmi.app.core.eventBus.commands.*
@@ -32,6 +33,7 @@ class AutomationEngine(
     val settingsRepository = AutomationSettingsRepository(androidManager.settingsService)
     val lockScreenManager = LockScreenManager(eventBus, settingsRepository)
     val widgetUpdateManager = RemmiWidgetUpdateManager(androidManager.widgetService)
+    val databaseCleaner = DatabaseCleaner(eventBus)
 
     /** Flag indicating if the engine is currently running and listening to events */
     private var running = false
@@ -105,6 +107,15 @@ class AutomationEngine(
             is TodayTasksFetchedEvent -> handleTasksFetched(event)
             is TodayEventsFetchedEvent -> handleEventsFetched(event)
             is WeatherFetchedEvent -> handleWeatherFetched(event)
+            is DataFetchedEvent<*> -> handleDataFetched(event)
+        }
+    }
+
+    private suspend fun handleDataFetched(event: DataFetchedEvent<*>) {
+        if (event.source == "database" && event.items.isNotEmpty()) {
+            if (event.items[0] is TaskItem && event.correlationId?.contains("cleanup") == true) {
+                databaseCleaner.cleanTaskDatabase(event.items.filterIsInstance<TaskItem>())
+            }
         }
     }
 
@@ -115,7 +126,20 @@ class AutomationEngine(
         Log.i("Remmi", "[AutomationEngine] - RECEIVED COMMAND: [${command::class.simpleName}]")
         when (command) {
             is RunDailyBriefingCommand -> startDailyBriefing()
+            is RunDatabaseCleanupCommand -> startDatabaseCleanup()
         }
+    }
+
+    private suspend fun startDatabaseCleanup() {
+        Log.i("Remmi", "[AutomationEngine] - Starting Database Cleanup cycle")
+        eventBus.publishCommand(
+            FetchAllDataCommand(
+                tableName = "tasks",
+                serializer = TaskItem.serializer(),
+                correlationId = "automation_engine_cleanup",
+                source = "automation_engine"
+            )
+        )
     }
 
     private suspend fun startDailyBriefing() {
@@ -135,6 +159,16 @@ class AutomationEngine(
     private suspend fun handleTasksFetched(event: TodayTasksFetchedEvent) {
         pendingBriefingTasks = event.tasks
         checkBriefingReadiness()
+        
+        // Trigger database cleanup with ALL tasks
+        eventBus.publishCommand(
+            FetchAllDataCommand(
+                tableName = "tasks",
+                serializer = TaskItem.serializer(),
+                correlationId = "automation_engine_cleanup",
+                source = "automation_engine"
+            )
+        )
     }
 
     private suspend fun handleEventsFetched(event: TodayEventsFetchedEvent) {

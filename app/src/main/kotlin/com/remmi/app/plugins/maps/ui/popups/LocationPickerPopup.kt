@@ -42,6 +42,7 @@ fun LocationPickerPopup(
     controller: RemmiController,
     requestId: String,
     initialSearch: String? = null,
+    correlationId: String? = null,
     onDismiss: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -99,12 +100,13 @@ fun LocationPickerPopup(
                 )
             },
             bottomBar = {
-                Surface(tonalElevation = 4.dp) {
+                Surface(tonalElevation = 0.dp) {
                     Button(
                         onClick = {
                             val pos = cameraState.position.target
                             scope.launch {
                                 val name = searchQuery.ifBlank { "Picked Location" }
+                                com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId.value = correlationId
                                 actions.notifyLocationPicked(requestId, name, null, pos.latitude, pos.longitude)
                                 onDismiss()
                             }

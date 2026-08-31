@@ -1,7 +1,8 @@
 package com.remmi.app.plugins.tasks.screens
 
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -9,7 +10,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -21,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.plugin.screens.RemmiMainScreen
+import com.remmi.app.core.ui.DesignTokens
 import com.remmi.app.core.eventBus.commands.DeleteTaskCommand
 import com.remmi.app.plugins.tasks.TasksActions
 import com.remmi.app.plugins.tasks.models.TaskItem
@@ -91,27 +96,61 @@ fun TasksScreen(
     }
 
     if (editorMode != null) {
-        TasksEditorScreen(
-            mode = editorMode!!,
-            actions = actions,
-            controller = controller,
-            onDismiss = { editorMode = null },
-            onSave = {
-                scope.launch {
-                    tasks = actions.getAllTasks()
-                    existingGroups = actions.getAllGroups()
-                    editorMode = null
+        if (editorMode == TaskEditorMode.Multitask) {
+            MultitaskEditorScreen(
+                actions = actions,
+                controller = controller,
+                onDismiss = { editorMode = null },
+                onSave = {
+                    scope.launch {
+                        tasks = actions.getAllTasks()
+                        existingGroups = actions.getAllGroups()
+                        editorMode = null
+                    }
                 }
-            }
-        )
+            )
+        } else {
+            TasksEditorScreen(
+                mode = editorMode!!,
+                actions = actions,
+                controller = controller,
+                onDismiss = { editorMode = null },
+                onSave = {
+                    scope.launch {
+                        tasks = actions.getAllTasks()
+                        existingGroups = actions.getAllGroups()
+                        editorMode = null
+                    }
+                }
+            )
+        }
     } else {
-        Scaffold(
+        RemmiMainScreen(
+            title = "Tasks",
             floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { editorMode = TaskEditorMode.Create },
-                    modifier = Modifier.padding(bottom = 16.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Task")
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        FloatingActionButton(
+                            onClick = { editorMode = TaskEditorMode.Multitask },
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            shape = CircleShape,
+                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = "Add Multitask")
+                        }
+                        FloatingActionButton(
+                            onClick = { editorMode = TaskEditorMode.Create },
+                            modifier = Modifier.padding(bottom = 16.dp),
+                            shape = CircleShape,
+                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Add Task")
+                        }
+                    }
                 }
             }
         ) { padding ->
@@ -119,20 +158,35 @@ fun TasksScreen(
             val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
             
             val taskSections = remember(filteredTasks) {
-                val ongoing = filteredTasks.filter { it.dueDate == null }.sortedByDescending { it.created }
+                val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+                val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
+                val endOfWeek = today.plus(7, DateTimeUnit.DAY)
+                val currentMonth = today.month
+                val currentYear = today.year
+
+                val ongoing = filteredTasks.filter { it.dueDate == null && !it.completed }.sortedByDescending { it.created }
                 val daily = filteredTasks.filter { 
-                    it.dueDate != null && 
+                    it.dueDate != null && !it.completed &&
                     it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date == today 
                 }.sortedBy { it.dueDate }
-                val upcoming = filteredTasks.filter { 
-                    it.dueDate != null && 
-                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date > today 
+                val thisWeek = filteredTasks.filter { 
+                    it.dueDate != null && !it.completed &&
+                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date > today &&
+                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date <= endOfWeek
                 }.sortedBy { it.dueDate }
+                val thisMonth = filteredTasks.filter {
+                    it.dueDate != null && !it.completed &&
+                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date > endOfWeek &&
+                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date.let { d -> d.month == currentMonth && d.year == currentYear }
+                }.sortedBy { it.dueDate }
+                val completed = filteredTasks.filter { it.completed }.sortedByDescending { it.completedAt ?: it.modified }
                 
                 listOf(
                     "Ongoing" to ongoing,
-                    "Daily" to daily,
-                    "Upcoming" to upcoming
+                    "Today" to daily,
+                    "This Week" to thisWeek,
+                    "This Month" to thisMonth,
+                    "Finished" to completed
                 ).filter { it.second.isNotEmpty() }
             }
 
@@ -141,7 +195,6 @@ fun TasksScreen(
                 onRefresh = onRefresh,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize()
@@ -199,17 +252,23 @@ fun TasksScreen(
 
                     if (filteredTasks.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No tasks found.")
+                            Text("No tasks found.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                         }
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 80.dp)
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp)
                         ) {
                             taskSections.forEach { (sectionName, tasksInSection) ->
-                                item { TaskSectionHeader(sectionName) }
+                                item { 
+                                    com.remmi.app.core.ui.RemmiSectionHeader(
+                                        title = sectionName,
+                                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                                    )
+                                }
                                 items(tasksInSection, key = { it.id }) { task ->
                                     TaskRow(task, actions, onUpdate = { tasks = it }, onLongClick = { taskToManage = task })
+                                    Spacer(Modifier.height(DesignTokens.SpacingMedium))
                                 }
                             }
                         }
@@ -257,16 +316,6 @@ fun TasksScreen(
     }
 }
 
-@Composable
-fun TaskSectionHeader(title: String) {
-    Log.d("Remmi", "[TasksScreen] - [TaskSectionHeader] executed")
-    Text(
-        text = title,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-    )
-}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -284,50 +333,51 @@ fun TaskRow(
     val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
     val isOverdue = !task.completed && task.dueDate != null && task.dueDate < now
     
-    val cardColor = if (task.isPriority || isOverdue) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
+    val cardColor = if (isOverdue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) 
+                    else if (task.completed) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    else MaterialTheme.colorScheme.surface
 
-    Card(
+    com.remmi.app.core.ui.RemmiCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
             .combinedClickable(
                 onClick = { isExpanded = !isExpanded },
                 onLongClick = onLongClick
             ),
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        border = if (task.isPriority || isOverdue) BorderStroke(2.dp, MaterialTheme.colorScheme.error) else null
+        containerColor = cardColor
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = task.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None,
+                    color = if (task.completed) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface,
+                    fontWeight = if (task.isPriority) FontWeight.Bold else FontWeight.Medium
+                )
+                
+                // Show Group and Subgroup
+                if (task.group != null || task.subgroup != null) {
+                    val groupText = listOfNotNull(task.group, task.subgroup).joinToString(" • ")
                     Text(
-                        text = task.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None,
-                        fontWeight = if (task.isPriority || isOverdue) FontWeight.Bold else FontWeight.Normal,
-                        modifier = Modifier.weight(1f, fill = false)
+                        text = groupText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 2.dp)
                     )
-                    if (task.isPriority || isOverdue) {
-                        Spacer(Modifier.width(8.dp))
-                        Icon(
-                            imageVector = Icons.Default.PriorityHigh,
-                            contentDescription = "Priority",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
                 }
                 
-                if (isOverdue && task.dueDate != null) {
+                if (task.dueDate != null) {
                     val dueDateStr = task.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
                     Text(
-                        text = "Overdue: $dueDateStr",
+                        text = if (isOverdue) "Overdue: $dueDateStr" else "Due: $dueDateStr",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.Red,
-                        fontWeight = FontWeight.Bold,
+                        color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        fontWeight = if (isOverdue) FontWeight.Bold else FontWeight.Normal,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
@@ -336,13 +386,15 @@ fun TaskRow(
                     Text(
                         text = task.description,
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 4.dp)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
             }
 
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(16.dp))
 
+            // Square Checkbox on the Right
             Surface(
                 onClick = {
                     isCompleted = !isCompleted
@@ -351,17 +403,17 @@ fun TaskRow(
                         onUpdate(actions.getAllTasks())
                     }
                 },
-                shape = CircleShape,
+                shape = RoundedCornerShape(8.dp),
                 color = if (isCompleted) MaterialTheme.colorScheme.primary else Color.Transparent,
-                border = if (isCompleted) null else BorderStroke(2.dp, MaterialTheme.colorScheme.outline),
-                modifier = Modifier.size(24.dp)
+                border = BorderStroke(2.dp, if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                modifier = Modifier.size(32.dp)
             ) {
                 if (isCompleted) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Completed",
                         tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.padding(4.dp)
+                        modifier = Modifier.padding(6.dp)
                     )
                 }
             }

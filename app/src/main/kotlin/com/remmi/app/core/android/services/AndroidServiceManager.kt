@@ -100,6 +100,16 @@ class AndroidServiceManager(
                     ongoing = command.ongoing
                 )
             }
+            is com.remmi.app.core.eventBus.commands.PostLiveUpdateCommand -> {
+                Log.i("Remmi", "[AndroidServiceManager] - Posting live update: ${command.title}")
+                notificationService.postLiveUpdate(
+                    title = command.title,
+                    content = command.content,
+                    progress = command.progress,
+                    maxProgress = command.maxProgress,
+                    tag = command.tag
+                )
+            }
         }
     }
 }

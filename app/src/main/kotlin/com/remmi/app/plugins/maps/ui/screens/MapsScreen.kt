@@ -1,15 +1,12 @@
 package com.remmi.app.plugins.maps.ui.screens
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.plugin.screens.RemmiMainScreen
 import com.remmi.app.plugins.maps.MapsActions
 import kotlinx.coroutines.flow.filterIsInstance
 import org.maplibre.compose.camera.CameraPosition
@@ -44,12 +41,15 @@ fun MapsScreen(
             }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Map View") })
-        }
+    RemmiMainScreen(
+        title = "Map View"
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        com.remmi.app.core.ui.RemmiCard(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(24.dp)
+        ) {
             MaplibreMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraState = cameraState,

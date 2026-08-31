@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.plugin.screens.RemmiAddScreen
+import com.remmi.app.core.plugin.screens.RemmiUpdateScreen
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -62,188 +64,98 @@ fun ContactEditorScreen(
     
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    val onSaveCallback = remember {
-        {
-            keyboardController?.hide()
-            scope.launch {
-                val finalPhone = phone.takeIf { it.isNotBlank() }
-                val finalEmail = email.takeIf { it.isNotBlank() }
-                val finalBirthday = birthday?.takeIf { it.isNotBlank() }
-                val finalNickname = nickname.takeIf { it.isNotBlank() }
+    val onSaveAction = {
+        keyboardController?.hide()
+        scope.launch {
+            val finalPhone = phone.takeIf { it.isNotBlank() }
+            val finalEmail = email.takeIf { it.isNotBlank() }
+            val finalBirthday = birthday?.takeIf { it.isNotBlank() }
+            val finalNickname = nickname.takeIf { it.isNotBlank() }
 
-                if (initialContact != null) {
-                    actions.updateContact(
-                        initialContact.copy(
-                            name = name,
-                            surname = surname,
-                            nickname = finalNickname,
-                            mobilePhone = finalPhone,
-                            email = finalEmail,
-                            birthday = finalBirthday,
-                            group = group,
-                            inGiftList = inGiftList,
-                            isFavorite = isFavorite
-                        )
-                    )
-                } else {
-                    actions.createContact(
+            if (initialContact != null) {
+                actions.updateContact(
+                    initialContact.copy(
                         name = name,
                         surname = surname,
                         nickname = finalNickname,
-                        phone = finalPhone,
+                        mobilePhone = finalPhone,
                         email = finalEmail,
                         birthday = finalBirthday,
                         group = group,
                         inGiftList = inGiftList,
                         isFavorite = isFavorite
                     )
-                }
-                onSave()
+                )
+            } else {
+                actions.createContact(
+                    name = name,
+                    surname = surname,
+                    nickname = finalNickname,
+                    phone = finalPhone,
+                    email = finalEmail,
+                    birthday = finalBirthday,
+                    group = group,
+                    inGiftList = inGiftList,
+                    isFavorite = isFavorite
+                )
             }
+            onSave()
         }
     }
 
-    AlertDialog(
-        onDismissRequest = {
-            keyboardController?.hide()
-            onDismiss()
-        },
-        confirmButton = {
-            Button(
-                onClick = { onSaveCallback() },
-                enabled = name.isNotBlank()
-            ) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = {
-                keyboardController?.hide()
-                onDismiss()
-            }) { Text("Cancel") }
-        },
-        title = {
-            Text(if (initialContact == null) "Add Contact" else "Edit Contact")
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name*") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = surname, onValueChange = { surname = it }, label = { Text("Surname") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = nickname, onValueChange = { nickname = it }, label = { Text("Nickname") }, modifier = Modifier.fillMaxWidth())
-                
-                OutlinedTextField(
-                    value = phone, 
-                    onValueChange = { phone = it }, 
-                    label = { Text("Phone") }, 
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { Icon(Icons.Default.Phone, contentDescription = null) }
-                )
-                
-                OutlinedTextField(
-                    value = email, 
-                    onValueChange = { email = it }, 
-                    label = { Text("Email") }, 
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { Icon(Icons.Default.Email, contentDescription = null) }
-                )
-                
-                // Birthday Picker
-                OutlinedTextField(
-                    value = birthday ?: "",
-                    onValueChange = { },
-                    label = { Text("Birthday") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showDatePicker = true },
-                    enabled = false,
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.Cake, contentDescription = "Select Date")
-                        }
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                        disabledBorderColor = MaterialTheme.colorScheme.outline,
-                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ExposedDropdownMenuBox(
-                        expanded = isGroupExpanded,
-                        onExpandedChange = { isGroupExpanded = it },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        OutlinedTextField(
-                            value = group,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Group") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupExpanded) },
-                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = isGroupExpanded,
-                            onDismissRequest = { isGroupExpanded = false }
-                        ) {
-                            existingGroups.forEach { g ->
-                                DropdownMenuItem(
-                                    text = { Text(g) },
-                                    onClick = {
-                                        group = g
-                                        isGroupExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    
-                    IconButton(
-                        onClick = { showAddGroupDialog = true },
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Group")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = { inGiftList = !inGiftList }) {
-                        Icon(
-                            imageVector = Icons.Default.Redeem,
-                            contentDescription = "Gift List",
-                            tint = if (inGiftList) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.width(24.dp))
-                    
-                    IconButton(onClick = { isFavorite = !isFavorite }) {
-                        Icon(
-                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Favorite",
-                            tint = if (isFavorite) androidx.compose.ui.graphics.Color.Red else MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
-            }
+    if (initialContact == null) {
+        RemmiAddScreen(
+            title = "Add Contact",
+            onBack = onDismiss,
+            onSave = { onSaveAction() },
+            saveEnabled = name.isNotBlank()
+        ) { padding ->
+            EditorContent(
+                padding = padding,
+                name = name, onNameChange = { name = it },
+                surname = surname, onSurnameChange = { surname = it },
+                nickname = nickname, onNicknameChange = { nickname = it },
+                phone = phone, onPhoneChange = { phone = it },
+                email = email, onEmailChange = { email = it },
+                birthday = birthday, onShowDatePicker = { showDatePicker = true },
+                group = group, onGroupChange = { group = it },
+                isGroupExpanded = isGroupExpanded, onGroupExpandedChange = { isGroupExpanded = it },
+                existingGroups = existingGroups,
+                onShowAddGroupDialog = { showAddGroupDialog = true },
+                inGiftList = inGiftList, onInGiftListChange = { inGiftList = it },
+                isFavorite = isFavorite, onIsFavoriteChange = { isFavorite = it }
+            )
         }
-    )
+    } else {
+        RemmiUpdateScreen(
+            title = "Edit Contact",
+            onBack = onDismiss,
+            onDelete = {
+                scope.launch {
+                    actions.deleteContact(initialContact.id)
+                    onSave()
+                }
+            },
+            onSave = { onSaveAction() },
+            saveEnabled = name.isNotBlank()
+        ) { padding ->
+            EditorContent(
+                padding = padding,
+                name = name, onNameChange = { name = it },
+                surname = surname, onSurnameChange = { surname = it },
+                nickname = nickname, onNicknameChange = { nickname = it },
+                phone = phone, onPhoneChange = { phone = it },
+                email = email, onEmailChange = { email = it },
+                birthday = birthday, onShowDatePicker = { showDatePicker = true },
+                group = group, onGroupChange = { group = it },
+                isGroupExpanded = isGroupExpanded, onGroupExpandedChange = { isGroupExpanded = it },
+                existingGroups = existingGroups,
+                onShowAddGroupDialog = { showAddGroupDialog = true },
+                inGiftList = inGiftList, onInGiftListChange = { inGiftList = it },
+                isFavorite = isFavorite, onIsFavoriteChange = { isFavorite = it }
+            )
+        }
+    }
 
     if (showAddGroupDialog) {
         AlertDialog(
@@ -282,7 +194,7 @@ fun ContactEditorScreen(
                         datePickerState.selectedDateMillis?.let { millis ->
                             val date = Instant.fromEpochMilliseconds(millis)
                                 .toLocalDateTime(TimeZone.UTC).date
-                            birthday = date.toString() // YYYY-MM-DD
+                            birthday = date.toString()
                         }
                         showDatePicker = false
                     }
@@ -298,5 +210,141 @@ fun ContactEditorScreen(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditorContent(
+    padding: PaddingValues,
+    name: String, onNameChange: (String) -> Unit,
+    surname: String, onSurnameChange: (String) -> Unit,
+    nickname: String, onNicknameChange: (String) -> Unit,
+    phone: String, onPhoneChange: (String) -> Unit,
+    email: String, onEmailChange: (String) -> Unit,
+    birthday: String?, onShowDatePicker: () -> Unit,
+    group: String, onGroupChange: (String) -> Unit,
+    isGroupExpanded: Boolean, onGroupExpandedChange: (Boolean) -> Unit,
+    existingGroups: List<String>,
+    onShowAddGroupDialog: () -> Unit,
+    inGiftList: Boolean, onInGiftListChange: (Boolean) -> Unit,
+    isFavorite: Boolean, onIsFavoriteChange: (Boolean) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .padding(horizontal = 24.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        OutlinedTextField(value = name, onValueChange = onNameChange, label = { Text("Name*") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = surname, onValueChange = onSurnameChange, label = { Text("Surname") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = nickname, onValueChange = onNicknameChange, label = { Text("Nickname") }, modifier = Modifier.fillMaxWidth())
+        
+        OutlinedTextField(
+            value = phone, 
+            onValueChange = onPhoneChange, 
+            label = { Text("Phone") }, 
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = { Icon(Icons.Default.Phone, contentDescription = null) }
+        )
+        
+        OutlinedTextField(
+            value = email, 
+            onValueChange = onEmailChange, 
+            label = { Text("Email") }, 
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = { Icon(Icons.Default.Email, contentDescription = null) }
+        )
+        
+        OutlinedTextField(
+            value = birthday ?: "",
+            onValueChange = { },
+            label = { Text("Birthday") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onShowDatePicker() },
+            enabled = false,
+            readOnly = true,
+            trailingIcon = {
+                IconButton(onClick = onShowDatePicker) {
+                    Icon(Icons.Default.Cake, contentDescription = "Select Date")
+                }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ExposedDropdownMenuBox(
+                expanded = isGroupExpanded,
+                onExpandedChange = onGroupExpandedChange,
+                modifier = Modifier.weight(1f)
+            ) {
+                OutlinedTextField(
+                    value = group,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Group") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupExpanded) },
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = isGroupExpanded,
+                    onDismissRequest = { onGroupExpandedChange(false) }
+                ) {
+                    existingGroups.forEach { g ->
+                        DropdownMenuItem(
+                            text = { Text(g) },
+                            onClick = {
+                                onGroupChange(g)
+                                onGroupExpandedChange(false)
+                            }
+                        )
+                    }
+                }
+            }
+            
+            IconButton(
+                onClick = onShowAddGroupDialog,
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Group")
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { onInGiftListChange(!inGiftList) }) {
+                Icon(
+                    imageVector = Icons.Default.Redeem,
+                    contentDescription = "Gift List",
+                    tint = if (inGiftList) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(24.dp))
+            
+            IconButton(onClick = { onIsFavoriteChange(!isFavorite) }) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (isFavorite) androidx.compose.ui.graphics.Color.Red else MaterialTheme.colorScheme.outline
+                )
+            }
+        }
+        
+        Spacer(Modifier.height(40.dp))
     }
 }

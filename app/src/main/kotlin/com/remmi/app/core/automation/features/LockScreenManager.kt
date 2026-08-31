@@ -7,7 +7,6 @@ import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.*
 import com.remmi.app.plugins.calendar.models.CalendarItem
 import com.remmi.app.plugins.tasks.models.TaskItem
-import kotlinx.datetime.*
 
 /**
  * LOCK SCREEN MANAGER
@@ -92,46 +91,24 @@ class LockScreenManager(
         
         Log.i(TAG, "Updating lock screen notification")
         
-        val summary = buildString {
-            append("📅 Weekly Summary\n\n")
-            
-            val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
-            val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
-            
-            // Events for the week
-            append("Schedule:\n")
-            if (events.isEmpty()) {
-                append("- No events this week\n")
-            } else {
-                events.sortedBy { it.startingTime }.forEach { event ->
-                    val dayStr = if (event.startingDate == today) "Today" else "${event.startingDate.day}/${event.startingDate.monthNumber}"
-                    val timeStr = event.startingTime?.let { " at ${it.hour}:${it.minute.toString().padStart(2, '0')}" } ?: ""
-                    append("- $dayStr$timeStr: ${event.title}\n")
-                }
-            }
-            
-            append("\nTasks:\n")
-            if (tasks.isEmpty()) {
-                append("- No pending tasks\n")
-            } else {
-                tasks.forEach { task ->
-                    val dueStr = task.dueDate?.let {
-                        val d = it.toLocalDateTime(TimeZone.currentSystemDefault()).date
-                        if (d == today) " (Today)" else " (${d.day}/${d.monthNumber})"
-                    } ?: ""
-                    append("- ${task.title}$dueStr\n")
-                }
-            }
+        val totalTasks = tasks.size
+        val completedTasks = tasks.count { it.completed }
+        val activeTasks = tasks.filter { !it.completed }
+
+        val liveUpdateSummary = if (activeTasks.isEmpty()) {
+            "All tasks complete for today!"
+        } else {
+            activeTasks.joinToString("\n") { "• ${it.title}" }
         }
 
         eventBus.publishCommand(
-            PostNotificationCommand(
-                title = "Remmi Weekly View",
-                content = summary,
-                useSound = false,
-                useVibration = false,
+            PostLiveUpdateCommand(
+                title = "Daily Progress: $completedTasks/$totalTasks",
+                content = liveUpdateSummary,
+                progress = completedTasks,
+                maxProgress = totalTasks.coerceAtLeast(1),
                 tag = "lock_screen_summary",
-                ongoing = true
+                source = "lock_screen"
             )
         )
     }

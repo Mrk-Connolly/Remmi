@@ -60,7 +60,10 @@ class TasksActions(
         dueDate: Instant? = null,
         isPriority: Boolean = false,
         group: String? = null,
+        subgroup: String? = null,
         repeat: RepeatRule? = null,
+        createAlarm: Boolean = false,
+        createCalendar: Boolean = false,
         sourcePlugin: String? = null,
         sourceItemId: String? = null,
         correlationId: String? = null,
@@ -81,8 +84,11 @@ class TasksActions(
                 dueDate = dueDate,
                 isPriority = isPriority,
                 group = group,
+                subgroup = subgroup,
                 completed = false,
                 repeat = repeat,
+                createAlarm = createAlarm,
+                createCalendar = createCalendar,
                 sourcePlugin = sourcePlugin,
                 sourceItemId = sourceItemId
             )
@@ -168,8 +174,46 @@ class TasksActions(
      * */
     suspend fun toggleTask(task: TaskItem): Boolean {
         Log.d("Remmi", "[TasksActions] - [toggleTask] executed")
-        val updatedTask = task.copy(completed = !task.completed)
+        val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+        val isCompleting = !task.completed
+        val updatedTask = task.copy(
+            completed = isCompleting,
+            completedAt = if (isCompleting) now else null
+        )
         return updateTask(updatedTask)
+    }
+
+    /**                                 Create Multitask
+     * Create a group of tasks sharing common metadata
+     */
+    suspend fun createMultitask(
+        titles: List<String>,
+        description: String,
+        group: String?,
+        subgroup: String?,
+        dueDate: Instant?,
+        isPriority: Boolean,
+        repeat: RepeatRule?,
+        createAlarm: Boolean,
+        createCalendar: Boolean
+    ): Boolean {
+        Log.d("Remmi", "[TasksActions] - [createMultitask] executed for ${titles.size} tasks")
+        var allSuccess = true
+        titles.filter { it.isNotBlank() }.forEach { title ->
+            val success = createTask(
+                title = title,
+                description = description,
+                dueDate = dueDate,
+                isPriority = isPriority,
+                group = group,
+                subgroup = subgroup,
+                repeat = repeat,
+                createAlarm = createAlarm,
+                createCalendar = createCalendar
+            )
+            if (!success) allSuccess = false
+        }
+        return allSuccess
     }
 
     /**                                 Get All

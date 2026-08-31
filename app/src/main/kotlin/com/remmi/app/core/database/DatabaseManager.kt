@@ -67,6 +67,21 @@ class DatabaseManager(
                     )
                 )
             }
+
+            is FetchAllDataCommand<*> -> {
+                Log.i("Remmi", "[DatabaseManager] - Fetching all items from ${command.tableName}")
+                @Suppress("UNCHECKED_CAST")
+                val typedCommand = command as FetchAllDataCommand<RemmiModel>
+                val results = service.getAll(typedCommand.tableName, typedCommand.serializer)
+                eventBus.publishEvent(
+                    DataFetchedEvent(
+                        items = results,
+                        requestId = typedCommand.commandId,
+                        correlationId = typedCommand.correlationId ?: typedCommand.commandId,
+                        causationId = typedCommand.commandId
+                    )
+                )
+            }
         }
     }
 }

@@ -44,7 +44,10 @@ fun IngredientDetailDialog(
                     
                     // Expiry/Shelf Life Section
                     item.metadata.estimatedShelfLifeMinDays?.let { min ->
-                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        ) {
                             Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text("EST. SHELF LIFE", fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                 val max = item.metadata.estimatedShelfLifeMaxDays

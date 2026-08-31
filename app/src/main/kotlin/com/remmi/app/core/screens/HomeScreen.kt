@@ -66,32 +66,38 @@ fun HomeScreen(
         onRefresh = onRefresh,
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .padding(top = 8.dp, bottom = 80.dp)
+                .statusBarsPadding()
+                .padding(horizontal = 24.dp)
+                .padding(top = 24.dp)
                 .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.Top
         ) {
             Text(
-                text = "Hello, I'm Remmi",
-                style = MaterialTheme.typography.headlineSmall
+                text = "Good morning,",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
             Text(
-                text = "Your personal assistant",
-                style = MaterialTheme.typography.bodyLarge
+                text = "Mark", // In a real app, this would be the user's name
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             // Render all enabled widgets
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 visiblePlugins.forEach { plugin ->
-                    Box(modifier = Modifier.clickable { onWidgetClick(plugin.metadata.id) }) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onWidgetClick(plugin.metadata.id) }
+                    ) {
                         plugin.widget.Content()
                     }
                 }

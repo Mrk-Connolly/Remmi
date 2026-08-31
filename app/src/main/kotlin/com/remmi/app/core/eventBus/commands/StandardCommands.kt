@@ -108,6 +108,21 @@ data class FetchDataBySourceCommand<T : RemmiModel>(
     override val deletionContext: DeletionContext? = null
 ) : RemmiCommand
 
+/**
+ * FETCH ALL DATA COMMAND
+ * Request to fetch all items from a specific table.
+ */
+data class FetchAllDataCommand<T : RemmiModel>(
+    val tableName: String,
+    val serializer: KSerializer<T>,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
 // ----------------------------------------------------------------------------
 //                               AUTOMATION COMMANDS
 // ----------------------------------------------------------------------------
@@ -117,6 +132,19 @@ data class FetchDataBySourceCommand<T : RemmiModel>(
  * Trigger the automation engine to generate and notify the daily briefing.
  */
 data class RunDailyBriefingCommand(
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+/**
+ * RUN DATABASE CLEANUP COMMAND
+ * Trigger the automation engine to clean up expired data across all plugins.
+ */
+data class RunDatabaseCleanupCommand(
     override val commandId: String = UUID.randomUUID().toString(),
     override val source: String = "system",
     override val correlationId: String? = null,
@@ -212,6 +240,24 @@ data class PostNotificationCommand(
     val useVibration: Boolean = true,
     val tag: String? = null,
     val ongoing: Boolean = false,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+/**
+ * POST LIVE UPDATE COMMAND
+ * Request a progress-centric notification (Android 16+).
+ */
+data class PostLiveUpdateCommand(
+    val title: String,
+    val content: String,
+    val progress: Int,
+    val maxProgress: Int,
+    val tag: String? = null,
     override val commandId: String = UUID.randomUUID().toString(),
     override val source: String = "system",
     override val correlationId: String? = null,

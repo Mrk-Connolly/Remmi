@@ -2,11 +2,13 @@ package com.remmi.app.plugins.calendar.ui.screens
 
 import android.util.Log
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -34,6 +36,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.plugin.screens.RemmiMainScreen
+import com.remmi.app.core.ui.DesignTokens
 import com.remmi.app.plugins.calendar.CalendarActions
 import com.remmi.app.plugins.calendar.models.CalendarGroup
 import com.remmi.app.plugins.calendar.models.CalendarItem
@@ -55,7 +59,7 @@ enum class CalendarViewMode {
 /**
  * Main screen for the Calendar plugin.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun CalendarScreen(
     actions: CalendarActions,
@@ -126,13 +130,18 @@ fun CalendarScreen(
             }
         )
     } else {
-        Scaffold(
+        RemmiMainScreen(
+            title = "Calendar",
             floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { editorMode = CalendarEditorMode.Create },
-                    modifier = Modifier.padding(bottom = 16.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Event")
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                    FloatingActionButton(
+                        onClick = { editorMode = CalendarEditorMode.Create },
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        shape = CircleShape,
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Event")
+                    }
                 }
             }
         ) { padding ->
@@ -150,34 +159,23 @@ fun CalendarScreen(
                 grouped.toSortedMap().toList()
             }
 
-            // Highlighting Logic based on scroll (Center-based as requested)
+            // Highlighting Logic based on scroll (Direct mapping from the very first visible item)
             val activeDate by remember {
                 derivedStateOf {
-                    val layoutInfo = listState.layoutInfo
-                    val visibleItems = layoutInfo.visibleItemsInfo
-                    if (visibleItems.isNotEmpty()) {
-                        val viewportCenter = layoutInfo.viewportStartOffset + (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset) / 2
-                        
-                        // Find item closest to center
-                        val centerItem = visibleItems.minByOrNull { item ->
-                            val itemCenter = item.offset + item.size / 2
-                            kotlin.math.abs(itemCenter - viewportCenter)
-                        }
-                        
-                        if (centerItem != null) {
-                            // Find which group this index belongs to
-                            var count = 0
-                            var matchedDate = today
-                            for (entry in groupedEventsList) {
-                                if (centerItem.index >= count) {
-                                    matchedDate = entry.first
-                                }
-                                count += 1 // Header
-                                count += entry.second.size // Items
-                                if (count > centerItem.index) break
+                    val firstVisible = listState.layoutInfo.visibleItemsInfo.firstOrNull()
+                    if (firstVisible != null) {
+                        // Find which group this index belongs to
+                        var count = 0
+                        var matchedDate = today
+                        for (entry in groupedEventsList) {
+                            if (firstVisible.index >= count) {
+                                matchedDate = entry.first
                             }
-                            matchedDate
-                        } else today
+                            count += 1 // Header
+                            count += entry.second.size // Items
+                            if (count > firstVisible.index) break
+                        }
+                        matchedDate
                     } else today
                 }
             }
@@ -201,8 +199,6 @@ fun CalendarScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = padding.calculateBottomPadding())
-                    .statusBarsPadding()
             ) {
                 // Unified Header Section
                 CalendarHeader(
@@ -220,31 +216,51 @@ fun CalendarScreen(
                     onRefresh = onRefresh,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            
-                            // Calendar Section (Compact with active shading)
-                            if (viewMode == CalendarViewMode.MONTH) {
-                                Box(modifier = Modifier
-                                    .padding(horizontal = 40.dp, vertical = 4.dp)
-                                    .animateContentSize()
-                                ) {
-                                    SelectableCalendar(
-                                        calendarState = calendarState,
-                                        monthHeader = { /* Hide internal header */ },
-                                        dayContent = { dayState ->
-                                            CalendarDay(
-                                                dayState = dayState,
-                                                eventsOnDay = events.filter { it.startingDate == dayState.date.toKotlinLocalDate() },
-                                                isActiveViewDate = dayState.date.toKotlinLocalDate() == activeDate,
-                                                onDayClick = { /* Selected in state */ }
-                                            )
-                                        }
-                                    )
-                                }
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        
+                        // Calendar Section (Compact with active shading)
+                        if (viewMode == CalendarViewMode.MONTH) {
+                            Box(modifier = Modifier
+                                .padding(horizontal = 40.dp, vertical = 4.dp)
+                                .animateContentSize()
+                            ) {
+                                SelectableCalendar(
+                                    calendarState = calendarState,
+                                    monthHeader = { /* Hide internal header */ },
+                                    dayContent = { dayState ->
+                                        CalendarDay(
+                                            dayState = dayState,
+                                            eventsOnDay = events.filter { it.startingDate == dayState.date.toKotlinLocalDate() },
+                                            isActiveViewDate = dayState.date.toKotlinLocalDate() == activeDate,
+                                            onDayClick = { date ->
+                                                // Scroll to this date or the next closest in the list
+                                                val targetEntry = groupedEventsList.find { it.first >= date }
+                                                if (targetEntry != null) {
+                                                    val targetDate = targetEntry.first
+                                                    val targetIndex = groupedEventsList.indexOfFirst { it.first == targetDate }
+                                                    if (targetIndex != -1) {
+                                                        var layoutIndex = 0
+                                                        for (i in 0 until targetIndex) {
+                                                            layoutIndex += 1 // Header
+                                                            layoutIndex += groupedEventsList[i].second.size // Items
+                                                        }
+                                                        scope.launch {
+                                                            listState.animateScrollToItem(layoutIndex)
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            onLongDayClick = { date ->
+                                                editorMode = CalendarEditorMode.CreateOnDate(date)
+                                            }
+                                        )
+                                    }
+                                )
                             }
+                        }
 
-                            // Events List
+                        // Upcoming Events Area (Weighted to fill space under monthly view)
+                        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                             if (filteredEvents.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     Text("No events scheduled.")
@@ -252,13 +268,12 @@ fun CalendarScreen(
                             } else {
                                 LazyColumn(
                                     state = listState,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(bottom = 80.dp)
+                                    modifier = Modifier.fillMaxSize()
                                 ) {
                                     groupedEventsList.forEachIndexed { _, (date, eventsOnDate) ->
                                         val isActive = date == activeDate
                                         
-                                        item(key = date.toString()) { 
+                                        stickyHeader(key = date.toString()) { 
                                             DateHeader(date, isToday = date == today, isActive = isActive) 
                                         }
                                         
@@ -268,10 +283,11 @@ fun CalendarScreen(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .padding(horizontal = 16.dp)
+                                                    .padding(bottom = 12.dp)
                                                     .then(
                                                         if (isActive) Modifier
-                                                            .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
-                                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+                                                            .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(DesignTokens.CornerRadiusMedium))
+                                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.02f), RoundedCornerShape(DesignTokens.CornerRadiusMedium))
                                                             .padding(vertical = 8.dp)
                                                         else Modifier
                                                     )
@@ -292,49 +308,49 @@ fun CalendarScreen(
                                     }
                                 }
                             }
-                        }
 
-                        // Floating Back to Today button
-                        val isTodayVisible by remember(todayLayoutIndex) {
-                            derivedStateOf {
-                                todayLayoutIndex != -1 && listState.layoutInfo.visibleItemsInfo.any { it.index == todayLayoutIndex }
+                            // Floating Back to Today button (Now relative to upcoming section)
+                            val isTodayVisible by remember(todayLayoutIndex) {
+                                derivedStateOf {
+                                    todayLayoutIndex != -1 && listState.layoutInfo.visibleItemsInfo.any { it.index == todayLayoutIndex }
+                                }
                             }
-                        }
-                        
-                        val isPastToday by remember(todayLayoutIndex) {
-                            derivedStateOf {
-                                todayLayoutIndex != -1 && listState.firstVisibleItemIndex > todayLayoutIndex
+                            
+                            val isPastToday by remember(todayLayoutIndex) {
+                                derivedStateOf {
+                                    todayLayoutIndex != -1 && listState.firstVisibleItemIndex > todayLayoutIndex
+                                }
                             }
-                        }
 
-                        androidx.compose.animation.AnimatedVisibility(
-                            visible = !isTodayVisible && todayLayoutIndex != -1,
-                            enter = fadeIn() + scaleIn(),
-                            exit = fadeOut() + scaleOut(),
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = 8.dp)
-                        ) {
-                            SmallFloatingActionButton(
-                                onClick = {
-                                    scope.launch {
-                                        calendarState.monthState.currentMonth = java.time.YearMonth.now()
-                                        calendarState.selectionState.onDateSelected(java.time.LocalDate.now())
-                                        if (todayLayoutIndex != -1) {
-                                            listState.animateScrollToItem(todayLayoutIndex)
-                                        }
-                                    }
-                                },
-                                shape = CircleShape,
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                elevation = FloatingActionButtonDefaults.elevation(4.dp)
+                            androidx.compose.animation.AnimatedVisibility(
+                                visible = !isTodayVisible && todayLayoutIndex != -1,
+                                enter = fadeIn() + scaleIn(),
+                                exit = fadeOut() + scaleOut(),
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 8.dp)
                             ) {
-                                Icon(
-                                    imageVector = if (isPastToday) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                                    contentDescription = "Back to Today",
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                SmallFloatingActionButton(
+                                    onClick = {
+                                        scope.launch {
+                                            calendarState.monthState.currentMonth = java.time.YearMonth.now()
+                                            calendarState.selectionState.onDateSelected(java.time.LocalDate.now())
+                                            if (todayLayoutIndex != -1) {
+                                                listState.animateScrollToItem(todayLayoutIndex)
+                                            }
+                                        }
+                                    },
+                                    shape = CircleShape,
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isPastToday) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                                        contentDescription = "Back to Today",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -408,7 +424,8 @@ fun CalendarDay(
     dayState: io.github.boguszpawlowski.composecalendar.day.DayState<DynamicSelectionState>,
     eventsOnDay: List<CalendarItem>,
     isActiveViewDate: Boolean,
-    onDayClick: (LocalDate) -> Unit
+    onDayClick: (LocalDate) -> Unit,
+    onLongDayClick: (LocalDate) -> Unit
 ) {
     val date = dayState.date.toKotlinLocalDate()
     val isSelected = dayState.selectionState.isDateSelected(dayState.date)
@@ -419,15 +436,6 @@ fun CalendarDay(
             .padding(2.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Active View Highlight (Shading as requested, same size as selection circle)
-        if (isActiveViewDate) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), CircleShape)
-            )
-        }
-
         // Selection / Current day Circle highlight (Static and circled as requested)
         Box(
             modifier = Modifier
@@ -441,12 +449,15 @@ fun CalendarDay(
                     color = if (dayState.isCurrentDay) MaterialTheme.colorScheme.primary else Color.Transparent,
                     shape = CircleShape
                 )
-                .clickable(
+                .combinedClickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = ripple(bounded = false, radius = 20.dp),
                     onClick = { 
                         dayState.selectionState.onDateSelected(dayState.date)
                         onDayClick(date)
+                    },
+                    onLongClick = {
+                        onLongDayClick(date)
                     }
                 ),
             contentAlignment = Alignment.Center
@@ -483,74 +494,120 @@ fun DateHeader(date: LocalDate, isToday: Boolean, isActive: Boolean) {
 
     val headerText = if (isToday) "Today, ${date.dayOfMonth} $monthName" else "$dayName, ${date.dayOfMonth} $monthName"
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
+    // Smooth selection animations
+    val targetColor = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+    val textColor by animateColorAsState(targetValue = targetColor, label = "textColor")
+    val dividerAlpha by animateFloatAsState(targetValue = if (isActive) 0.2f else 0f, label = "dividerAlpha")
+    val textScale by animateFloatAsState(targetValue = if (isActive) 1.05f else 1f, label = "textScale")
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.background // Solid background for sticky headers
     ) {
-        if (isActive) {
-            // ---- Day ---- design
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                )
-                
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .scale(textScale),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (isActive) {
+                // Premium centered design
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Surface(
+                        modifier = Modifier.weight(1f).height(1.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = dividerAlpha)
+                    ) {}
+                    
+                    Text(
+                        text = headerText,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = textColor,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    
+                    Surface(
+                        modifier = Modifier.weight(1f).height(1.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = dividerAlpha)
+                    ) {}
+                }
+            } else {
                 Text(
                     text = headerText,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-                
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                    style = MaterialTheme.typography.labelLarge,
+                    color = textColor
                 )
             }
-        } else {
-            Text(
-                text = headerText,
-                style = MaterialTheme.typography.labelLarge,
-                color = if (isToday) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.secondary
-            )
         }
     }
 }
 
 @Composable
 fun EventRow(event: CalendarItem, groupColor: Color, isHighlighted: Boolean, onClick: () -> Unit) {
-    val scale by animateFloatAsState(if (isHighlighted) 1f else 0.95f, label = "scale")
+    val scale by animateFloatAsState(if (isHighlighted) 1f else 0.98f, label = "scale")
     
-    Card(
+    com.remmi.app.core.ui.RemmiCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .padding(horizontal = 20.dp, vertical = 6.dp)
             .scale(scale),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isHighlighted) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f) 
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-        border = BorderStroke(if (isHighlighted) 2.dp else 1.dp, groupColor.copy(alpha = if (isHighlighted) 1f else 0.4f)),
-        shape = RoundedCornerShape(16.dp)
+        containerColor = if (isHighlighted) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) 
+                        else MaterialTheme.colorScheme.surface
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = event.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = event.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f, fill = false),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        
+                        // Priority Icon (Right of title)
+                        if (event.isPriority) {
+                            Surface(
+                                modifier = Modifier.padding(horizontal = 8.dp).size(20.dp),
+                                color = Color.Red.copy(alpha = 0.1f),
+                                shape = CircleShape,
+                                border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.3f))
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = "!",
+                                        color = Color.Red,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        if (event.group != null) {
+                            Surface(
+                                modifier = Modifier.padding(start = 4.dp),
+                                color = groupColor.copy(alpha = 0.15f),
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text(
+                                    text = event.group,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = groupColor,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
                     
                     if (event.startingTime != null) {
                         val start = event.startingTime.toString().substring(0, 5)
@@ -560,40 +617,7 @@ fun EventRow(event: CalendarItem, groupColor: Color, isHighlighted: Boolean, onC
                         Text(
                             text = timeStr,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                
-                if (event.group != null) {
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp)
-                            .background(groupColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = event.group,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = groupColor,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                    }
-                }
-
-                if (event.isPriority) {
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .background(Color.Red, CircleShape)
-                            .border(2.dp, Color.White.copy(alpha = 0.4f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "!",
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 16.sp
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
                 }
@@ -607,5 +631,6 @@ fun java.time.LocalDate.toKotlinLocalDate(): LocalDate =
 
 sealed class CalendarEditorMode {
     data object Create : CalendarEditorMode()
+    data class CreateOnDate(val date: LocalDate) : CalendarEditorMode()
     data class Edit(val event: CalendarItem) : CalendarEditorMode()
 }

@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -14,8 +16,11 @@ import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.eventBus.commands.CreateTaskCommand
 import com.remmi.app.core.eventBus.commands.UpdateTaskCommand
+import com.remmi.app.core.eventBus.commands.DeleteTaskCommand
 import com.remmi.app.core.plugin.model.components.RepeatRule
 import com.remmi.app.core.plugin.model.components.RepeatType
+import com.remmi.app.core.plugin.screens.RemmiAddScreen
+import com.remmi.app.core.plugin.screens.RemmiUpdateScreen
 import com.remmi.app.core.screens.components.*
 import com.remmi.app.plugins.tasks.TasksActions
 import com.remmi.app.plugins.tasks.models.TaskItem
@@ -26,6 +31,7 @@ import androidx.compose.material3.MenuAnchorType
 
 sealed class TaskEditorMode {
     data object Create : TaskEditorMode()
+    data object Multitask : TaskEditorMode()
     data class Edit(val task: TaskItem) : TaskEditorMode()
 }
 
@@ -38,7 +44,7 @@ fun TasksEditorScreen(
     onDismiss: () -> Unit,
     onSave: () -> Unit
 ) {
-    Log.d("Remmi", "[TasksEditorScreen] - Refactored for intent-based linking")
+    Log.d("Remmi", "[TasksEditorScreen] - Refactored")
     val scope = rememberCoroutineScope()
     val initialTask = (mode as? TaskEditorMode.Edit)?.task
 
@@ -57,8 +63,6 @@ fun TasksEditorScreen(
     var isPriority by remember { mutableStateOf(initialTask?.isPriority ?: false) }
     var group by remember { mutableStateOf(initialTask?.group) }
     
-    var isAdvancedExpanded by remember { mutableStateOf(false) }
-
     var isDueDateEnabled by remember { mutableStateOf(initialTask?.dueDate != null) }
     var isTimeEnabled by remember { mutableStateOf(initialTask?.dueDate != null) }
 
@@ -81,255 +85,115 @@ fun TasksEditorScreen(
     var addToCalendar by remember { mutableStateOf(initialTask?.createCalendar ?: false) }
     var addToAlarm by remember { mutableStateOf(initialTask?.createAlarm ?: false) }
 
-    RemmiEditorScaffold(
-        title = if (initialTask == null) "New Task" else "Edit Task",
-        onBack = onDismiss,
-        onSave = {
-            val finalDueDate = if (isDueDateEnabled) {
-                try {
-                    val timeToUse = if (isTimeEnabled) startTime else LocalTime(23, 59)
-                    LocalDateTime(startDate.year, startDate.monthNumber, startDate.dayOfMonth, timeToUse.hour, timeToUse.minute).toInstant(timeZone)
-                } catch (e: Exception) {
-                    initialTask?.dueDate
-                }
-            } else {
-                null
+    val onSaveAction = {
+        val finalDueDate = if (isDueDateEnabled) {
+            try {
+                val timeToUse = if (isTimeEnabled) startTime else LocalTime(23, 59)
+                LocalDateTime(startDate.year, startDate.month, startDate.day, timeToUse.hour, timeToUse.minute).toInstant(timeZone)
+            } catch (e: Exception) {
+                initialTask?.dueDate
             }
-            val repeatRule = if (repeatType != RepeatType.NONE) {
-                RepeatRule(repeatType, if (repeatType == RepeatType.CUSTOM) repeatDays else emptyList())
-            } else {
-                null
-            }
+        } else {
+            null
+        }
+        val repeatRule = if (repeatType != RepeatType.NONE) {
+            RepeatRule(repeatType, if (repeatType == RepeatType.CUSTOM) repeatDays else emptyList())
+        } else {
+            null
+        }
 
-            scope.launch {
-                if (initialTask != null) {
-                    controller.eventBus.publishCommand(
-                        UpdateTaskCommand(
-                            task = initialTask.copy(
-                                modified = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
-                                title = title,
-                                description = description,
-                                dueDate = finalDueDate,
-                                isPriority = isPriority,
-                                group = group,
-                                repeat = repeatRule,
-                                createCalendar = addToCalendar,
-                                createAlarm = addToAlarm
-                            )
-                        )
-                    )
-                } else {
-                    controller.eventBus.publishCommand(
-                        CreateTaskCommand(
+        scope.launch {
+            if (initialTask != null) {
+                controller.eventBus.publishCommand(
+                    UpdateTaskCommand(
+                        task = initialTask.copy(
+                            modified = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
                             title = title,
                             description = description,
                             dueDate = finalDueDate,
                             isPriority = isPriority,
                             group = group,
                             repeat = repeatRule,
-                            // TODO: Add these flags to CreateTaskCommand if needed, 
-                            // or handle them via the generic command metadata
+                            createCalendar = addToCalendar,
+                            createAlarm = addToAlarm
                         )
                     )
-                }
-                onSave()
-            }
-        },
-        saveEnabled = title.isNotBlank()
-    ) {
-        RemmiTitleDescriptionGroup(
-            title = title,
-            onTitleChange = { title = it },
-            description = description,
-            onDescriptionChange = { description = it }
-        )
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            ExposedDropdownMenuBox(
-                expanded = isGroupExpanded,
-                onExpandedChange = { isGroupExpanded = it },
-                modifier = Modifier.weight(1f)
-            ) {
-                OutlinedTextField(
-                    value = group ?: "No Group",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Group") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupExpanded) },
-                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                 )
-                ExposedDropdownMenu(
-                    expanded = isGroupExpanded,
-                    onDismissRequest = { isGroupExpanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("No Group") },
-                        onClick = { group = null; isGroupExpanded = false }
+            } else {
+                controller.eventBus.publishCommand(
+                    CreateTaskCommand(
+                        title = title,
+                        description = description,
+                        dueDate = finalDueDate,
+                        isPriority = isPriority,
+                        group = group,
+                        repeat = repeatRule
                     )
-                    existingGroups.forEach { g ->
-                        DropdownMenuItem(
-                            text = { Text(g) },
-                            onClick = { group = g; isGroupExpanded = false }
-                        )
-                    }
-                }
+                )
             }
-            IconButton(onClick = { showAddGroupDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "New Group")
-            }
+            onSave()
         }
+    }
 
-        RemmiPrioritySwitch(
-            isPriority = isPriority,
-            onPriorityChange = { isPriority = it },
-            label = "Priority Task"
-        )
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().clickable { isAdvancedExpanded = !isAdvancedExpanded }
-        ) {
-            Text("Advanced Options", style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.weight(1f))
-            Icon(if (isAdvancedExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null)
+    if (initialTask == null) {
+        RemmiAddScreen(
+            title = "New Task",
+            onBack = onDismiss,
+            onSave = { onSaveAction() },
+            saveEnabled = title.isNotBlank()
+        ) { padding ->
+            EditorContent(
+                padding = padding,
+                title = title, onTitleChange = { title = it },
+                description = description, onDescriptionChange = { description = it },
+                group = group, onGroupChange = { group = it },
+                isGroupExpanded = isGroupExpanded, onGroupExpandedChange = { isGroupExpanded = it },
+                existingGroups = existingGroups,
+                onShowAddGroupDialog = { showAddGroupDialog = true },
+                isPriority = isPriority, onIsPriorityChange = { isPriority = it },
+                repeatType = repeatType, onRepeatTypeChange = { repeatType = it },
+                repeatDays = repeatDays, onShowRepeatDaysDialog = { showRepeatDaysDialog = true },
+                isDueDateEnabled = isDueDateEnabled, onIsDueDateEnabledChange = { isDueDateEnabled = it },
+                isTimeEnabled = isTimeEnabled, onIsTimeEnabledChange = { isTimeEnabled = it },
+                startDate = startDate, onShowStartDatePicker = { showStartDatePicker = true },
+                startTime = startTime, onShowStartTimePicker = { showStartTimePicker = true },
+                addToCalendar = addToCalendar, onAddToCalendarChange = { addToCalendar = it },
+                addToAlarm = addToAlarm, onAddToAlarmChange = { addToAlarm = it },
+                isEdit = false
+            )
         }
-
-        if (isAdvancedExpanded) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // --- Repeatable Section ---
-                Column {
-                    Text("Repeat", style = MaterialTheme.typography.titleSmall)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Column {
-                            Row {
-                                listOf(RepeatType.NONE, RepeatType.DAILY, RepeatType.WEEKLY).forEach { type ->
-                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 8.dp)) {
-                                        RadioButton(
-                                            selected = repeatType == type,
-                                            onClick = { 
-                                                repeatType = type
-                                            }
-                                        )
-                                        Text(
-                                            text = type.name.lowercase().replaceFirstChar { it.uppercase() },
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    }
-                                }
-                            }
-                            Row {
-                                listOf(RepeatType.MONTHLY, RepeatType.YEARLY, RepeatType.CUSTOM).forEach { type ->
-                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 8.dp)) {
-                                        RadioButton(
-                                            selected = repeatType == type,
-                                            onClick = { 
-                                                repeatType = type
-                                                if (type == RepeatType.CUSTOM) showRepeatDaysDialog = true
-                                            }
-                                        )
-                                        Text(
-                                            text = type.name.lowercase().replaceFirstChar { it.uppercase() },
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (repeatType == RepeatType.CUSTOM) {
-                        Text(
-                            text = "Selected: ${repeatDays.joinToString { it.name.lowercase().take(3).replaceFirstChar { it.uppercase() } }}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.clickable { showRepeatDaysDialog = true }.padding(vertical = 4.dp)
-                        )
-                    }
+    } else {
+        RemmiUpdateScreen(
+            title = "Edit Task",
+            onBack = onDismiss,
+            onDelete = {
+                scope.launch {
+                    controller.eventBus.publishCommand(DeleteTaskCommand(taskId = initialTask.id))
+                    onSave()
                 }
-
-                // --- Due Date Section ---
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Due Date & Time", style = MaterialTheme.typography.titleSmall)
-                    OutlinedTextField(
-                        value = if (isDueDateEnabled) startDate.toString() else "Not set",
-                        onValueChange = {},
-                        label = { Text("Due Date") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { isDueDateEnabled = true; showStartDatePicker = true },
-                        readOnly = true,
-                        leadingIcon = {
-                            Checkbox(checked = isDueDateEnabled, onCheckedChange = { isDueDateEnabled = it })
-                        },
-                        trailingIcon = {
-                            if (isDueDateEnabled) {
-                                IconButton(onClick = { showStartDatePicker = true }) {
-                                    Icon(Icons.Default.CalendarMonth, contentDescription = "Select Date")
-                                }
-                            }
-                        }
-                    )
-
-                    if (isDueDateEnabled) {
-                        OutlinedTextField(
-                            value = if (isTimeEnabled) startTime.toString().substring(0, 5) else "Default (23:59)",
-                            onValueChange = {},
-                            label = { Text("Due Time") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { isTimeEnabled = true; showStartTimePicker = true },
-                            readOnly = true,
-                            leadingIcon = {
-                                Checkbox(checked = isTimeEnabled, onCheckedChange = { isTimeEnabled = it })
-                            },
-                            trailingIcon = {
-                                if (isTimeEnabled) {
-                                    IconButton(onClick = { showStartTimePicker = true }) {
-                                        Icon(Icons.Default.AccessTime, contentDescription = "Set Time")
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-
-                // --- Action Options ---
-                if (initialTask == null) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Quick Actions", style = MaterialTheme.typography.titleSmall)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Start,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(
-                                onClick = { addToCalendar = !addToCalendar },
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    contentColor = if (addToCalendar) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                                )
-                            ) {
-                                Icon(Icons.Default.CalendarMonth, contentDescription = "Create Calendar Event")
-                            }
-                            
-                            Spacer(Modifier.width(16.dp))
-
-                            IconButton(
-                                onClick = { addToAlarm = !addToAlarm },
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    contentColor = if (addToAlarm) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                                )
-                            ) {
-                                Icon(Icons.Default.Alarm, contentDescription = "Create Alarm")
-                            }
-                        }
-                    }
-                }
-            }
+            },
+            onSave = { onSaveAction() },
+            saveEnabled = title.isNotBlank()
+        ) { padding ->
+            EditorContent(
+                padding = padding,
+                title = title, onTitleChange = { title = it },
+                description = description, onDescriptionChange = { description = it },
+                group = group, onGroupChange = { group = it },
+                isGroupExpanded = isGroupExpanded, onGroupExpandedChange = { isGroupExpanded = it },
+                existingGroups = existingGroups,
+                onShowAddGroupDialog = { showAddGroupDialog = true },
+                isPriority = isPriority, onIsPriorityChange = { isPriority = it },
+                repeatType = repeatType, onRepeatTypeChange = { repeatType = it },
+                repeatDays = repeatDays, onShowRepeatDaysDialog = { showRepeatDaysDialog = true },
+                isDueDateEnabled = isDueDateEnabled, onIsDueDateEnabledChange = { isDueDateEnabled = it },
+                isTimeEnabled = isTimeEnabled, onIsTimeEnabledChange = { isTimeEnabled = it },
+                startDate = startDate, onShowStartDatePicker = { showStartDatePicker = true },
+                startTime = startTime, onShowStartTimePicker = { showStartTimePicker = true },
+                addToCalendar = addToCalendar, onAddToCalendarChange = { addToCalendar = it },
+                addToAlarm = addToAlarm, onAddToAlarmChange = { addToAlarm = it },
+                isEdit = true
+            )
         }
     }
 
@@ -384,5 +248,177 @@ fun TasksEditorScreen(
                 startTime = time
             }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditorContent(
+    padding: PaddingValues,
+    title: String, onTitleChange: (String) -> Unit,
+    description: String, onDescriptionChange: (String) -> Unit,
+    group: String?, onGroupChange: (String?) -> Unit,
+    isGroupExpanded: Boolean, onGroupExpandedChange: (Boolean) -> Unit,
+    existingGroups: List<String>,
+    onShowAddGroupDialog: () -> Unit,
+    isPriority: Boolean, onIsPriorityChange: (Boolean) -> Unit,
+    repeatType: RepeatType, onRepeatTypeChange: (RepeatType) -> Unit,
+    repeatDays: List<DayOfWeek>, onShowRepeatDaysDialog: () -> Unit,
+    isDueDateEnabled: Boolean, onIsDueDateEnabledChange: (Boolean) -> Unit,
+    isTimeEnabled: Boolean, onIsTimeEnabledChange: (Boolean) -> Unit,
+    startDate: LocalDate, onShowStartDatePicker: () -> Unit,
+    startTime: LocalTime, onShowStartTimePicker: () -> Unit,
+    addToCalendar: Boolean, onAddToCalendarChange: (Boolean) -> Unit,
+    addToAlarm: Boolean, onAddToAlarmChange: (Boolean) -> Unit,
+    isEdit: Boolean
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .padding(horizontal = 24.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        RemmiTitleDescriptionGroup(
+            title = title,
+            onTitleChange = onTitleChange,
+            description = description,
+            onDescriptionChange = onDescriptionChange
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            ExposedDropdownMenuBox(
+                expanded = isGroupExpanded,
+                onExpandedChange = onGroupExpandedChange,
+                modifier = Modifier.weight(1f)
+            ) {
+                OutlinedTextField(
+                    value = group ?: "No Group",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Group") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGroupExpanded) },
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = isGroupExpanded,
+                    onDismissRequest = { onGroupExpandedChange(false) }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("No Group") },
+                        onClick = { onGroupChange(null); onGroupExpandedChange(false) }
+                    )
+                    existingGroups.forEach { g ->
+                        DropdownMenuItem(
+                            text = { Text(g) },
+                            onClick = { onGroupChange(g); onGroupExpandedChange(false) }
+                        )
+                    }
+                }
+            }
+            IconButton(onClick = onShowAddGroupDialog) {
+                Icon(Icons.Default.Add, contentDescription = "New Group")
+            }
+        }
+
+        RemmiPrioritySwitch(
+            isPriority = isPriority,
+            onPriorityChange = onIsPriorityChange,
+            label = "Priority Task"
+        )
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // --- Repeatable Section ---
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Text("Repeat Interval", style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(12.dp))
+                val types = listOf(RepeatType.NONE, RepeatType.DAILY, RepeatType.WEEKLY, RepeatType.MONTHLY, RepeatType.YEARLY, RepeatType.CUSTOM)
+                types.chunked(3).forEach { rowTypes ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        rowTypes.forEach { type ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = repeatType == type,
+                                    onClick = { 
+                                        onRepeatTypeChange(type)
+                                        if (type == RepeatType.CUSTOM) onShowRepeatDaysDialog()
+                                    }
+                                )
+                                Text(
+                                    text = type.name.lowercase().replaceFirstChar { it.uppercase() },
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
+                if (repeatType == RepeatType.CUSTOM) {
+                    Text(
+                        text = "Selected: ${repeatDays.joinToString { it.name.lowercase().take(3).replaceFirstChar { it.uppercase() } }}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { onShowRepeatDaysDialog() }.padding(vertical = 4.dp)
+                    )
+                }
+            }
+
+            // --- Due Date Section ---
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Due Date & Time", style = MaterialTheme.typography.titleSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = isDueDateEnabled, onCheckedChange = onIsDueDateEnabledChange)
+                    OutlinedButton(
+                        onClick = onShowStartDatePicker,
+                        modifier = Modifier.weight(1f),
+                        enabled = isDueDateEnabled,
+                        shape = androidx.compose.foundation.shape.CircleShape
+                    ) {
+                        Text(if (isDueDateEnabled) startDate.toString() else "Set Date")
+                    }
+                    
+                    Checkbox(checked = isTimeEnabled, onCheckedChange = onIsTimeEnabledChange, enabled = isDueDateEnabled)
+                    OutlinedButton(
+                        onClick = onShowStartTimePicker,
+                        modifier = Modifier.weight(1f),
+                        enabled = isDueDateEnabled && isTimeEnabled,
+                        shape = androidx.compose.foundation.shape.CircleShape
+                    ) {
+                        Text(if (isDueDateEnabled && isTimeEnabled) startTime.toString().substring(0, 5) else "Set Time")
+                    }
+                }
+            }
+
+            // --- Action Options ---
+            if (!isEdit) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RemmiLinkedActionButton(
+                        icon = Icons.Default.CalendarMonth,
+                        active = addToCalendar,
+                        onClick = { onAddToCalendarChange(!addToCalendar) }
+                    )
+                    
+                    Spacer(Modifier.width(32.dp))
+
+                    RemmiLinkedActionButton(
+                        icon = Icons.Default.Alarm,
+                        active = addToAlarm,
+                        onClick = { onAddToAlarmChange(!addToAlarm) }
+                    )
+                }
+            }
+        }
     }
 }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CurvedBottomNavigationView">
+        <attr name="navBarColor" format="color" />
+        <attr name="centerButtonColor" format="color" />
+        <attr name="selectedIconColor" format="color" />
+        <attr name="unselectedIconColor" format="color" />
+        <attr name="navBarCornerRadius" format="dimension" />
+        <attr name="centerButtonSize" format="dimension" />
+        <attr name="curveDepth" format="dimension" />
+        <attr name="curveHorizontalPadding" format="dimension" />
+        <attr name="sideRampWidth" format="dimension" />
+    </declare-styleable>
+</resources>

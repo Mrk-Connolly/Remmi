@@ -10,16 +10,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.remmi.app.core.plugin.screens.RemmiSecondaryScreen
 import com.remmi.app.plugins.contacts.ContactItem
 import kotlinx.coroutines.launch
 
@@ -60,29 +58,23 @@ fun UserGiftListScreen(
         result
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("${contact.name}'s Gifts") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showSortMenu = true }) {
-                        Icon(Icons.Default.Sort, contentDescription = "Sort")
-                    }
-                    IconButton(onClick = { showFilterMenu = true }) {
-                        Icon(Icons.Default.FilterList, contentDescription = "Filter")
-                    }
-                }
-            )
+    RemmiSecondaryScreen(
+        title = "${contact.name}'s Gifts",
+        onBack = onBack,
+        topBarActions = {
+            IconButton(onClick = { showSortMenu = true }) {
+                Icon(Icons.Default.Sort, contentDescription = "Sort")
+            }
+            IconButton(onClick = { showFilterMenu = true }) {
+                Icon(Icons.Default.FilterList, contentDescription = "Filter")
+            }
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddGiftDialog = true },
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 16.dp),
+                shape = androidx.compose.foundation.shape.CircleShape,
+                elevation = FloatingActionButtonDefaults.elevation(0.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Gift")
             }
@@ -91,10 +83,18 @@ fun UserGiftListScreen(
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
             if (filteredGifts.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No gifts found.")
+                    Text(
+                        "No gifts found for this contact.", 
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     items(filteredGifts, key = { it.id }) { gift ->
                         GiftIdeaRow(gift)
                     }
@@ -136,28 +136,48 @@ fun UserGiftListScreen(
 
 @Composable
 fun GiftIdeaRow(gift: GiftIdea) {
-    Log.d("Remmi", "[UserGiftListScreen] - [GiftIdeaRow] executed")
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+    com.remmi.app.core.ui.RemmiCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = gift.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(
+                    text = gift.name, 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.Bold, 
+                    modifier = Modifier.weight(1f)
+                )
                 gift.price?.let {
-                    Text(text = "$${String.format("%.2f", it)}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        text = "$${String.format("%.2f", it)}", 
+                        style = MaterialTheme.typography.titleMedium, 
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Black
+                    )
                 }
             }
             gift.description?.let {
-                Text(text = it, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = it, 
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
             gift.event?.let {
-                SuggestionChip(
-                    onClick = {},
-                    label = { Text(it.name) },
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                Surface(
+                    modifier = Modifier.padding(top = 12.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = it.name.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
         }
     }

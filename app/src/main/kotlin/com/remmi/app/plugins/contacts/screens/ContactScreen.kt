@@ -23,9 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.plugin.screens.RemmiMainScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -81,89 +83,87 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
         }
     }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { editorMode = ContactEditorMode.Create },
-                modifier = Modifier.padding(bottom = 16.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Contact")
+    if (editorMode != null) {
+        ContactEditorScreen(
+            mode = editorMode!!,
+            actions = actions,
+            onDismiss = { editorMode = null },
+            onSave = {
+                scope.launch {
+                    contacts = actions.getAllContacts()
+                    editorMode = null
+                }
             }
-        },
-        bottomBar = {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
+        )
+    } else {
+        RemmiMainScreen(
+            title = "Contacts",
+            floatingActionButton = {
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                    FloatingActionButton(
+                        onClick = { editorMode = ContactEditorMode.Create },
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        shape = CircleShape,
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Contact")
+                    }
+                }
+            }
+        ) { padding ->
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = onRefresh,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Search by name...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                shape = CircleShape,
-                singleLine = true
-            )
-        }
-    ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = onRefresh,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "My Contacts",
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .align(Alignment.Center)
-                    )
-                    
-                    var isFilterExpanded by remember { mutableStateOf(false) }
-                    Box(modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)) {
-                        IconButton(onClick = { isFilterExpanded = true }) {
-                            Icon(Icons.Default.FilterList, contentDescription = "Filter")
-                        }
-                        DropdownMenu(
-                            expanded = isFilterExpanded,
-                            onDismissRequest = { isFilterExpanded = false }
-                        ) {
-                            existingGroups.forEach { group ->
-                                DropdownMenuItem(
-                                    text = { Text(group) },
-                                    onClick = {
-                                        selectedGroupFilter = group
-                                        isFilterExpanded = false
-                                    }
-                                )
+                    .fillMaxSize()
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        var isFilterExpanded by remember { mutableStateOf(false) }
+                        Box(modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)) {
+                            IconButton(onClick = { isFilterExpanded = true }) {
+                                Icon(Icons.Default.FilterList, contentDescription = "Filter")
+                            }
+                            DropdownMenu(
+                                expanded = isFilterExpanded,
+                                onDismissRequest = { isFilterExpanded = false }
+                            ) {
+                                existingGroups.forEach { group ->
+                                    DropdownMenuItem(
+                                        text = { Text(group) },
+                                        onClick = {
+                                            selectedGroupFilter = group
+                                            isFilterExpanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                if (filteredContacts.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No contacts found.")
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 80.dp)
-                    ) {
-                        items(filteredContacts, key = { it.id }) { contact ->
-                            ContactRow(
-                                contact = contact,
-                                onToggleFavorite = {
-                                    scope.launch {
-                                        actions.toggleFavorite(contact)
-                                        contacts = actions.getAllContacts()
-                                    }
-                                },
-                                onClick = { selectedContact = contact },
-                                onEdit = { editorMode = ContactEditorMode.Edit(contact) }
-                            )
+                    if (filteredContacts.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("No contacts found.")
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(filteredContacts, key = { it.id }) { contact ->
+                                ContactRow(
+                                    contact = contact,
+                                    onToggleFavorite = {
+                                        scope.launch {
+                                            actions.toggleFavorite(contact)
+                                            contacts = actions.getAllContacts()
+                                        }
+                                    },
+                                    onClick = { selectedContact = contact },
+                                    onEdit = { editorMode = ContactEditorMode.Edit(contact) }
+                                )
+                            }
                         }
                     }
                 }
@@ -211,31 +211,31 @@ fun ContactRow(
     onEdit: () -> Unit
 ) {
     Log.d("Remmi", "[ContactScreen] - [ContactRow] executed")
-    Card(
+    com.remmi.app.core.ui.RemmiCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onEdit
             )
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(56.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer
             ) {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
             Spacer(Modifier.width(16.dp))
@@ -248,20 +248,26 @@ fun ContactRow(
                 }
                 Text(
                     text = displayName,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = contact.group,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
 
-            IconButton(onClick = onToggleFavorite) {
+            IconButton(
+                onClick = onToggleFavorite,
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = if (contact.isFavorite) Color.Red else MaterialTheme.colorScheme.outline
+                )
+            ) {
                 Icon(
                     imageVector = if (contact.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = "Favorite",
-                    tint = if (contact.isFavorite) Color.Red else MaterialTheme.colorScheme.outline
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }

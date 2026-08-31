@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.core.plugin.screens.RemmiMainScreen
 import com.remmi.app.plugins.ingredients.IngredientActions
 import com.remmi.app.plugins.ingredients.models.*
 import com.remmi.app.plugins.ingredients.popups.*
@@ -101,49 +102,60 @@ fun IngredientStockScreen(
         }
     }
 
-    Scaffold(
+    RemmiMainScreen(
+        title = "Inventory",
         floatingActionButton = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                var showScanOptions by remember { mutableStateOf(false) }
-                
-                if (showScanOptions) {
-                    SmallFloatingActionButton(
-                        onClick = { 
-                            scope.launch { actions.startReceiptScan(true) }
-                            isScanning = true
-                            showScanOptions = false
-                        },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Icon(Icons.Default.PhotoCamera, contentDescription = "Camera")
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    var showScanOptions by remember { mutableStateOf(false) }
+                    
+                    if (showScanOptions) {
+                        SmallFloatingActionButton(
+                            onClick = { 
+                                scope.launch { actions.startReceiptScan(true) }
+                                isScanning = true
+                                showScanOptions = false
+                            },
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = CircleShape,
+                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                        ) {
+                            Icon(Icons.Default.PhotoCamera, contentDescription = "Camera")
+                        }
+                        SmallFloatingActionButton(
+                            onClick = { 
+                                scope.launch { actions.startReceiptScan(false) }
+                                isScanning = true
+                                showScanOptions = false
+                            },
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = CircleShape,
+                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                        ) {
+                            Icon(Icons.Default.Image, contentDescription = "Gallery")
+                        }
                     }
-                    SmallFloatingActionButton(
-                        onClick = { 
-                            scope.launch { actions.startReceiptScan(false) }
-                            isScanning = true
-                            showScanOptions = false
-                        },
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Icon(Icons.Default.Image, contentDescription = "Gallery")
-                    }
-                }
 
-                FloatingActionButton(
-                    onClick = { showScanOptions = !showScanOptions },
-                    modifier = Modifier.padding(bottom = 16.dp)
-                ) {
-                    Icon(if (showScanOptions) Icons.Default.Close else Icons.Default.Receipt, contentDescription = "Scan Receipt")
-                }
-                
-                FloatingActionButton(
-                    onClick = { showAddDialog = true },
-                    modifier = Modifier.padding(bottom = 16.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Ingredient")
+                    FloatingActionButton(
+                        onClick = { showScanOptions = !showScanOptions },
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        shape = CircleShape,
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                    ) {
+                        Icon(if (showScanOptions) Icons.Default.Close else Icons.Default.Receipt, contentDescription = "Scan Receipt")
+                    }
+                    
+                    FloatingActionButton(
+                        onClick = { showAddDialog = true },
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        shape = CircleShape,
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Ingredient")
+                    }
                 }
             }
         }
@@ -179,7 +191,8 @@ fun IngredientStockScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 80.dp)
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(filteredAndSorted, key = { it.stock.id }) { item ->
                             IngredientRow(
@@ -353,29 +366,32 @@ fun IngredientRow(
         ExpiryStatus.NORMAL -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    Card(
+    com.remmi.app.core.ui.RemmiCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
             .combinedClickable(
                 onClick = onLongClick,
                 onLongClick = onLongClick
-            ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            )
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Icon
             Surface(
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(56.dp),
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondaryContainer
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     val iconText = item.metadata.icon ?: item.metadata.name.take(1).uppercase()
-                    Text(iconText, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        iconText, 
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
@@ -386,7 +402,7 @@ fun IngredientRow(
                 Text(
                     text = item.metadata.name,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold
                 )
                 
                 val expiryText = when {
@@ -410,27 +426,31 @@ fun IngredientRow(
                 Text(
                     text = formattedQty,
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     color = if (item.totalQuantity <= 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = formattedUnit,
+                    text = formattedUnit.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 )
             }
 
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(12.dp))
 
             // Adjustment Button
             IconButton(
                 onClick = onAdjust,
-                modifier = Modifier.size(32.dp)
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                    contentColor = MaterialTheme.colorScheme.primary
+                ),
+                modifier = Modifier.size(36.dp)
             ) {
                 Icon(
                     Icons.Default.Balance,
                     contentDescription = "Adjust Stock",
-                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
             }

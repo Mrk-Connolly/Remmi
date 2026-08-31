@@ -26,7 +26,7 @@ fun RemmiApp(host: RemmiHost) {
     //                                CORE FUNCTIONS
     // ----------------------------------------------------------------------------
 
-    MaterialTheme {
+    com.remmi.app.core.ui.RemmiTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,

@@ -61,4 +61,59 @@ class SystemNotificationService(private val context: Context) : NotificationServ
             Log.e("NotificationService", "Failed to post notification: ${e.message}")
         }
     }
+
+    @android.annotation.SuppressLint("NewApi")
+    override fun postLiveUpdate(
+        title: String,
+        content: String,
+        progress: Int,
+        maxProgress: Int,
+        tag: String?
+    ) {
+        try {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val channelId = "remmi_live_updates"
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(channelId, "Remmi Live Updates", NotificationManager.IMPORTANCE_HIGH).apply {
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                    setSound(null, null)
+                    enableVibration(false)
+                }
+                notificationManager.createNotificationChannel(channel)
+            }
+
+            val notification = if (Build.VERSION.SDK_INT >= 36) { // Android 16
+                android.app.Notification.Builder(context, channelId)
+                    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                    .setContentTitle(title)
+                    .setContentText(content)
+                    .setOngoing(true)
+                    .setOnlyAlertOnce(true)
+                    .setVisibility(android.app.Notification.VISIBILITY_PUBLIC)
+                    .setStyle(
+                        android.app.Notification.ProgressStyle()
+                            .setProgress(progress)
+                            .setStyledByProgress(true)
+                    )
+                    .setRequestPromotedOngoing(true)
+                    .build()
+            } else {
+                NotificationCompat.Builder(context, channelId)
+                    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                    .setContentTitle(title)
+                    .setContentText(content)
+                    .setOngoing(true)
+                    .setOnlyAlertOnce(true)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setProgress(maxProgress, progress, false)
+                    .build()
+            }
+
+            val notificationId = tag?.hashCode() ?: 9999
+            notificationManager.notify(tag, notificationId, notification)
+        } catch (e: Exception) {
+            Log.e("NotificationService", "Failed to post live update: ${e.message}")
+        }
+    }
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,11 +26,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.viewinterop.AndroidView
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
+import com.remmi.app.core.ui.navigation.CurvedBottomNavigationView
+import com.remmi.app.core.ui.navigation.NavigationItem
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -43,15 +48,35 @@ import kotlinx.coroutines.launch
 /**
  * REMMI DESTINATION
  */
+/**
+ * Defines all navigation destinations within the Remmi application.
+ *
+ * @property route The unique string identifier for the destination.
+ */
 sealed class RemmiDestination(val route: String) {
+    /** The primary dashboard / home screen. */
     data object Home : RemmiDestination("home")
+    
+    /** The global application settings screen. */
     data object Settings : RemmiDestination("settings")
+    
+    /** The automation and engine configuration screen. */
     data object Automatization : RemmiDestination("automatization")
 
     companion object {
+        /** Route string for the home screen. */
         const val HOME_ROUTE = "home"
+        
+        /** Route string for the settings screen. */
         const val SETTINGS_ROUTE = "settings"
+        
+        /** Route string for the automatization screen. */
         const val AUTOMATIZATION_ROUTE = "automatization"
+        
+        /** 
+         * Generates a route string for a specific plugin screen.
+         * @param id The unique identifier of the plugin.
+         */
         fun pluginRoute(id: String): String = "plugin/$id"
     }
 }
@@ -59,11 +84,19 @@ sealed class RemmiDestination(val route: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(runtime: RemmiController) {
+    /** Controller for managing Jetpack Compose navigation. */
     val navController = rememberNavController()
+    
+    /** Current state of the navigation backstack. */
     val navBackStackEntry by navController.currentBackStackEntryAsState()
+    
+    /** The currently active route string. */
     val currentRoute = navBackStackEntry?.destination?.route
     
+    /** List of all installed plugins' metadata. */
     val metadata by runtime.pluginManager.pluginMetadata.collectAsState()
+    
+    /** Filtered list of currently enabled plugin instances. */
     val activePlugins = remember(metadata) {
         metadata.filter { it.enabled }.mapNotNull { runtime.pluginManager.plugins[it.id] }
     }
@@ -82,7 +115,7 @@ fun AppNavigation(runtime: RemmiController) {
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut()
             ) {
-                UnifiedNavigationBar(
+                CurvedNavigationWrapper(
                     currentRoute = currentRoute,
                     onNavigate = { route ->
                         navController.navigate(route) {
@@ -96,13 +129,14 @@ fun AppNavigation(runtime: RemmiController) {
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            NavHost(
-                navController = navController,
-                startDestination = RemmiDestination.HOME_ROUTE,
-                modifier = Modifier.fillMaxSize().padding(bottom = if (!isEditorActive && isMenuVisible && !isSettingsRoute) 0.dp else 0.dp) // Scaffold handles padding
-            ) {
-                composable(RemmiDestination.HOME_ROUTE) {
+        NavHost(
+            navController = navController,
+            startDestination = RemmiDestination.HOME_ROUTE,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = padding.calculateBottomPadding())
+        ) {
+            composable(RemmiDestination.HOME_ROUTE) {
                     HomeScreen(
                         pluginManager = runtime.pluginManager,
                         onWidgetClick = { pluginId ->
@@ -141,7 +175,7 @@ fun AppNavigation(runtime: RemmiController) {
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
                     dragHandle = { BottomSheetDefaults.DragHandle() },
                     containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 8.dp
+                    tonalElevation = 0.dp
                 ) {
                     PluginDashboard(
                         activePlugins = activePlugins,
@@ -159,71 +193,71 @@ fun AppNavigation(runtime: RemmiController) {
         }
         GlobalUIOverlays(runtime, scope)
     }
-}
 
 @Composable
-fun UnifiedNavigationBar(
+fun CurvedNavigationWrapper(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
     onOpenDashboard: () -> Unit
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 6.dp,
-        shadowElevation = 12.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp)
-                .navigationBarsPadding(),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            DockItemIconCompact(
-                selected = currentRoute == RemmiDestination.HOME_ROUTE,
-                icon = Icons.Default.Home,
-                label = "Home",
-                onClick = { onNavigate(RemmiDestination.HOME_ROUTE) }
-            )
-            DockItemIconCompact(
-                selected = currentRoute?.contains("calendar") == true,
-                icon = Icons.Default.CalendarMonth,
-                label = "Calendar",
-                onClick = { onNavigate(RemmiDestination.pluginRoute("calendar")) }
-            )
-            
-            // Central Dashboard Trigger
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .clickable { onOpenDashboard() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.Dashboard,
-                    contentDescription = "Dashboard",
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
+    val items = remember {
+        listOf(
+            NavigationItem(com.remmi.app.R.drawable.ic_nav_home_alt, "Home"),
+            NavigationItem(com.remmi.app.R.drawable.ic_nav_calendar, "Calendar"),
+            NavigationItem(com.remmi.app.R.drawable.ic_nav_tasks, "Tasks"),
+            NavigationItem(com.remmi.app.R.drawable.ic_nav_settings_alt, "Settings")
+        )
+    }
 
-            DockItemIconCompact(
-                selected = currentRoute?.contains("tasks") == true,
-                icon = Icons.Default.CheckCircle,
-                label = "Tasks",
-                onClick = { onNavigate(RemmiDestination.pluginRoute("tasks")) }
-            )
-            DockItemIconCompact(
-                selected = currentRoute == RemmiDestination.SETTINGS_ROUTE,
-                icon = Icons.Default.Settings,
-                label = "Settings",
-                onClick = { onNavigate(RemmiDestination.SETTINGS_ROUTE) }
-            )
+    val selectedIndex = remember(currentRoute) {
+        when {
+            currentRoute == RemmiDestination.HOME_ROUTE -> 0
+            currentRoute?.contains("calendar") == true -> 1
+            currentRoute?.contains("tasks") == true -> 2
+            currentRoute == RemmiDestination.SETTINGS_ROUTE -> 3
+            else -> 0
         }
     }
+
+    val navBarColor = MaterialTheme.colorScheme.surface.toArgb()
+    val centerButtonColor = MaterialTheme.colorScheme.surface.toArgb()
+    val selectedIconColor = MaterialTheme.colorScheme.primary.toArgb()
+    val unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f).toArgb()
+
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding() // Respect system bars
+            .padding(bottom = 24.dp) // Move up higher
+            .height(110.dp), // Slightly taller to accommodate curves and centering
+        factory = { context ->
+            CurvedBottomNavigationView(context).apply {
+                setItems(items)
+                setOnItemSelectedListener { index ->
+                    val route = when (index) {
+                        0 -> RemmiDestination.HOME_ROUTE
+                        1 -> RemmiDestination.pluginRoute("calendar")
+                        2 -> RemmiDestination.pluginRoute("tasks")
+                        3 -> RemmiDestination.SETTINGS_ROUTE
+                        else -> RemmiDestination.HOME_ROUTE
+                    }
+                    onNavigate(route)
+                }
+                setOnCenterActionClickListener {
+                    onOpenDashboard()
+                }
+            }
+        },
+        update = { view ->
+            view.setSelectedIndex(selectedIndex)
+            view.updateColors(
+                navBarColor = navBarColor,
+                centerButtonColor = centerButtonColor,
+                selectedIconColor = selectedIconColor,
+                unselectedIconColor = unselectedIconColor
+            )
+        }
+    )
 }
 
 @Composable
@@ -231,133 +265,47 @@ fun PluginDashboard(
     activePlugins: List<RemmiPlugin>,
     onNavigate: (String) -> Unit
 ) {
-    val groupedPlugins = remember(activePlugins) {
-        activePlugins.groupBy { it.metadata.group }
-    }
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(0.7f) // Don't take full screen
+            .fillMaxHeight(0.85f)
             .padding(horizontal = 24.dp),
-        contentPadding = PaddingValues(top = 8.dp, bottom = 48.dp)
+        contentPadding = PaddingValues(top = 16.dp, bottom = 64.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item {
             Text(
                 text = "Dashboard",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier.padding(bottom = 32.dp)
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
         }
-        groupedPlugins.forEach { (group, plugins) ->
-            item {
+        
+        items(activePlugins, key = { it.metadata.id }) { plugin ->
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = group.uppercase(),
-                    style = MaterialTheme.typography.labelMedium,
+                    text = plugin.metadata.name.uppercase(),
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.2.sp,
-                    modifier = Modifier.padding(vertical = 12.dp)
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 1.5.sp,
+                    modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
                 )
-            }
-            item {
-                PluginGridRowsExpanded(plugins, onPluginClick = { onNavigate(RemmiDestination.pluginRoute(it)) })
-            }
-        }
-    }
-}
-
-@Composable
-fun DockItemIconCompact(
-    selected: Boolean,
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { onClick() }
-            .padding(vertical = 4.dp, horizontal = 12.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.size(26.dp)
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            fontSize = 11.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-        )
-    }
-}
-
-@Composable
-fun PluginGridRowsExpanded(
-    plugins: List<RemmiPlugin>,
-    onPluginClick: (String) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        val rows = plugins.chunked(3)
-        rows.forEach { rowPlugins ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                rowPlugins.forEach { plugin ->
-                    Box(modifier = Modifier.weight(1f)) {
-                        ExpandedPluginItem(plugin, onPluginClick)
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { 
+                            onNavigate(RemmiDestination.pluginRoute(plugin.metadata.id))
+                        }
+                ) {
+                    plugin.widget.Content()
                 }
-                repeat(3 - rowPlugins.size) { Spacer(modifier = Modifier.weight(1f)) }
             }
-            Spacer(Modifier.height(16.dp))
         }
     }
 }
 
-@Composable
-fun ExpandedPluginItem(
-    plugin: RemmiPlugin,
-    onClick: (String) -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick(plugin.metadata.id) }
-            .padding(8.dp)
-    ) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-            modifier = Modifier.size(64.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = getIconForName(plugin.metadata.icon),
-                    contentDescription = plugin.metadata.name,
-                    modifier = Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
-        Text(
-            text = plugin.metadata.name,
-            style = MaterialTheme.typography.labelLarge,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
 
 @Composable
 fun GlobalUIOverlays(runtime: RemmiController, scope: kotlinx.coroutines.CoroutineScope) {
@@ -370,6 +318,7 @@ fun GlobalUIOverlays(runtime: RemmiController, scope: kotlinx.coroutines.Corouti
                 controller = runtime,
                 requestId = data.sourceItemId,
                 initialSearch = data.title,
+                correlationId = data.correlationId,
                 onDismiss = { GlobalUIState.showLocationPicker.value = false }
             )
         }
@@ -380,6 +329,7 @@ fun GlobalUIOverlays(runtime: RemmiController, scope: kotlinx.coroutines.Corouti
             onDismiss = { GlobalUIState.pendingAlarmRequest.value = null },
             onConfirm = { command ->
                 scope.launch {
+                    GlobalUIState.lastConfirmedCorrelationId.value = data.correlationId
                     runtime.eventBus.publishCommand(command)
                     GlobalUIState.pendingAlarmRequest.value = null
                 }
@@ -392,6 +342,7 @@ fun GlobalUIOverlays(runtime: RemmiController, scope: kotlinx.coroutines.Corouti
             onDismiss = { GlobalUIState.pendingTaskRequest.value = null },
             onConfirm = { command ->
                 scope.launch {
+                    GlobalUIState.lastConfirmedCorrelationId.value = data.correlationId
                     runtime.eventBus.publishCommand(command)
                     GlobalUIState.pendingTaskRequest.value = null
                 }

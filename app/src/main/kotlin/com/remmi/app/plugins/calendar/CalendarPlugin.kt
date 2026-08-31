@@ -5,21 +5,8 @@ import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.eventBus.CreationContext
 import com.remmi.app.core.eventBus.EventBus
-import com.remmi.app.core.eventBus.commands.CreateCalendarEventCommand
-import com.remmi.app.core.eventBus.commands.DeleteCalendarEventCommand
-import com.remmi.app.core.eventBus.commands.DeleteDataCommand
-import com.remmi.app.core.eventBus.commands.FetchTodayEventsCommand
-import com.remmi.app.core.eventBus.commands.FetchWeeklyEventsCommand
-import com.remmi.app.core.eventBus.commands.RemmiCommand
-import com.remmi.app.core.eventBus.commands.UpdateCalendarEventCommand
-import com.remmi.app.core.eventBus.commands.UpsertDataCommand
-import com.remmi.app.core.eventBus.events.CalendarEventCreatedEvent
-import com.remmi.app.core.eventBus.events.CalendarEventDeletedEvent
-import com.remmi.app.core.eventBus.events.CalendarEventUpdatedEvent
-import com.remmi.app.core.eventBus.events.LinkedCreationRequest
-import com.remmi.app.core.eventBus.events.RemmiEvent
-import com.remmi.app.core.eventBus.events.TodayEventsFetchedEvent
-import com.remmi.app.core.eventBus.events.WeeklyEventsFetchedEvent
+import com.remmi.app.core.eventBus.commands.*
+import com.remmi.app.core.eventBus.events.*
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.screens.RemmiScreen
@@ -214,7 +201,42 @@ class CalendarPlugin(
      * Handle a system-wide or plugin-specific notification (Fact).
      * */
     override suspend fun onEvent(event: RemmiEvent) {
-        // Calendar might listen for other things in future
+        Log.d("Remmi", "[CalendarPlugin] - Received event: ${event::class.simpleName}")
+        when (event) {
+            is TaskDeletedEvent -> {
+                Log.i("Remmi", "[CalendarPlugin] - Source task ${event.taskId} deleted. Cleaning up linked events...")
+                eventBus.publishCommand(
+                    FetchDataBySourceCommand(
+                        tableName = "calendar",
+                        sourcePlugin = "tasks",
+                        sourceItemId = event.taskId,
+                        serializer = CalendarItem.serializer(),
+                        correlationId = "calendar_plugin_cleanup_${event.taskId}",
+                        causationId = event.eventId,
+                        source = "calendar_plugin"
+                    )
+                )
+            }
+            is DataFetchedEvent<*> -> {
+                if (event.source == "calendar_plugin" && event.correlationId?.startsWith("calendar_plugin_cleanup") == true) {
+                    event.items.forEach { item ->
+                        if (item is CalendarItem) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                actions.eventBus?.publishCommand(
+                                    DeleteCalendarEventCommand(
+                                        eventId = item.id,
+                                        source = "calendar_cleanup",
+                                        correlationId = event.correlationId,
+                                        causationId = event.eventId,
+                                        deletionContext = com.remmi.app.core.eventBus.DeletionContext.LINKED_CLEANUP
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**                                   On Load

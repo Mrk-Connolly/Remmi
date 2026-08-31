@@ -30,34 +30,37 @@ fun RemmiEditorScaffold(
 
     Scaffold(
         bottomBar = {
-            Column {
-                Surface(tonalElevation = 3.dp) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedButton(
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        onClick = {
+                            keyboardController?.hide()
+                            onBack()
+                        }
                     ) {
-                        OutlinedButton(
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                keyboardController?.hide()
-                                onBack()
-                            }
-                        ) {
-                            Text("Back")
-                        }
-                        Button(
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                keyboardController?.hide()
-                                onSave()
-                            },
-                            enabled = saveEnabled
-                        ) {
-                            Text("Save")
-                        }
+                        Text("Cancel")
+                    }
+                    Button(
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        onClick = {
+                            keyboardController?.hide()
+                            onSave()
+                        },
+                        enabled = saveEnabled
+                    ) {
+                        Text("Save")
                     }
                 }
             }
@@ -68,14 +71,14 @@ fun RemmiEditorScaffold(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .imePadding()
-                .padding(horizontal = 16.dp)
-                .padding(top = 4.dp, bottom = 16.dp)
+                .padding(horizontal = 24.dp)
+                .padding(top = 24.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineMedium
+                style = MaterialTheme.typography.headlineLarge
             )
             content()
         }

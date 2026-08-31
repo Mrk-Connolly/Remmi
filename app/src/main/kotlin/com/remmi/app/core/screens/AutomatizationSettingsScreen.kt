@@ -8,7 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -63,16 +63,16 @@ fun AutomatizationSettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Daily Briefing Section
-            Card(
+            com.remmi.app.core.ui.RemmiCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -81,12 +81,13 @@ fun AutomatizationSettingsScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Daily Briefing",
-                                style = MaterialTheme.typography.titleLarge
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                             )
                             Text(
                                 text = "Receive a summary of your day every morning.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
                         }
                         Switch(
@@ -99,28 +100,41 @@ fun AutomatizationSettingsScreen(
                     }
 
                     if (settings.enabled) {
-                        HorizontalDivider()
-                        
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(Icons.Default.Schedule, contentDescription = null)
-                            Spacer(Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Briefing Time",
-                                    style = MaterialTheme.typography.titleMedium
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Schedule, 
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
-                                Text(
-                                    text = "Scheduled for ${settings.hour.toString().padStart(2, '0')}:${settings.minute.toString().padStart(2, '0')}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                            Button(onClick = { showTimePicker = true }) {
-                                Text("Change")
+                                Spacer(Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Briefing Time",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = "Scheduled for ${settings.hour.toString().padStart(2, '0')}:${settings.minute.toString().padStart(2, '0')}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                TextButton(
+                                    onClick = { showTimePicker = true },
+                                    shape = androidx.compose.foundation.shape.CircleShape
+                                ) {
+                                    Text("Edit")
+                                }
                             }
                         }
                     }
@@ -128,24 +142,25 @@ fun AutomatizationSettingsScreen(
             }
 
             // Lock Screen Summary Section
-            Card(
+            com.remmi.app.core.ui.RemmiCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(24.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Lock Screen Summary",
-                            style = MaterialTheme.typography.titleLarge
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
                         Text(
                             text = "Show your weekly schedule and tasks on the lock screen.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
                     Switch(
@@ -164,15 +179,24 @@ fun AutomatizationSettingsScreen(
 
             // Info Card
             Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
-                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                shape = MaterialTheme.shapes.large,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "The briefing includes today's calendar events, pending tasks, weather forecast, and recommendations.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(16.dp)
-                )
+                Row(modifier = Modifier.padding(20.dp)) {
+                    Icon(
+                        Icons.Default.Info, 
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = "The briefing includes today's calendar events, pending tasks, weather forecast, and recommendations.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
             }
         }
     }

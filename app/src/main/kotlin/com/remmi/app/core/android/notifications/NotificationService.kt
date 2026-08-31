@@ -22,4 +22,15 @@ interface NotificationService {
         tag: String? = null,
         ongoing: Boolean = false
     )
+
+    /**                                 Post Live Update
+     * Display a progress-centric notification (Android 16+).
+     */
+    fun postLiveUpdate(
+        title: String,
+        content: String,
+        progress: Int,
+        maxProgress: Int,
+        tag: String?
+    )
 }

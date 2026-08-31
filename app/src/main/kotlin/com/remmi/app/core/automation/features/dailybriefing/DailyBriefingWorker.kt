@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.remmi.app.core.eventBus.commands.RunDailyBriefingCommand
+import com.remmi.app.core.eventBus.commands.RunDatabaseCleanupCommand
 import com.remmi.app.core.host.RemmiHost
 import kotlinx.coroutines.delay
 
@@ -27,9 +28,10 @@ class DailyBriefingWorker(
             val host = RemmiHost(applicationContext)
             host.start()
             
-            // 2. Trigger Briefing Command
-            Log.d("Remmi", "[DailyBriefingWorker] - Publishing RunDailyBriefingCommand")
+            // 2. Trigger Briefing and Cleanup Commands
+            Log.d("Remmi", "[DailyBriefingWorker] - Publishing commands")
             host.runtime.eventBus.publishCommand(RunDailyBriefingCommand())
+            host.runtime.eventBus.publishCommand(RunDatabaseCleanupCommand())
             
             // 3. Give automation engine time to process (gather data and notify)
             // In a more complex system, we might wait for a completion event.

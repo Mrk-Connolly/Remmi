@@ -23,9 +23,20 @@ object GlobalUIState {
     val pendingAlarmRequest = mutableStateOf<LinkedCreationData?>(null)
     val pendingTaskRequest = mutableStateOf<LinkedCreationData?>(null)
     val pendingContactRequest = mutableStateOf<LinkedCreationData?>(null)
+    
+    /** Tracking for successful completion of linked requests */
+    val lastConfirmedCorrelationId = mutableStateOf<String?>(null)
 
     /** Receipt Scan State */
     val pendingReceiptImageRequest = mutableStateOf<ReceiptImageData?>(null)
+
+    /** Appearance State */
+    val themePreference = mutableStateOf(RemmiThemeMode.SYSTEM)
+    val primaryColorHex = mutableStateOf("#6200EE") // Default Purple
+}
+
+enum class RemmiThemeMode {
+    LIGHT, DARK, SYSTEM
 }
 
 /**
