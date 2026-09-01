@@ -1,11 +1,13 @@
 package com.remmi.app.core.android.system
 
+import com.remmi.app.core.eventBus.commands.CommandListener
+
 /**
  * LOCATION SERVICE
  *
  * Interface for standard location operations.
  */
-interface LocationService {
+interface LocationService : CommandListener {
 
     // ----------------------------------------------------------------------------
     //                             INTERFACE FUNCTIONS

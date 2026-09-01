@@ -2,15 +2,18 @@ package com.remmi.app.plugins.gift
 
 import android.util.Log
 import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.GiftIdeaCreatedEvent
 import com.remmi.app.core.eventBus.events.GiftIdeaDeletedEvent
 import com.remmi.app.core.eventBus.events.GiftIdeaUpdatedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
+import com.remmi.app.plugins.gift.models.GiftEvent
+import com.remmi.app.plugins.gift.models.GiftIdea
 import kotlinx.datetime.Instant
 import java.util.UUID
 
 /**
- * Action controller for the Gift plugin.
+ * Action controller for the Gift plugin via EventBus.
  */
 class GiftActions(
     private val repository: GiftRepository,
@@ -44,7 +47,7 @@ class GiftActions(
     // ----------------------------------------------------------------------------
 
     /**                                 Add Gift Idea
-     * Create and insert a new gift idea for a specific contact
+     * Create and insert a new gift idea for a specific contact via command
      * */
     suspend fun addGiftIdea(
         contactId: String,
@@ -68,7 +71,18 @@ class GiftActions(
                 price = price,
                 event = event
             )
-            repository.insert(idea)
+            
+            // 1. Update local cache
+            repository.add(idea)
+            
+            // 2. Persist to cloud
+            eventBus?.publishCommand(
+                UpsertDataCommand(
+                    tableName = "gift_ideas",
+                    item = idea,
+                    serializer = GiftIdea.serializer()
+                )
+            )
 
             // Publish Fact
             Log.i("Remmi", "[GiftActions] - Successfully created gift idea: ${idea.id}. Publishing event...")
@@ -84,13 +98,24 @@ class GiftActions(
     }
 
     /**                                 Update Gift Idea
-     * Update details of an existing gift idea
+     * Update details of an existing gift idea via command
      * */
     suspend fun updateGiftIdea(idea: GiftIdea): Boolean {
         Log.d("Remmi", "[GiftActions] - [updateGiftIdea] executed")
         return try {
-            idea.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-            repository.updateCloud(idea)
+            val updatedIdea = idea.copy(modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()))
+            
+            // 1. Update local cache
+            repository.update(updatedIdea)
+            
+            // 2. Persist to cloud
+            eventBus?.publishCommand(
+                UpsertDataCommand(
+                    tableName = "gift_ideas",
+                    item = updatedIdea,
+                    serializer = GiftIdea.serializer()
+                )
+            )
 
             // Publish Fact
             Log.i("Remmi", "[GiftActions] - Successfully updated gift idea: ${idea.id}. Publishing event...")
@@ -106,12 +131,21 @@ class GiftActions(
     }
 
     /**                                 Delete Gift Idea
-     * Remove a gift idea from the repository by ID
+     * Remove a gift idea from the repository by ID via command
      * */
     suspend fun deleteGiftIdea(id: String): Boolean {
         Log.d("Remmi", "[GiftActions] - [deleteGiftIdea] executed")
         return try {
-            repository.delete(id)
+            // 1. Remove from local cache
+            repository.remove(id)
+            
+            // 2. Persist deletion to cloud
+            eventBus?.publishCommand(
+                DeleteDataCommand(
+                    tableName = "gift_ideas",
+                    itemId = id
+                )
+            )
 
             // Publish Fact
             Log.i("Remmi", "[GiftActions] - Successfully deleted gift idea: $id. Publishing event...")
@@ -126,7 +160,7 @@ class GiftActions(
     }
 
     /**                                 Get Ideas for Contact
-     * Retrieve all gift ideas associated with a specific contact
+     * Retrieve all gift ideas associated with a specific contact from cache
      * */
     fun getGiftIdeasForContact(contactId: String): List<GiftIdea> {
         Log.d("Remmi", "[GiftActions] - [getGiftIdeasForContact] executed")
@@ -134,10 +168,15 @@ class GiftActions(
     }
 
     /**                                 Sync
-     * Synchronize gift ideas with the cloud
+     * Synchronize gift ideas with the cloud via command
      * */
     suspend fun sync() {
         Log.d("Remmi", "[GiftActions] - [sync] executed")
-        repository.sync()
+        eventBus?.publishCommand(
+            FetchAllDataCommand(
+                tableName = "gift_ideas",
+                serializer = GiftIdea.serializer()
+            )
+        )
     }
 }

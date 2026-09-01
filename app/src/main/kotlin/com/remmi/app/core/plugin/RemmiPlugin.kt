@@ -8,8 +8,8 @@ import com.remmi.app.core.plugin.actions.RemmiAction
 import com.remmi.app.core.plugin.model.models.RemmiModel
 import com.remmi.app.core.plugin.repository.RemmiRepository
 import com.remmi.app.core.plugin.model.models.PluginAction
-import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.plugin.widgets.RemmiWidget
+import com.remmi.app.core.plugin.ui.RemmiScreen
+import com.remmi.app.core.plugin.ui.RemmiWidget
 
 /**
  * Interface defining the structure and lifecycle of a Remmi Plugin.

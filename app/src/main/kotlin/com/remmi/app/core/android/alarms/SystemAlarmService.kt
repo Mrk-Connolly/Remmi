@@ -8,6 +8,7 @@ import android.os.Build
 import android.provider.AlarmClock
 import android.util.Log
 import com.remmi.app.core.android.alarms.AlarmService
+import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.plugins.alarm.models.AlarmItem
 import com.remmi.app.plugins.alarm.AlarmReceiver
 import kotlinx.datetime.Instant
@@ -19,6 +20,31 @@ import java.util.Calendar
  * Android-specific implementation for scheduling and managing system alarms.
  */
 class SystemAlarmService(private val context: Context) : AlarmService {
+
+    override suspend fun onCommand(command: RemmiCommand) {
+        when (command) {
+            is SetSystemAlarmCommand -> {
+                Log.i("Remmi", "[SystemAlarmService] - Setting system alarm: ${command.id}")
+                setAlarm(command.id, command.title, command.timeMillis, command.useSound, command.useVibration)
+            }
+            is CancelSystemAlarmCommand -> {
+                Log.i("Remmi", "[SystemAlarmService] - Canceling system alarm: ${command.id}")
+                cancelAlarm(command.id)
+            }
+            is SyncSystemClockCommand -> {
+                Log.i("Remmi", "[SystemAlarmService] - Syncing to system clock: ${command.title}")
+                syncToSystemClock(command.title, command.timeMillis)
+            }
+            is RemoveSystemClockCommand -> {
+                Log.i("Remmi", "[SystemAlarmService] - Removing from system clock: ${command.title}")
+                removeFromSystemClock(command.title, command.timeMillis)
+            }
+            is OpenSystemAlarmAppCommand -> {
+                Log.i("Remmi", "[SystemAlarmService] - Opening system alarm app")
+                openSystemAlarmApp()
+            }
+        }
+    }
 
     override fun setAlarm(id: String, title: String, timeMillis: Long, useSound: Boolean, useVibration: Boolean) {
         val now = System.currentTimeMillis()

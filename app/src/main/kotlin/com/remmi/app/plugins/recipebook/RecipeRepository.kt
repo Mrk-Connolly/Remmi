@@ -1,15 +1,14 @@
 package com.remmi.app.plugins.recipebook
 
 import android.util.Log
-import com.remmi.app.core.plugin.repository.CloudRepository
-import com.remmi.app.core.database.DatabaseService
+import com.remmi.app.core.plugin.repository.MemoryRepository
 import com.remmi.app.plugins.recipebook.models.RecipeItem
 
-class RecipeRepository(databaseService: DatabaseService) : CloudRepository<RecipeItem>(
-    databaseService = databaseService,
-    tableName = "recipes",
-    serializer = RecipeItem.serializer()
-) {
+/**
+ * Repository for managing [RecipeItem] data via in-memory caching.
+ */
+class RecipeRepository : MemoryRepository<RecipeItem>() {
+
     init {
         Log.d("Remmi", "[RecipeRepository] - Constructor initialized")
     }

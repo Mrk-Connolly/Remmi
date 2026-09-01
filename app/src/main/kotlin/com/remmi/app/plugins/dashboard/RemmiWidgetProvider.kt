@@ -10,7 +10,7 @@ import android.util.Log
 import android.widget.RemoteViews
 import com.remmi.app.MainActivity
 import com.remmi.app.R
-import com.remmi.app.RemmiApplication
+import com.remmi.app.ui.RemmiApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

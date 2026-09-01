@@ -5,13 +5,29 @@ import com.remmi.app.core.android.system.WeatherInfo
 import com.remmi.app.core.android.system.WeatherService
 import com.remmi.app.core.android.system.HourlyForecast
 import com.remmi.app.core.android.system.DailyForecast
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.FetchWeatherCommand
+import com.remmi.app.core.eventBus.commands.RemmiCommand
+import com.remmi.app.core.eventBus.events.WeatherFetchedEvent
 
 /**
  * ANDROID WEATHER SERVICE
  *
  * Mock implementation of WeatherService.
  */
-class AndroidWeatherService : WeatherService {
+class AndroidWeatherService(
+    private val eventBus: EventBus
+) : WeatherService {
+
+    override suspend fun onCommand(command: RemmiCommand) {
+        when (command) {
+            is FetchWeatherCommand -> {
+                Log.i("Remmi", "[AndroidWeatherService] - Fetching weather requested")
+                val weather = getTodayWeather()
+                eventBus.publishEvent(WeatherFetchedEvent(weather))
+            }
+        }
+    }
 
     override suspend fun getTodayWeather(): WeatherInfo {
         Log.d("Remmi", "[AndroidWeatherService] - Fetching today's weather (Mock)")

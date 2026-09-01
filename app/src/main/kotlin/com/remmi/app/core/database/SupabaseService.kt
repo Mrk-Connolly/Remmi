@@ -5,22 +5,29 @@ import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
+import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.*
+import com.remmi.app.core.eventBus.events.DataFetchedEvent
 import com.remmi.app.core.plugin.model.models.RemmiModel
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
-object SupabaseService : DatabaseService {
+class SupabaseService(
+    private val eventBus: EventBus
+) : DatabaseService, CommandListener {
 
     // ----------------------------------------------------------------------------
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
-    /** Database Location */
-    private const val SUPABASE_URL = "https://lmgexteedqzchmjdagxn.supabase.co"
+    companion object {
+        /** Database Location */
+        private const val SUPABASE_URL = "https://lmgexteedqzchmjdagxn.supabase.co"
 
-    /** Database Public Key */
-    private const val SUPABASE_ANON_KEY = "sb_publishable_NHFmOe4l9Yhz8nbfZay_pg_fi5j6boy"
+        /** Database Public Key */
+        private const val SUPABASE_ANON_KEY = "sb_publishable_NHFmOe4l9Yhz8nbfZay_pg_fi5j6boy"
+    }
 
     val client = createSupabaseClient(
         supabaseUrl = SUPABASE_URL,
@@ -125,6 +132,71 @@ object SupabaseService : DatabaseService {
         client.postgrest.from(tableName).delete {
             filter {
                 neq("id", "")
+            }
+        }
+    }
+
+    override suspend fun onCommand(command: RemmiCommand) {
+        when (command) {
+            is SaveDataCommand -> {
+                Log.i("Remmi", "[SupabaseService] - Global save requested by ${command.source}")
+            }
+
+            is UpsertDataCommand<*> -> {
+                Log.i("Remmi", "[SupabaseService] - Upserting item into ${command.tableName}")
+                @Suppress("UNCHECKED_CAST")
+                val typedCommand = command as UpsertDataCommand<RemmiModel>
+                update(typedCommand.tableName, typedCommand.item, typedCommand.serializer)
+            }
+
+            is DeleteDataCommand -> {
+                Log.i("Remmi", "[SupabaseService] - Deleting item ${command.itemId} from ${command.tableName}")
+                delete(command.tableName, command.itemId)
+            }
+
+            is FetchDataByIdCommand<*> -> {
+                Log.i("Remmi", "[SupabaseService] - Fetching item ${command.itemId} from ${command.tableName}")
+                @Suppress("UNCHECKED_CAST")
+                val typedCommand = command as FetchDataByIdCommand<RemmiModel>
+                val result = getById(typedCommand.tableName, typedCommand.itemId, typedCommand.serializer)
+                eventBus.publishEvent(
+                    DataFetchedEvent(
+                        items = listOfNotNull(result),
+                        requestId = typedCommand.commandId,
+                        correlationId = typedCommand.correlationId ?: typedCommand.commandId,
+                        causationId = typedCommand.commandId
+                    )
+                )
+            }
+
+            is FetchDataBySourceCommand<*> -> {
+                Log.i("Remmi", "[SupabaseService] - Fetching items for source ${command.sourcePlugin}/${command.sourceItemId} in ${command.tableName}")
+                @Suppress("UNCHECKED_CAST")
+                val typedCommand = command as FetchDataBySourceCommand<RemmiModel>
+                val results = getBySource(typedCommand.tableName, typedCommand.sourcePlugin, typedCommand.sourceItemId, typedCommand.serializer)
+                eventBus.publishEvent(
+                    DataFetchedEvent(
+                        items = results,
+                        requestId = typedCommand.commandId,
+                        correlationId = typedCommand.correlationId ?: typedCommand.commandId,
+                        causationId = typedCommand.commandId
+                    )
+                )
+            }
+
+            is FetchAllDataCommand<*> -> {
+                Log.i("Remmi", "[SupabaseService] - Fetching all items from ${command.tableName}")
+                @Suppress("UNCHECKED_CAST")
+                val typedCommand = command as FetchAllDataCommand<RemmiModel>
+                val results = getAll(typedCommand.tableName, typedCommand.serializer)
+                eventBus.publishEvent(
+                    DataFetchedEvent(
+                        items = results,
+                        requestId = typedCommand.commandId,
+                        correlationId = typedCommand.correlationId ?: typedCommand.commandId,
+                        causationId = typedCommand.commandId
+                    )
+                )
             }
         }
     }

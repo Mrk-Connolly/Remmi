@@ -9,7 +9,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.plugin.PluginMetadata
-import com.remmi.app.core.plugin.widgets.RemmiWidget
+import com.remmi.app.core.plugin.ui.RemmiWidget
+import com.remmi.app.plugins.contacts.models.ContactItem
 
 /**
  * Dashboard widget for favorite contacts.
@@ -26,7 +27,7 @@ class ContactWidget(
     @Composable
     override fun Content() {
         Log.d("Remmi", "[ContactWidget] - [Content] executed")
-        var favorites by remember { mutableStateOf(emptyList<ContactItem>()) }
+        var favorites by remember { mutableStateOf<List<ContactItem>>(emptyList()) }
 
         LaunchedEffect(Unit) {
             favorites = actions.getAllContacts().filter { it.isFavorite }.take(5)

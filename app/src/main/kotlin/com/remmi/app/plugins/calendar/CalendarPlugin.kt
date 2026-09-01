@@ -9,21 +9,20 @@ import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.*
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
-import com.remmi.app.core.screens.RemmiScreen
+import com.remmi.app.core.plugin.ui.RemmiScreen
 import com.remmi.app.plugins.calendar.models.CalendarItem
-import com.remmi.app.core.plugin.widgets.RemmiWidget
-import com.remmi.app.core.database.DatabaseManager
+import com.remmi.app.plugins.calendar.models.CalendarGroup
+import com.remmi.app.core.plugin.ui.RemmiWidget
 import com.remmi.app.plugins.calendar.ui.screens.CalendarScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * The main entry point for the Calendar plugin.
+ * The main entry point for the Calendar plugin via EventBus.
  */
 class CalendarPlugin(
     override val metadata: PluginMetadata,
-    private val databaseManager: DatabaseManager,
     private val eventBus: EventBus
 ) : RemmiPlugin {
 
@@ -33,7 +32,7 @@ class CalendarPlugin(
     // ----------------------------------------------------------------------------
 
     /** Internal storage for initialized components */
-    private val _repository: CalendarRepository = CalendarRepository(databaseManager.service)
+    private val _repository: CalendarRepository = CalendarRepository()
     private val _actions: CalendarActions = CalendarActions(_repository).apply {
         this.eventBus = this@CalendarPlugin.eventBus
     }
@@ -218,6 +217,16 @@ class CalendarPlugin(
                 )
             }
             is DataFetchedEvent<*> -> {
+                handleDataFetched(event)
+            }
+        }
+    }
+
+    private fun handleDataFetched(event: DataFetchedEvent<*>) {
+        if (event.items.isNotEmpty()) {
+            val first = event.items[0]
+            if (first is CalendarItem) {
+                // If it's a cleanup response
                 if (event.source == "calendar_plugin" && event.correlationId?.startsWith("calendar_plugin_cleanup") == true) {
                     event.items.forEach { item ->
                         if (item is CalendarItem) {
@@ -234,7 +243,17 @@ class CalendarPlugin(
                             }
                         }
                     }
+                } else {
+                    // Global sync or fetch
+                    _repository.clear()
+                    @Suppress("UNCHECKED_CAST")
+                    (event.items as List<CalendarItem>).forEach { _repository.add(it) }
+                    Log.d("Remmi", "[CalendarPlugin] - Updated repository with ${event.items.size} events")
                 }
+            } else if (first is CalendarGroup) {
+                @Suppress("UNCHECKED_CAST")
+                _actions.updateGroups(event.items as List<CalendarGroup>)
+                Log.d("Remmi", "[CalendarPlugin] - Updated groups with ${event.items.size} items")
             }
         }
     }
@@ -272,11 +291,19 @@ class CalendarPlugin(
     override suspend fun reformat() {
         Log.d("Remmi", "[CalendarPlugin] - [reformat] executed")
         _repository.clear()
-        // Clear groups as well
-        try {
-            databaseManager.service.clearTable("calendar_groups")
-        } catch (e: Exception) {
-            Log.e("Remmi", "Failed to clear calendar groups", e)
-        }
+        eventBus.publishCommand(
+            DeleteDataCommand(
+                tableName = "calendar",
+                itemId = "all",
+                source = "calendar"
+            )
+        )
+        eventBus.publishCommand(
+            DeleteDataCommand(
+                tableName = "calendar_groups",
+                itemId = "all",
+                source = "calendar"
+            )
+        )
     }
 }

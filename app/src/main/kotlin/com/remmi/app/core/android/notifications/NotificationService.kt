@@ -1,11 +1,13 @@
 package com.remmi.app.core.android.notifications
 
+import com.remmi.app.core.eventBus.commands.CommandListener
+
 /**
  * NOTIFICATION SERVICE
  *
  * Interface for standard notification operations.
  */
-interface NotificationService {
+interface NotificationService : CommandListener {
 
     // ----------------------------------------------------------------------------
     //                             INTERFACE FUNCTIONS

@@ -15,13 +15,11 @@ import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.plugin.model.models.PluginAction
 import com.remmi.app.core.plugin.model.models.RemmiModel
 import com.remmi.app.core.plugin.repository.RemmiRepository
-import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.plugin.widgets.RemmiWidget
+import com.remmi.app.core.plugin.ui.RemmiScreen
+import com.remmi.app.core.plugin.ui.RemmiWidget
 import com.remmi.app.plugins.calendar.models.CalendarItem
 import com.remmi.app.plugins.alarm.models.AlarmItem
-import com.remmi.app.core.database.DatabaseManager
-import com.remmi.app.core.android.services.AndroidServiceManager
-import com.remmi.app.plugins.alarm.screens.AlarmScreen
+import com.remmi.app.plugins.alarm.ui.screens.AlarmScreen
 import com.remmi.app.core.controller.GlobalUIState
 import com.remmi.app.core.controller.LinkedCreationData
 import kotlinx.coroutines.CoroutineScope
@@ -38,8 +36,6 @@ import kotlinx.datetime.toInstant
  */
 class AlarmPlugin(
     override val metadata: PluginMetadata,
-    private val databaseManager: DatabaseManager,
-    private val androidManager: AndroidServiceManager,
     private val eventBus: EventBus
 ) : RemmiPlugin {
 
@@ -49,10 +45,9 @@ class AlarmPlugin(
     // ----------------------------------------------------------------------------
 
     /** Internal storage for initialized components */
-    private val _repository: AlarmRepository = AlarmRepository(databaseManager.service)
+    private val _repository: AlarmRepository = AlarmRepository()
     private val _actions: AlarmActions = AlarmActions(_repository).apply {
         this.eventBus = this@AlarmPlugin.eventBus
-        this.alarmService = androidManager.alarmService
     }
 
     /** Repository for persistent alarm data. */

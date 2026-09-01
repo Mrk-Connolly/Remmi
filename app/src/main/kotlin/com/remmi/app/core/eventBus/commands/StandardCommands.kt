@@ -124,6 +124,65 @@ data class FetchAllDataCommand<T : RemmiModel>(
 ) : RemmiCommand
 
 // ----------------------------------------------------------------------------
+//                               ANDROID SYSTEM COMMANDS
+// ----------------------------------------------------------------------------
+
+data class SetSystemAlarmCommand(
+    val id: String,
+    val title: String,
+    val timeMillis: Long,
+    val useSound: Boolean = true,
+    val useVibration: Boolean = true,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+data class CancelSystemAlarmCommand(
+    val id: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+data class SyncSystemClockCommand(
+    val title: String,
+    val timeMillis: Long,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+data class RemoveSystemClockCommand(
+    val title: String,
+    val timeMillis: Long,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+data class OpenSystemAlarmAppCommand(
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+// ----------------------------------------------------------------------------
 //                               AUTOMATION COMMANDS
 // ----------------------------------------------------------------------------
 

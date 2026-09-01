@@ -1,28 +1,15 @@
 package com.remmi.app.plugins.contacts
 
 import android.util.Log
-import com.remmi.app.core.plugin.repository.CloudRepository
-import com.remmi.app.core.database.DatabaseService
+import com.remmi.app.core.plugin.repository.MemoryRepository
+import com.remmi.app.plugins.contacts.models.ContactItem
 
 /**
- * Repository for managing [ContactItem] data.
+ * Repository for managing [ContactItem] data via in-memory caching.
  */
-class ContactRepository(databaseService: DatabaseService) : CloudRepository<ContactItem>(
-    databaseService = databaseService,
-    tableName = "contacts",
-    serializer = ContactItem.serializer()
-) {
+class ContactRepository : MemoryRepository<ContactItem>() {
 
-
-    // ----------------------------------------------------------------------------
-    //                                 CONSTRUCTOR
-    // ----------------------------------------------------------------------------
-
-    /**
-     * Constructor for Contact Repository
-     * */
     init {
         Log.d("Remmi", "[ContactRepository] - Constructor initialized")
     }
-
 }

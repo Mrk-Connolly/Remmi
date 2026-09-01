@@ -1,14 +1,15 @@
 package com.remmi.app.plugins.maps
 
-import com.remmi.app.core.database.DatabaseService
-import com.remmi.app.core.plugin.repository.CloudRepository
+import android.util.Log
+import com.remmi.app.core.plugin.repository.MemoryRepository
 import com.remmi.app.plugins.maps.models.SavedLocation
 
 /**
- * Repository for managing Map data.
+ * Repository for managing [SavedLocation] data via in-memory caching.
  */
-class MapsRepository(databaseService: DatabaseService) : CloudRepository<SavedLocation>(
-    databaseService = databaseService,
-    tableName = "saved_locations",
-    serializer = SavedLocation.serializer()
-)
+class MapsRepository : MemoryRepository<SavedLocation>() {
+
+    init {
+        Log.d("Remmi", "[MapsRepository] - Constructor initialized")
+    }
+}

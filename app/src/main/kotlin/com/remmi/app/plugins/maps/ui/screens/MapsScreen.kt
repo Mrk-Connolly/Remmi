@@ -6,7 +6,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.plugin.screens.RemmiMainScreen
+import com.remmi.app.ui.components.RemmiHomeScreen
+import com.remmi.app.ui.components.RemmiCard
 import com.remmi.app.plugins.maps.MapsActions
 import kotlinx.coroutines.flow.filterIsInstance
 import org.maplibre.compose.camera.CameraPosition
@@ -41,13 +42,12 @@ fun MapsScreen(
             }
     }
 
-    RemmiMainScreen(
+    RemmiHomeScreen(
         title = "Map View"
     ) { padding ->
-        com.remmi.app.core.ui.RemmiCard(
+        RemmiCard(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .padding(24.dp)
         ) {
             MaplibreMap(

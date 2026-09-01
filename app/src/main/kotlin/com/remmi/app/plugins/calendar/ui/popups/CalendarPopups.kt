@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,13 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.remmi.app.core.screens.components.RemmiColorPicker
-import com.remmi.app.plugins.calendar.models.CalendarGroup
+import com.remmi.app.ui.popups.RemmiColorPicker
 
-import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Person
-import com.remmi.app.core.screens.components.RemmiColorPicker
 
 /**
  * Dialog for creating a new calendar group with a name and color picker.

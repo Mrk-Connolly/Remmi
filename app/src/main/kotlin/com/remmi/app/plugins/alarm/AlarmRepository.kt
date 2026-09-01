@@ -2,30 +2,16 @@ package com.remmi.app.plugins.alarm
 
 import android.util.Log
 import com.remmi.app.plugins.alarm.models.AlarmItem
-import com.remmi.app.core.plugin.repository.CloudRepository
-import com.remmi.app.core.database.DatabaseService
+import com.remmi.app.core.plugin.repository.MemoryRepository
 
 /**
  * Repository for managing [AlarmItem] data.
  *
- * Persists alarms in the cloud and provides local caching.
+ * Provides local in-memory caching for alarms.
  */
-class AlarmRepository(databaseService: DatabaseService) : CloudRepository<AlarmItem>(
-    databaseService = databaseService,
-    tableName = "alarms",
-    serializer = AlarmItem.serializer()
-) {
+class AlarmRepository : MemoryRepository<AlarmItem>() {
 
-
-    // ----------------------------------------------------------------------------
-    //                                 CONSTRUCTOR
-    // ----------------------------------------------------------------------------
-
-    /**
-     * Constructor for Alarm Repository
-     * */
     init {
         Log.d("Remmi", "[AlarmRepository] - Constructor initialized")
     }
-
 }

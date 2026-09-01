@@ -11,11 +11,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.plugin.PluginMetadata
-import com.remmi.app.core.plugin.widgets.RemmiWidget
+import com.remmi.app.core.plugin.ui.RemmiWidget
+import com.remmi.app.plugins.calendar.CalendarActions
 import com.remmi.app.plugins.calendar.models.CalendarItem
-import com.remmi.app.core.ui.RemmiCard
-import com.remmi.app.core.eventBus.events.RemmiEvent
-import com.remmi.app.core.eventBus.commands.RemmiCommand
+import com.remmi.app.ui.components.RemmiCard
 
 /**
  * Dashboard widget for the Calendar plugin.
@@ -38,18 +37,18 @@ class CalendarWidget(
             todayEvents = calendarActions.getTodayEvents()
         }
 
-        com.remmi.app.core.ui.RemmiCard(
+        RemmiCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Row(
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            androidx.compose.material.icons.Icons.Default.CalendarMonth,
+                            Icons.Default.CalendarMonth,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
@@ -60,30 +59,34 @@ class CalendarWidget(
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
-                    
+
                     IconButton(
-                        onClick = { 
+                        onClick = {
                             // This usually triggers navigation to the calendar screen with editor open
                             // For now, we'll assume the dashboard container handles the navigation via the box clickable
                             // but we can also emit a specific command if needed.
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Event", tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Add Event",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
                 Spacer(Modifier.height(16.dp))
 
                 if (todayEvents.isEmpty()) {
                     Text(
-                        "Nothing scheduled for today.", 
+                        "Nothing scheduled for today.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         todayEvents.forEach { event ->
-                            Row(verticalAlignment = androidx.compose.ui.Alignment.Top) {
+                            Row(verticalAlignment = Alignment.Top) {
                                 Text("•", color = MaterialTheme.colorScheme.primary)
                                 Spacer(Modifier.width(8.dp))
                                 Text(event.title, style = MaterialTheme.typography.bodyLarge)

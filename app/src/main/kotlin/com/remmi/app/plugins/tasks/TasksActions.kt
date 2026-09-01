@@ -4,6 +4,7 @@ import android.util.Log
 import com.remmi.app.core.eventBus.CreationContext
 import com.remmi.app.core.eventBus.DeletionContext
 import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.TaskCreatedEvent
 import com.remmi.app.core.eventBus.events.TaskDeletedEvent
 import com.remmi.app.core.eventBus.events.TaskUpdatedEvent
@@ -14,7 +15,7 @@ import kotlinx.datetime.*
 import java.util.UUID
 
 /**
- * Action controller for the Tasks plugin.
+ * Action controller for the Tasks plugin via EventBus.
  */
 class TasksActions(
     private val repository: TasksRepository,
@@ -93,8 +94,19 @@ class TasksActions(
                 sourceItemId = sourceItemId
             )
 
-            repository.insert(task)
-            Log.d(TAG, "Task created successfully")
+            // 1. Update local cache
+            repository.add(task)
+            
+            // 2. Persist to cloud
+            eventBus?.publishCommand(
+                UpsertDataCommand(
+                    tableName = "tasks",
+                    item = task,
+                    serializer = TaskItem.serializer(),
+                    correlationId = correlationId,
+                    causationId = causationId
+                )
+            )
 
             // Publish Fact
             Log.i("Remmi", "[TasksActions] - Successfully created task: ${task.id}. Publishing event...")
@@ -122,13 +134,24 @@ class TasksActions(
     suspend fun updateTask(task: TaskItem): Boolean {
         Log.d("Remmi", "[TasksActions] - [updateTask] executed")
         return try {
-            task.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-            repository.updateCloud(task)
+            val updatedTask = task.copy(modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()))
+            
+            // 1. Update local cache
+            repository.update(updatedTask)
+            
+            // 2. Persist to cloud
+            eventBus?.publishCommand(
+                UpsertDataCommand(
+                    tableName = "tasks",
+                    item = updatedTask,
+                    serializer = TaskItem.serializer()
+                )
+            )
 
             // Publish Fact
-            Log.i("Remmi", "[TasksActions] - Successfully updated task: ${task.id}. Publishing event...")
+            Log.i("Remmi", "[TasksActions] - Successfully updated task: ${updatedTask.id}. Publishing event...")
             eventBus?.publishEvent(
-                TaskUpdatedEvent(taskId = task.id)
+                TaskUpdatedEvent(taskId = updatedTask.id)
             )
 
             true
@@ -149,7 +172,18 @@ class TasksActions(
     ): Boolean {
         Log.d("Remmi", "[TasksActions] - [deleteTask] executed")
         return try {
-            repository.delete(id)
+            // 1. Remove from local cache
+            repository.remove(id)
+            
+            // 2. Persist to cloud
+            eventBus?.publishCommand(
+                DeleteDataCommand(
+                    tableName = "tasks",
+                    itemId = id,
+                    correlationId = correlationId,
+                    causationId = causationId
+                )
+            )
 
             // Publish Fact
             Log.i("Remmi", "[TasksActions] - Successfully deleted task: $id. Publishing event...")
@@ -230,7 +264,7 @@ class TasksActions(
     }
 
     /**                                 Cleanup Finished
-     * Remove tasks that were completed before today.
+     * Remove tasks that were completed before today via commands.
      * */
     suspend fun cleanupOldFinishedTasks() {
         Log.d("Remmi", "[TasksActions] - [cleanupOldFinishedTasks] executed")
@@ -243,8 +277,7 @@ class TasksActions(
         
         tasksToDelete.forEach { task ->
             Log.d(TAG, "Cleaning up old finished task: ${task.id}")
-            repository.delete(task.id)
-            eventBus?.publishEvent(TaskDeletedEvent(taskId = task.id, source = "tasks_cleanup"))
+            deleteTask(task.id)
         }
     }
 
@@ -257,15 +290,16 @@ class TasksActions(
     }
 
     /**                                 Sync
-     * Synchronize tasks with the cloud
+     * Synchronize tasks with the cloud via command.
      * */
     suspend fun sync() {
         Log.d("Remmi", "[TasksActions] - [sync] executed")
-        try {
-            repository.sync()
-        } catch (e: Exception) {
-            Log.e(TAG, "Sync failed")
-        }
+        eventBus?.publishCommand(
+            FetchAllDataCommand(
+                tableName = "tasks",
+                serializer = TaskItem.serializer()
+            )
+        )
     }
 
     /**                                 Get Today
@@ -297,7 +331,7 @@ class TasksActions(
      * Retrieve high priority tasks due in the current month
      * */
     suspend fun getHighPriorityTasksOfMonth(): List<TaskItem> {
-        Log.d("Remmi", "[TasksActions] - [getHighPriorityTasksOfMonth] executed")
+        Log.d("Remmi", "[HighPriorityTasksOfMonth] - [getHighPriorityTasksOfMonth] executed")
         val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault())
         return repository.getAll().filter { 
             it.isPriority && 

@@ -8,6 +8,9 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.remmi.app.R
 import com.remmi.app.core.android.notifications.NotificationService
+import com.remmi.app.core.eventBus.commands.PostLiveUpdateCommand
+import com.remmi.app.core.eventBus.commands.PostNotificationCommand
+import com.remmi.app.core.eventBus.commands.RemmiCommand
 
 /**
  * SYSTEM NOTIFICATION SERVICE
@@ -15,6 +18,32 @@ import com.remmi.app.core.android.notifications.NotificationService
  * Android-specific implementation for posting system notifications.
  */
 class SystemNotificationService(private val context: Context) : NotificationService {
+
+    override suspend fun onCommand(command: RemmiCommand) {
+        when (command) {
+            is PostNotificationCommand -> {
+                Log.i("Remmi", "[SystemNotificationService] - Posting notification: ${command.title}")
+                postNotification(
+                    title = command.title,
+                    content = command.content,
+                    useSound = command.useSound,
+                    useVibration = command.useVibration,
+                    tag = command.tag,
+                    ongoing = command.ongoing
+                )
+            }
+            is PostLiveUpdateCommand -> {
+                Log.i("Remmi", "[SystemNotificationService] - Posting live update: ${command.title}")
+                postLiveUpdate(
+                    title = command.title,
+                    content = command.content,
+                    progress = command.progress,
+                    maxProgress = command.maxProgress,
+                    tag = command.tag
+                )
+            }
+        }
+    }
 
     override fun postNotification(
         title: String,

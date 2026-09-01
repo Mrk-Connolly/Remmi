@@ -1,9 +1,10 @@
 package com.remmi.app.core.database
 
+import com.remmi.app.core.eventBus.commands.CommandListener
 import com.remmi.app.core.plugin.model.models.RemmiModel
 import kotlinx.serialization.KSerializer
 
-interface DatabaseService {
+interface DatabaseService : CommandListener {
 
     // ----------------------------------------------------------------------------
     //                             INTERFACE FUNCTIONS

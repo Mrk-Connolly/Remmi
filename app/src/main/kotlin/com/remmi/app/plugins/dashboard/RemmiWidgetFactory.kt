@@ -7,7 +7,7 @@ import android.util.Log
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import com.remmi.app.R
-import com.remmi.app.RemmiApplication
+import com.remmi.app.ui.RemmiApplication
 import com.remmi.app.plugins.calendar.models.CalendarItem
 import com.remmi.app.plugins.calendar.CalendarPlugin
 import com.remmi.app.plugins.tasks.models.TaskItem

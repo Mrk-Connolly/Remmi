@@ -7,13 +7,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,15 +26,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.plugin.screens.RemmiMainScreen
-import com.remmi.app.core.ui.DesignTokens
+import com.remmi.app.ui.components.RemmiHomeScreen
+import com.remmi.app.ui.DesignTokens
+import com.remmi.app.ui.components.RemmiCard
 import com.remmi.app.plugins.calendar.CalendarActions
 import com.remmi.app.plugins.calendar.models.CalendarGroup
 import com.remmi.app.plugins.calendar.models.CalendarItem
@@ -45,7 +42,6 @@ import io.github.boguszpawlowski.composecalendar.SelectableCalendar
 import io.github.boguszpawlowski.composecalendar.header.MonthState
 import io.github.boguszpawlowski.composecalendar.rememberSelectableCalendarState
 import io.github.boguszpawlowski.composecalendar.selection.DynamicSelectionState
-import io.github.boguszpawlowski.composecalendar.selection.SelectionMode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
@@ -130,7 +126,7 @@ fun CalendarScreen(
             }
         )
     } else {
-        RemmiMainScreen(
+        RemmiHomeScreen(
             title = "Calendar",
             floatingActionButton = {
                 CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
@@ -550,15 +546,15 @@ fun DateHeader(date: LocalDate, isToday: Boolean, isActive: Boolean) {
 @Composable
 fun EventRow(event: CalendarItem, groupColor: Color, isHighlighted: Boolean, onClick: () -> Unit) {
     val scale by animateFloatAsState(if (isHighlighted) 1f else 0.98f, label = "scale")
-    
-    com.remmi.app.core.ui.RemmiCard(
+
+    RemmiCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 6.dp)
             .scale(scale),
-        containerColor = if (isHighlighted) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) 
-                        else MaterialTheme.colorScheme.surface
+        containerColor = if (isHighlighted) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        else MaterialTheme.colorScheme.surface
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -572,7 +568,7 @@ fun EventRow(event: CalendarItem, groupColor: Color, isHighlighted: Boolean, onC
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        
+
                         // Priority Icon (Right of title)
                         if (event.isPriority) {
                             Surface(
@@ -608,12 +604,12 @@ fun EventRow(event: CalendarItem, groupColor: Color, isHighlighted: Boolean, onC
                             }
                         }
                     }
-                    
+
                     if (event.startingTime != null) {
                         val start = event.startingTime.toString().substring(0, 5)
                         val end = event.endingTime?.toString()?.substring(0, 5)
                         val timeStr = if (end != null) "$start - $end" else start
-                        
+
                         Text(
                             text = timeStr,
                             style = MaterialTheme.typography.bodySmall,

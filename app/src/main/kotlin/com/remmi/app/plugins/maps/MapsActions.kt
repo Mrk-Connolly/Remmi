@@ -2,15 +2,15 @@ package com.remmi.app.plugins.maps
 
 import android.util.Log
 import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.LocationPickedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
 import com.remmi.app.plugins.maps.models.SavedLocation
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import java.util.UUID
 
 /**
- * Actions for the Maps plugin.
+ * Actions for the Maps plugin via EventBus.
  */
 class MapsActions(
     private val repository: MapsRepository,
@@ -41,12 +41,33 @@ class MapsActions(
             longitude = lon,
             linkedCalendarEvent = linkedCalendarEvent
         )
+        
+        // 1. Update local cache
         repository.add(loc)
+        
+        // 2. Persist to cloud
+        eventBus?.publishCommand(
+            UpsertDataCommand(
+                tableName = "saved_locations",
+                item = loc,
+                serializer = SavedLocation.serializer()
+            )
+        )
+        
         return loc
     }
     
     suspend fun deleteLocation(id: String) {
+        // 1. Remove from local cache
         repository.remove(id)
+        
+        // 2. Persist deletion to cloud
+        eventBus?.publishCommand(
+            DeleteDataCommand(
+                tableName = "saved_locations",
+                itemId = id
+            )
+        )
     }
 
     suspend fun notifyLocationPicked(requestId: String, name: String, address: String?, lat: Double?, lon: Double?) {
@@ -63,6 +84,11 @@ class MapsActions(
     }
 
     suspend fun sync() {
-        repository.sync()
+        eventBus?.publishCommand(
+            FetchAllDataCommand(
+                tableName = "saved_locations",
+                serializer = SavedLocation.serializer()
+            )
+        )
     }
 }

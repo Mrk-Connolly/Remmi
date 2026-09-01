@@ -9,7 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.plugin.PluginMetadata
-import com.remmi.app.core.plugin.widgets.RemmiWidget
+import com.remmi.app.core.plugin.ui.RemmiWidget
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 

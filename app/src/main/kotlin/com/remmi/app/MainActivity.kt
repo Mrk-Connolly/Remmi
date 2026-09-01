@@ -8,8 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 
 import com.remmi.app.core.host.RemmiHost
-import com.remmi.app.core.screens.RemmiApp
-import com.remmi.app.RemmiApplication
+import com.remmi.app.ui.RemmiApp
+import com.remmi.app.ui.RemmiApplication
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {

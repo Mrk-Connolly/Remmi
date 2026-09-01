@@ -17,7 +17,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.remmi.app.core.ui.navigation.CurvedBottomNavigationView
+    <com.remmi.app.ui.components.appNavigation.CurvedBottomNavigationView
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
         android:layout_height="100dp"

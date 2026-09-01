@@ -2,7 +2,7 @@ package com.remmi.app.plugins.calendar
 
 import android.util.Log
 import com.remmi.app.core.eventBus.*
-import com.remmi.app.core.eventBus.commands.UpsertDataCommand
+import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.CalendarEventCreatedEvent
 import com.remmi.app.core.eventBus.events.CalendarEventDeletedEvent
 import com.remmi.app.core.eventBus.events.CalendarEventUpdatedEvent
@@ -14,7 +14,7 @@ import kotlinx.datetime.*
 import java.util.UUID
 
 /**
- * Action controller for the Calendar plugin.
+ * Action controller for the Calendar plugin via EventBus.
  */
 class CalendarActions(
     private val repository: CalendarRepository,
@@ -54,7 +54,7 @@ class CalendarActions(
     // ----------------------------------------------------------------------------
 
     /**                                 Add Event
-     * Create and insert a new calendar event
+     * Create and insert a new calendar event via commands
      * */
     suspend fun addEvent(
         id: String = UUID.randomUUID().toString(),
@@ -104,8 +104,20 @@ class CalendarActions(
                 createLocation = createLocation,
                 createContact = createContact
             )
-            repository.insert(item)
-            Log.d(TAG, "Event inserted successfully")
+            
+            // 1. Update local cache
+            repository.add(item)
+            
+            // 2. Persist to cloud
+            eventBus?.publishCommand(
+                UpsertDataCommand(
+                    tableName = "calendar",
+                    item = item,
+                    serializer = CalendarItem.serializer(),
+                    correlationId = correlationId,
+                    causationId = causationId
+                )
+            )
 
             // Publish Fact
             Log.i("Remmi", "[CalendarActions] - Successfully created event: ${item.id}. Publishing event...")
@@ -133,7 +145,7 @@ class CalendarActions(
     }
 
     /**                                 Remove Event
-     * Delete an event by ID
+     * Delete an event by ID via commands
      * */
     suspend fun removeEvent(
         id: String,
@@ -143,7 +155,18 @@ class CalendarActions(
     ): Boolean {
         Log.d("Remmi", "[CalendarActions] - [removeEvent] executed")
         return try {
-            repository.delete(id)
+            // 1. Remove from local cache
+            repository.remove(id)
+            
+            // 2. Persist deletion to cloud
+            eventBus?.publishCommand(
+                DeleteDataCommand(
+                    tableName = "calendar",
+                    itemId = id,
+                    correlationId = correlationId,
+                    causationId = causationId
+                )
+            )
 
             // Publish Fact
             Log.i("Remmi", "[CalendarActions] - Successfully deleted event: $id. Publishing event...")
@@ -164,7 +187,7 @@ class CalendarActions(
     }
 
     /**                                 Update Event
-     * Update event details
+     * Update event details via commands
      * */
     suspend fun updateEvent(
         event: CalendarItem,
@@ -173,8 +196,21 @@ class CalendarActions(
     ): Boolean {
         Log.d("Remmi", "[CalendarActions] - [updateEvent] executed")
         return try {
-            event.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-            repository.updateCloud(event)
+            val updatedEvent = event.copy(modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()))
+            
+            // 1. Update local cache
+            repository.update(updatedEvent)
+            
+            // 2. Persist to cloud
+            eventBus?.publishCommand(
+                UpsertDataCommand(
+                    tableName = "calendar",
+                    item = updatedEvent,
+                    serializer = CalendarItem.serializer(),
+                    correlationId = correlationId,
+                    causationId = causationId
+                )
+            )
 
             // Publish Fact
             Log.i("Remmi", "[CalendarActions] - Successfully updated event: ${event.id}. Publishing event...")
@@ -194,7 +230,7 @@ class CalendarActions(
     }
 
     /**                                 Get All
-     * Retrieve all calendar events
+     * Retrieve all calendar events from local cache
      * */
     suspend fun getAllEvents(): List<CalendarItem> {
         Log.d("Remmi", "[CalendarActions] - [getAllEvents] executed")
@@ -207,7 +243,7 @@ class CalendarActions(
     }
 
     /**                                 Get Event
-     * Retrieve a specific event by ID
+     * Retrieve a specific event by ID from local cache
      * */
     suspend fun getEvent(id: String): CalendarItem? {
         Log.d("Remmi", "[CalendarActions] - [getEvent] executed")
@@ -215,12 +251,24 @@ class CalendarActions(
     }
 
     /**                                 Sync
-     * Synchronize events with the cloud
+     * Synchronize events with the cloud via command
      * */
     suspend fun sync(): Boolean {
         Log.d("Remmi", "[CalendarActions] - [sync] executed")
         return try {
-            repository.sync()
+            eventBus?.publishCommand(
+                FetchAllDataCommand(
+                    tableName = "calendar",
+                    serializer = CalendarItem.serializer()
+                )
+            )
+            // Also sync groups
+            eventBus?.publishCommand(
+                FetchAllDataCommand(
+                    tableName = "calendar_groups",
+                    serializer = CalendarGroup.serializer()
+                )
+            )
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to synchronize calendar", e)
@@ -229,7 +277,7 @@ class CalendarActions(
     }
 
     /**                                 Get Events On
-     * Retrieve all events for a specific date
+     * Retrieve all events for a specific date from cache
      * */
     suspend fun getEventsOn(date: LocalDate): List<CalendarItem> {
         Log.d("Remmi", "[CalendarActions] - [getEventsOn] executed")
@@ -242,7 +290,7 @@ class CalendarActions(
     }
 
     /**                                 Get Upcoming
-     * Retrieve all upcoming events sorted by date
+     * Retrieve all upcoming events sorted by date from cache
      * */
     suspend fun getUpcomingEvents(): List<CalendarItem> {
         Log.d("Remmi", "[CalendarActions] - [getUpcomingEvents] executed")
@@ -256,7 +304,7 @@ class CalendarActions(
     }
 
     /**                                 Get Today
-     * Retrieve all events scheduled for today
+     * Retrieve all events scheduled for today from cache
      * */
     suspend fun getTodayEvents(): List<CalendarItem> {
         Log.d("Remmi", "[CalendarActions] - [getTodayEvents] executed")
@@ -265,7 +313,7 @@ class CalendarActions(
     }
 
     /**                                 Get Weekly
-     * Retrieve all events for the next 7 days
+     * Retrieve all events for the next 7 days from cache
      * */
     suspend fun getWeeklyEvents(): List<CalendarItem> {
         Log.d("Remmi", "[CalendarActions] - [getWeeklyEvents] executed")
@@ -279,28 +327,27 @@ class CalendarActions(
      * */
     suspend fun getAllGroups(): List<String> {
         Log.d("Remmi", "[CalendarActions] - [getAllGroups] executed")
-        return getCalendarGroups().map { it.name }.distinct().sorted()
+        return _cachedGroups.map { it.name }.distinct().sorted()
     }
 
     /**                                 Get Calendar Groups
-     * Retrieve all calendar groups with their colors
+     * Retrieve all calendar groups from internal cache
      * */
-    suspend fun getCalendarGroups(): List<CalendarGroup> {
+    fun getCalendarGroups(): List<CalendarGroup> {
         Log.d("Remmi", "[CalendarActions] - [getCalendarGroups] executed")
-        return try {
-            // For now, we use a simple fetch through the repository's database service
-            // but normally this should be a separate repository if it grows.
-            // Following the contract, we use the EventBus for persistence,
-            // but for reading we might need a sync mechanism.
-            repository.databaseService.getAll("calendar_groups", CalendarGroup.serializer())
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to retrieve calendar groups", e)
-            emptyList()
-        }
+        return _cachedGroups.toList()
+    }
+
+    /**                                 Update Groups
+     * Update the internal groups cache (called by plugin when DataFetchedEvent arrives)
+     */
+    fun updateGroups(groups: List<CalendarGroup>) {
+        _cachedGroups.clear()
+        _cachedGroups.addAll(groups)
     }
 
     /**                                 Add Calendar Group
-     * Create and insert a new calendar group
+     * Create and insert a new calendar group via command
      * */
     suspend fun addCalendarGroup(name: String, colorHex: String): String? {
         Log.d("Remmi", "[CalendarActions] - [addCalendarGroup] executed")

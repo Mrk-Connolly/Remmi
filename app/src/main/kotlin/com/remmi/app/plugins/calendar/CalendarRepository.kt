@@ -1,29 +1,15 @@
 package com.remmi.app.plugins.calendar
 
 import android.util.Log
-import com.remmi.app.core.plugin.repository.CloudRepository
-import com.remmi.app.core.database.DatabaseService
+import com.remmi.app.core.plugin.repository.MemoryRepository
 import com.remmi.app.plugins.calendar.models.CalendarItem
 import kotlinx.datetime.*
 
 /**
- * Repository implementation for managing [CalendarItem] data.
+ * Repository implementation for managing [CalendarItem] data via memory caching.
  */
-class CalendarRepository (databaseService: DatabaseService) : CloudRepository<CalendarItem>(
-    databaseService = databaseService,
-    tableName = "calendar",
-    serializer = CalendarItem.serializer()
-) {
+class CalendarRepository : MemoryRepository<CalendarItem>() {
 
-
-    // ----------------------------------------------------------------------------
-    //                                 CONSTRUCTOR
-    // ----------------------------------------------------------------------------
-
-    /**
-     * Constructor for Calendar Repository
-     * Initializes with sample data for demonstration
-     * */
     init {
         Log.d("Remmi", "[CalendarRepository] - Constructor initialized")
         val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
@@ -50,5 +36,4 @@ class CalendarRepository (databaseService: DatabaseService) : CloudRepository<Ca
             )
         )
     }
-
 }

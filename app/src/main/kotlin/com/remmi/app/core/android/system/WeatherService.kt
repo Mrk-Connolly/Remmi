@@ -1,11 +1,13 @@
 package com.remmi.app.core.android.system
 
+import com.remmi.app.core.eventBus.commands.CommandListener
+
 /**
  * WEATHER SERVICE
  *
  * Interface for fetching weather information.
  */
-interface WeatherService {
+interface WeatherService : CommandListener {
 
     /**                                 Get Today Weather
      * Retrieve the weather forecast for the current day.

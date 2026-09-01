@@ -2,15 +2,17 @@ package com.remmi.app.plugins.contacts
 
 import android.util.Log
 import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.ContactCreatedEvent
 import com.remmi.app.core.eventBus.events.ContactDeletedEvent
 import com.remmi.app.core.eventBus.events.ContactUpdatedEvent
 import com.remmi.app.core.plugin.actions.RemmiAction
+import com.remmi.app.plugins.contacts.models.ContactItem
 import kotlinx.datetime.Instant
 import java.util.UUID
 
 /**
- * Action controller for the Contacts plugin.
+ * Action controller for the Contacts plugin via EventBus.
  */
 class ContactActions(
     private val repository: ContactRepository,
@@ -44,7 +46,7 @@ class ContactActions(
     // ----------------------------------------------------------------------------
 
     /**                                 Create Contact
-     * Create and insert a new contact
+     * Create and insert a new contact via commands
      * */
     suspend fun createContact(
         name: String,
@@ -74,7 +76,18 @@ class ContactActions(
                 isFavorite = isFavorite,
                 inGiftList = inGiftList
             )
-            repository.insert(contact)
+            
+            // 1. Update local cache
+            repository.add(contact)
+            
+            // 2. Persist to cloud
+            eventBus?.publishCommand(
+                UpsertDataCommand(
+                    tableName = "contacts",
+                    item = contact,
+                    serializer = ContactItem.serializer()
+                )
+            )
 
             // Publish Fact
             Log.i("Remmi", "[ContactActions] - Successfully created contact: ${contact.id}. Publishing event...")
@@ -90,13 +103,24 @@ class ContactActions(
     }
 
     /**                                 Update Contact
-     * Update contact details in the repository
+     * Update contact details via commands
      * */
     suspend fun updateContact(contact: ContactItem): Boolean {
         Log.d("Remmi", "[ContactActions] - [updateContact] executed")
         return try {
-            contact.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-            repository.updateCloud(contact)
+            val updatedContact = contact.copy(modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()))
+            
+            // 1. Update local cache
+            repository.update(updatedContact)
+            
+            // 2. Persist to cloud
+            eventBus?.publishCommand(
+                UpsertDataCommand(
+                    tableName = "contacts",
+                    item = updatedContact,
+                    serializer = ContactItem.serializer()
+                )
+            )
 
             // Publish Fact
             Log.i("Remmi", "[ContactActions] - Successfully updated contact: ${contact.id}. Publishing event...")
@@ -112,12 +136,21 @@ class ContactActions(
     }
 
     /**                                 Delete Contact
-     * Delete a contact by ID
+     * Delete a contact by ID via commands
      * */
     suspend fun deleteContact(id: String): Boolean {
         Log.d("Remmi", "[ContactActions] - [deleteContact] executed")
         return try {
-            repository.delete(id)
+            // 1. Remove from local cache
+            repository.remove(id)
+            
+            // 2. Persist to cloud
+            eventBus?.publishCommand(
+                DeleteDataCommand(
+                    tableName = "contacts",
+                    itemId = id
+                )
+            )
 
             // Publish Fact
             Log.i("Remmi", "[ContactActions] - Successfully deleted contact: $id. Publishing event...")
@@ -150,7 +183,7 @@ class ContactActions(
     }
 
     /**                                 Get All
-     * Retrieve all contacts sorted by name
+     * Retrieve all contacts sorted by name from local cache
      * */
     suspend fun getAllContacts(): List<ContactItem> {
         Log.d("Remmi", "[ContactActions] - [getAllContacts] executed")
@@ -158,10 +191,15 @@ class ContactActions(
     }
 
     /**                                 Sync
-     * Synchronize contacts with the cloud
+     * Synchronize contacts with the cloud via command
      * */
     suspend fun sync() {
         Log.d("Remmi", "[ContactActions] - [sync] executed")
-        repository.sync()
+        eventBus?.publishCommand(
+            FetchAllDataCommand(
+                tableName = "contacts",
+                serializer = ContactItem.serializer()
+            )
+        )
     }
 }

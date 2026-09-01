@@ -5,20 +5,23 @@ import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.eventBus.EventBus
 import com.remmi.app.core.eventBus.commands.RemmiCommand
-import com.remmi.app.core.eventBus.events.ContactDeletedEvent
+import com.remmi.app.core.eventBus.events.DataFetchedEvent
 import com.remmi.app.core.eventBus.events.RemmiEvent
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
-import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.plugin.widgets.RemmiWidget
-import com.remmi.app.core.database.DatabaseManager
+import com.remmi.app.core.plugin.ui.RemmiScreen
+import com.remmi.app.core.plugin.ui.RemmiWidget
+import com.remmi.app.plugins.gift.models.GiftIdea
+import com.remmi.app.plugins.gift.ui.screens.GiftListScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+/**
+ * Entry point for the Gift plugin via EventBus.
+ */
 class GiftPlugin(
     override val metadata: PluginMetadata,
-    private val databaseManager: DatabaseManager,
     private val eventBus: EventBus
 ) : RemmiPlugin {
 
@@ -28,38 +31,30 @@ class GiftPlugin(
     // ----------------------------------------------------------------------------
 
     /** Internal storage for initialized components */
-    private val _repository: GiftRepository = GiftRepository(databaseManager.service)
+    private val _repository: GiftRepository = GiftRepository()
     private val _actions: GiftActions = GiftActions(_repository).apply {
         this.eventBus = this@GiftPlugin.eventBus
     }
 
-    /** Repository for managing Gift ideas data */
+    /** Repository for managing Gift data */
     override val repository: GiftRepository get() = _repository
 
     /** Action controller for gift logic. */
     override val actions: GiftActions get() = _actions
 
-
     /** Dashboard widget for gifts. */
     override val widget: RemmiWidget = object : RemmiWidget {
         override val metadata: PluginMetadata = this@GiftPlugin.metadata
-        @Composable override fun Content() {
-            Log.d("Remmi", "[GiftPlugin] - [Content] (widget) executed")
-        }
+        @Composable override fun Content() {}
     }
 
     /** UI screen for gift management. */
     override val screen: RemmiScreen = object : RemmiScreen {
         @Composable override fun Content(controller: RemmiController) {
-            Log.d("Remmi", "[GiftPlugin] - [Content] (screen) executed")
-            val contactPlugin = controller.pluginManager.plugins["contacts"] as? com.remmi.app.plugins.contacts.ContactPlugin
-            if (contactPlugin != null) {
-                com.remmi.app.plugins.gift.screens.GiftListScreen(
-                    giftActions = actions,
-                    contactActions = contactPlugin.actions
-                )
-            } else {
-                androidx.compose.material3.Text("Contacts plugin not found")
+            Log.d("Remmi", "[GiftPlugin] - [Content] executed")
+            val contactActions = controller.pluginManager.plugins["contacts"]?.actions as? com.remmi.app.plugins.contacts.ContactActions
+            if (contactActions != null) {
+                GiftListScreen(actions, contactActions)
             }
         }
     }
@@ -97,14 +92,12 @@ class GiftPlugin(
      * */
     override suspend fun onEvent(event: RemmiEvent) {
         when (event) {
-            is ContactDeletedEvent -> {
-                Log.i("Remmi", "[GiftPlugin] - Contact ${event.itemId} deleted. Cleaning up linked gift ideas...")
-                CoroutineScope(Dispatchers.IO).launch {
-                    val linkedGifts = repository.databaseService.getBySource("gift_ideas", "contacts", event.itemId, GiftIdea.serializer())
-                    linkedGifts.forEach { gift ->
-                        repository.delete(gift.id)
-                        Log.d("Remmi", "[GiftPlugin] - Deleted linked gift: ${gift.id}")
-                    }
+            is DataFetchedEvent<*> -> {
+                if (event.items.isNotEmpty() && event.items[0] is GiftIdea) {
+                    _repository.clear()
+                    @Suppress("UNCHECKED_CAST")
+                    (event.items as List<GiftIdea>).forEach { _repository.add(it) }
+                    Log.d("Remmi", "[GiftPlugin] - Updated repository with ${event.items.size} gift ideas")
                 }
             }
         }

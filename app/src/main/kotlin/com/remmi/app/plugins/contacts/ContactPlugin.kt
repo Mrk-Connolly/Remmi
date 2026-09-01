@@ -5,23 +5,24 @@ import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.eventBus.EventBus
 import com.remmi.app.core.eventBus.commands.RemmiCommand
+import com.remmi.app.core.eventBus.events.DataFetchedEvent
 import com.remmi.app.core.eventBus.events.RemmiEvent
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
-import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.plugin.widgets.RemmiWidget
-import com.remmi.app.core.database.DatabaseManager
-import com.remmi.app.plugins.contacts.screens.ContactScreen
+import com.remmi.app.core.plugin.ui.RemmiScreen
+import com.remmi.app.core.plugin.ui.RemmiWidget
+import com.remmi.app.plugins.contacts.models.ContactItem
+import com.remmi.app.plugins.contacts.ui.screens.ContactScreen
+import com.remmi.app.plugins.contacts.ui.screens.ContactEditorMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * Entry point for the Contacts plugin.
+ * Entry point for the Contacts plugin via EventBus.
  */
 class ContactPlugin(
     override val metadata: PluginMetadata,
-    private val databaseManager: DatabaseManager,
     private val eventBus: EventBus
 ) : RemmiPlugin {
 
@@ -31,7 +32,7 @@ class ContactPlugin(
     // ----------------------------------------------------------------------------
 
     /** Internal storage for initialized components */
-    private val _repository: ContactRepository = ContactRepository(databaseManager.service)
+    private val _repository: ContactRepository = ContactRepository()
     private val _actions: ContactActions = ContactActions(_repository).apply {
         this.eventBus = this@ContactPlugin.eventBus
     }
@@ -85,6 +86,16 @@ class ContactPlugin(
      * Handle a system-wide or plugin-specific notification (Fact).
      * */
     override suspend fun onEvent(event: RemmiEvent) {
+        when (event) {
+            is DataFetchedEvent<*> -> {
+                if (event.items.isNotEmpty() && event.items[0] is ContactItem) {
+                    _repository.clear()
+                    @Suppress("UNCHECKED_CAST")
+                    (event.items as List<ContactItem>).forEach { _repository.add(it) }
+                    Log.d("Remmi", "[ContactPlugin] - Updated repository with ${event.items.size} contacts")
+                }
+            }
+        }
     }
 
     /**                                   On Load

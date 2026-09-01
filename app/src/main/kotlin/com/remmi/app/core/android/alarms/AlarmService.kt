@@ -1,5 +1,6 @@
 package com.remmi.app.core.android.alarms
 
+import com.remmi.app.core.eventBus.commands.CommandListener
 import com.remmi.app.plugins.alarm.models.AlarmItem
 
 /**
@@ -7,7 +8,7 @@ import com.remmi.app.plugins.alarm.models.AlarmItem
  *
  * Interface for standard alarm operations.
  */
-interface AlarmService {
+interface AlarmService : CommandListener {
 
     // ----------------------------------------------------------------------------
     //                             INTERFACE FUNCTIONS

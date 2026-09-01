@@ -2,7 +2,7 @@ package com.remmi.app.plugins.maps
 
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.plugin.PluginMetadata
-import com.remmi.app.core.plugin.widgets.RemmiWidget
+import com.remmi.app.core.plugin.ui.RemmiWidget
 
 /**
  * Minimal widget implementation for the Maps plugin.

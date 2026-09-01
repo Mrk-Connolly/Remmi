@@ -10,12 +10,11 @@ import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.*
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
-import com.remmi.app.core.screens.RemmiScreen
-import com.remmi.app.core.plugin.widgets.RemmiWidget
+import com.remmi.app.core.plugin.ui.RemmiScreen
+import com.remmi.app.core.plugin.ui.RemmiWidget
 import com.remmi.app.plugins.tasks.models.TaskItem
 import com.remmi.app.plugins.calendar.models.CalendarItem
-import com.remmi.app.core.database.DatabaseManager
-import com.remmi.app.plugins.tasks.screens.TasksScreen
+import com.remmi.app.plugins.tasks.ui.screens.TasksScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,7 +27,6 @@ import kotlinx.datetime.toInstant
  */
 class TasksPlugin(
     override val metadata: PluginMetadata,
-    private val databaseManager: DatabaseManager,
     private val eventBus: EventBus
 ) : RemmiPlugin {
 
@@ -38,7 +36,7 @@ class TasksPlugin(
     // ----------------------------------------------------------------------------
 
     /** Internal storage for initialized components */
-    private val _repository: TasksRepository = TasksRepository(databaseManager.service)
+    private val _repository: TasksRepository = TasksRepository()
     private val _actions: TasksActions = TasksActions(_repository).apply {
         this.eventBus = this@TasksPlugin.eventBus
     }
@@ -198,19 +196,27 @@ class TasksPlugin(
                     )
                 )
             }
-            else if (firstItem is TaskItem && event.correlationId?.startsWith("tasks_plugin_cleanup") == true) {
-                event.items.forEach { task ->
-                    if (task is TaskItem) {
-                        actions.eventBus?.publishCommand(
-                            DeleteTaskCommand(
-                                taskId = task.id,
-                                source = "tasks_cleanup",
-                                correlationId = event.correlationId,
-                                causationId = event.eventId,
-                                deletionContext = DeletionContext.LINKED_CLEANUP
+            else if (firstItem is TaskItem) {
+                if (event.correlationId?.startsWith("tasks_plugin_cleanup") == true) {
+                    event.items.forEach { task ->
+                        if (task is TaskItem) {
+                            actions.eventBus?.publishCommand(
+                                DeleteTaskCommand(
+                                    taskId = task.id,
+                                    source = "tasks_cleanup",
+                                    correlationId = event.correlationId,
+                                    causationId = event.eventId,
+                                    deletionContext = DeletionContext.LINKED_CLEANUP
+                                )
                             )
-                        )
+                        }
                     }
+                } else {
+                    // Global sync or fetch
+                    _repository.clear()
+                    @Suppress("UNCHECKED_CAST")
+                    (event.items as List<TaskItem>).forEach { _repository.add(it) }
+                    Log.d("Remmi", "[TasksPlugin] - Updated repository with ${event.items.size} tasks")
                 }
             }
         }

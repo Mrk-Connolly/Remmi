@@ -2,6 +2,7 @@ package com.remmi.app.plugins.ingredients
 
 import android.util.Log
 import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.IngredientCreatedEvent
 import com.remmi.app.core.eventBus.events.IngredientUpdatedEvent
 import com.remmi.app.core.eventBus.events.IngredientStockAdjustedEvent
@@ -9,10 +10,12 @@ import com.remmi.app.core.plugin.actions.RemmiAction
 import com.remmi.app.plugins.ingredients.logic.IngredientReceiptMatcher
 import com.remmi.app.plugins.ingredients.logic.ReceiptParser
 import com.remmi.app.plugins.ingredients.models.*
-import com.remmi.app.plugins.ingredients.repository.*
 import kotlinx.datetime.*
 import java.util.UUID
 
+/**
+ * Action controller for the Ingredient plugin via EventBus.
+ */
 class IngredientActions(
     private val metadataRepo: MetadataRepository,
     private val stockRepo: StockRepository,
@@ -28,7 +31,7 @@ class IngredientActions(
     }
 
     /**
-     * Get all inventory items for the UI
+     * Get all inventory items for the UI from cache.
      */
     suspend fun getInventory(): List<IngredientUiModel> {
         val metadata = metadataRepo.getAll()
@@ -47,7 +50,7 @@ class IngredientActions(
     }
 
     /**
-     * Add a new ingredient and initial stock
+     * Add a new ingredient and initial stock via commands.
      */
     suspend fun addIngredient(
         name: String,
@@ -81,7 +84,8 @@ class IngredientActions(
             estimatedShelfLifeMinDays = shelfLife?.first,
             estimatedShelfLifeMaxDays = shelfLife?.second
         )
-        metadataRepo.insert(meta)
+        metadataRepo.add(meta)
+        eventBus?.publishCommand(UpsertDataCommand(tableName = "ingredient_metadata", item = meta, serializer = IngredientMetadata.serializer()))
 
         // 2. Create User Stock Link
         val stock = UserStock(
@@ -93,7 +97,8 @@ class IngredientActions(
             primaryUnit = unit,
             storageLocation = storageLocation
         )
-        stockRepo.insert(stock)
+        stockRepo.add(stock)
+        eventBus?.publishCommand(UpsertDataCommand(tableName = "user_stock", item = stock, serializer = UserStock.serializer()))
 
         // 3. Create Initial Batch
         if (initialQuantity > 0) {
@@ -107,24 +112,26 @@ class IngredientActions(
                 purchaseDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date,
                 expiryDate = expiryDate
             )
-            batchRepo.insert(batch)
+            batchRepo.add(batch)
+            eventBus?.publishCommand(UpsertDataCommand(tableName = "stock_batches", item = batch, serializer = StockBatch.serializer()))
         }
 
         eventBus?.publishEvent(IngredientCreatedEvent(itemId = meta.id))
     }
 
     /**
-     * Update ingredient metadata
+     * Update ingredient metadata via command.
      */
     suspend fun updateIngredientMetadata(metadata: IngredientMetadata) {
         Log.d("Remmi", "[IngredientActions] - Updating metadata for ${metadata.id}")
-        metadata.modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-        metadataRepo.updateCloud(metadata)
+        val updated = metadata.copy(modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()))
+        metadataRepo.update(updated)
+        eventBus?.publishCommand(UpsertDataCommand(tableName = "ingredient_metadata", item = updated, serializer = IngredientMetadata.serializer()))
         eventBus?.publishEvent(IngredientUpdatedEvent(itemId = metadata.id))
     }
 
     /**
-     * Adjust stock quantity. 
+     * Adjust stock quantity via commands. 
      */
     suspend fun adjustStock(stockId: String, delta: Double, expiryDate: LocalDate? = null) {
         if (delta == 0.0) return
@@ -142,7 +149,8 @@ class IngredientActions(
                 purchaseDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date,
                 expiryDate = expiryDate
             )
-            batchRepo.insert(batch)
+            batchRepo.add(batch)
+            eventBus?.publishCommand(UpsertDataCommand(tableName = "stock_batches", item = batch, serializer = StockBatch.serializer()))
             eventBus?.publishEvent(IngredientStockAdjustedEvent(itemId = stockId, delta = delta))
         } else {
             // Decrease: FEFO Logic
@@ -156,13 +164,15 @@ class IngredientActions(
                 
                 if (batch.quantity <= remainingToDeduct) {
                     remainingToDeduct -= batch.quantity
-                    batchRepo.delete(batch.id)
+                    batchRepo.remove(batch.id)
+                    eventBus?.publishCommand(DeleteDataCommand(tableName = "stock_batches", itemId = batch.id))
                 } else {
                     val updatedBatch = batch.copy(
                         quantity = batch.quantity - remainingToDeduct,
                         modified = now
                     )
-                    batchRepo.updateCloud(updatedBatch)
+                    batchRepo.update(updatedBatch)
+                    eventBus?.publishCommand(UpsertDataCommand(tableName = "stock_batches", item = updatedBatch, serializer = StockBatch.serializer()))
                     remainingToDeduct = 0.0
                 }
             }
@@ -171,9 +181,9 @@ class IngredientActions(
     }
 
     suspend fun sync() {
-        metadataRepo.sync()
-        stockRepo.sync()
-        batchRepo.sync()
+        eventBus?.publishCommand(FetchAllDataCommand(tableName = "ingredient_metadata", serializer = IngredientMetadata.serializer()))
+        eventBus?.publishCommand(FetchAllDataCommand(tableName = "user_stock", serializer = UserStock.serializer()))
+        eventBus?.publishCommand(FetchAllDataCommand(tableName = "stock_batches", serializer = StockBatch.serializer()))
     }
 
     // ----------------------------------------------------------------------------
@@ -186,7 +196,7 @@ class IngredientActions(
     suspend fun startReceiptScan(useCamera: Boolean) {
         Log.i("Remmi", "[IngredientActions] - Starting receipt scan (useCamera: $useCamera)")
         eventBus?.publishCommand(
-            com.remmi.app.core.eventBus.commands.RequestReceiptImageCommand(useCamera = useCamera)
+            RequestReceiptImageCommand(useCamera = useCamera)
         )
     }
 
@@ -207,8 +217,6 @@ class IngredientActions(
      */
     suspend fun processConfirmedReceiptItems(confirmedMatches: List<ReceiptItemMatch>) {
         Log.i("Remmi", "[IngredientActions] - Processing ${confirmedMatches.size} confirmed items")
-        val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
-        val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
 
         confirmedMatches.filter { it.status == MatchStatus.CONFIRMED && it.matchedIngredient != null }.forEach { match ->
             val ingredient = match.matchedIngredient!!
@@ -222,7 +230,7 @@ class IngredientActions(
                 adjustStock(
                     stockId = userStock.id,
                     delta = item.quantity ?: 1.0,
-                    expiryDate = null // Future enhancement: predict expiry
+                    expiryDate = null
                 )
             } else {
                 // Create new stock association and batch

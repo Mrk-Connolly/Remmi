@@ -1,10 +1,7 @@
 package com.remmi.app.plugins.calendar.ui.screens
 
 import android.util.Log
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -17,22 +14,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.remmi.app.core.controller.GlobalUIState
+import com.remmi.app.core.controller.LinkedCreationData
 import com.remmi.app.core.controller.RemmiController
-import com.remmi.app.core.plugin.screens.RemmiAddScreen
-import com.remmi.app.core.plugin.screens.RemmiUpdateScreen
-import com.remmi.app.core.screens.components.RemmiDatePickerDialog
-import com.remmi.app.core.screens.components.RemmiLinkedActionButton
-import com.remmi.app.core.screens.components.RemmiTimePickerDialog
+import com.remmi.app.ui.components.RemmiAddScreen
+import com.remmi.app.ui.components.RemmiModifyScreen
+import com.remmi.app.ui.popups.RemmiDatePickerDialog
+import com.remmi.app.ui.popups.RemmiLinkedActionButton
+import com.remmi.app.ui.popups.RemmiTimePickerDialog
 import com.remmi.app.plugins.calendar.CalendarActions
 import com.remmi.app.plugins.calendar.models.CalendarGroup
-import com.remmi.app.plugins.calendar.models.CalendarItem
 import com.remmi.app.plugins.calendar.ui.popups.NewGroupDialog
 import com.remmi.app.plugins.calendar.ui.popups.ParticipantsPopup
 import kotlinx.coroutines.launch
@@ -164,9 +159,8 @@ fun CalendarScreenEditor(
                 }
             },
             saveEnabled = title.isNotEmpty()
-        ) { padding ->
+        ) {
             EditorContent(
-                padding = padding,
                 title = title, onTitleChange = { title = it },
                 description = description, onDescriptionChange = { description = it },
                 groupName = groupName, onGroupNameChange = { groupName = it },
@@ -196,7 +190,7 @@ fun CalendarScreenEditor(
             )
         }
     } else {
-        RemmiUpdateScreen(
+        RemmiModifyScreen(
             title = "Edit Event",
             onBack = onDismiss,
             onDelete = {
@@ -229,9 +223,8 @@ fun CalendarScreenEditor(
                 }
             },
             saveEnabled = title.isNotEmpty()
-        ) { padding ->
+        ) {
             EditorContent(
-                padding = padding,
                 title = title, onTitleChange = { title = it },
                 description = description, onDescriptionChange = { description = it },
                 groupName = groupName, onGroupNameChange = { groupName = it },
@@ -301,7 +294,6 @@ fun CalendarScreenEditor(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EditorContent(
-    padding: PaddingValues,
     title: String, onTitleChange: (String) -> Unit,
     description: String, onDescriptionChange: (String) -> Unit,
     groupName: String, onGroupNameChange: (String) -> Unit,
@@ -330,11 +322,7 @@ private fun EditorContent(
     initialEventId: String?
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .padding(horizontal = 20.dp)
-            .verticalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Spacer(Modifier.height(8.dp))
@@ -465,7 +453,7 @@ private fun EditorContent(
                     if (!createAlarm) {
                         val cid = UUID.randomUUID().toString()
                         onAlarmCorrelationIdChange(cid)
-                        com.remmi.app.core.controller.GlobalUIState.pendingAlarmRequest.value = com.remmi.app.core.controller.LinkedCreationData(
+                        GlobalUIState.pendingAlarmRequest.value = LinkedCreationData(
                             title = title, description = description, sourcePlugin = "calendar",
                             sourceItemId = initialEventId ?: "draft", correlationId = cid, causationId = null
                         )
@@ -485,7 +473,7 @@ private fun EditorContent(
                     if (!createTask) {
                         val cid = UUID.randomUUID().toString()
                         onTaskCorrelationIdChange(cid)
-                        com.remmi.app.core.controller.GlobalUIState.pendingTaskRequest.value = com.remmi.app.core.controller.LinkedCreationData(
+                        GlobalUIState.pendingTaskRequest.value = LinkedCreationData(
                             title = title, description = description, sourcePlugin = "calendar",
                             sourceItemId = initialEventId ?: "draft", correlationId = cid, causationId = null
                         )
@@ -505,8 +493,8 @@ private fun EditorContent(
                     if (!createLocation) {
                         val cid = UUID.randomUUID().toString()
                         onLocationCorrelationIdChange(cid)
-                        com.remmi.app.core.controller.GlobalUIState.showLocationPicker.value = true
-                        com.remmi.app.core.controller.GlobalUIState.locationPickerData.value = com.remmi.app.core.controller.LinkedCreationData(
+                        GlobalUIState.showLocationPicker.value = true
+                        GlobalUIState.locationPickerData.value = LinkedCreationData(
                             title = title, description = description, sourcePlugin = "calendar",
                             sourceItemId = initialEventId ?: "draft", correlationId = cid, causationId = null
                         )

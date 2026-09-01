@@ -6,7 +6,7 @@ import android.content.Intent
 import android.util.Log
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.remmi.app.RemmiApplication
+import com.remmi.app.ui.RemmiApplication
 import com.remmi.app.core.android.system.AndroidAutomationScheduler
 
 /**

@@ -8,8 +8,6 @@ import com.remmi.app.core.eventBus.commands.SyncPluginDataCommand
 import com.remmi.app.core.eventBus.events.EventListener
 import com.remmi.app.core.eventBus.events.RemmiEvent
 import com.remmi.app.core.android.files.FileService
-import com.remmi.app.core.database.DatabaseManager
-import com.remmi.app.core.android.services.AndroidServiceManager
 import com.remmi.app.plugins.alarm.AlarmPlugin
 import com.remmi.app.plugins.calendar.CalendarPlugin
 import com.remmi.app.plugins.contacts.ContactPlugin
@@ -29,8 +27,6 @@ import kotlinx.coroutines.flow.asStateFlow
  * Manages plugin lifecycle and discovery.
  */
 class PluginManager(
-    private val databaseManager: DatabaseManager,
-    private val androidManager: AndroidServiceManager,
     private val eventBus: EventBus
 ) : CommandListener, EventListener {
 
@@ -52,15 +48,15 @@ class PluginManager(
 
     /** Registry of available plugin factory functions */
     private val pluginRegistry = mapOf<String, (PluginMetadata) -> RemmiPlugin>(
-        "calendar" to { CalendarPlugin(it, databaseManager, eventBus) },
-        "tasks" to { TasksPlugin(it, databaseManager, eventBus) },
-        "alarm" to { AlarmPlugin(it, databaseManager, androidManager, eventBus) },
-        "contacts" to { ContactPlugin(it, databaseManager, eventBus) },
-        "gift" to { GiftPlugin(it, databaseManager, eventBus) },
-        "recipe_book" to { RecipePlugin(it, databaseManager, eventBus) },
-        "ingredient_stock" to { IngredientPlugin(it, databaseManager, eventBus) },
-        "weather" to { WeatherPlugin(it, databaseManager, androidManager, eventBus) },
-        "maps" to { MapsPlugin(it, databaseManager, eventBus) }
+        "calendar" to { CalendarPlugin(it, eventBus) },
+        "tasks" to { TasksPlugin(it, eventBus) },
+        "alarm" to { AlarmPlugin(it, eventBus) },
+        "contacts" to { ContactPlugin(it, eventBus) },
+        "gift" to { GiftPlugin(it, eventBus) },
+        "recipe_book" to { RecipePlugin(it, eventBus) },
+        "ingredient_stock" to { IngredientPlugin(it, eventBus) },
+        "weather" to { WeatherPlugin(it, eventBus) },
+        "maps" to { MapsPlugin(it, eventBus) }
     )
 
 
@@ -79,11 +75,17 @@ class PluginManager(
 
     fun start() {
         Log.d("Remmi", "[PluginManager] - Starting services")
+        eventBus.subscribeCommand(this)
+        eventBus.subscribeEvent(this)
+        subscribePlugins(eventBus)
     }
 
     fun stop() {
         Log.d("Remmi", "[PluginManager] - Stopping services")
         try {
+            unsubscribePlugins(eventBus)
+            eventBus.unsubscribeCommand(this)
+            eventBus.unsubscribeEvent(this)
             plugins.values.forEach { it.onUnload() }
             plugins.clear()
         } catch (e: Exception) {
@@ -167,7 +169,7 @@ class PluginManager(
     /**                               LOAD PLUGINS
      * Instantiate discovered plugins using the registry.
      * */
-    fun loadPlugins() {
+    suspend fun loadPlugins() {
         Log.d("Remmi", "[PluginManager] - Loading plugins")
         plugins.values.forEach { it.onUnload() }
         plugins.clear()
@@ -178,6 +180,7 @@ class PluginManager(
                 try {
                     val plugin = factory(metadata)
                     plugins[metadata.id] = plugin
+                    plugin.initialize()
                     Log.d("Remmi", "[PluginManager] - Loaded ${metadata.name}")
                 } catch (e: Exception) {
                     Log.e("Remmi", "[PluginManager] - Failed to load ${metadata.id}: ${e.message}")

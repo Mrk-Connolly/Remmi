@@ -1,1062 +1,1307 @@
 # REMMI ARCHITECTURE CONTRACT
 
-# MANDATORY RULES FOR ALL CODE CHANGES
+## MANDATORY ARCHITECTURE AND CODE-CHANGE RULES
 
-You are modifying an existing Android application called Remmi.
+This document is the architectural source of truth for the Remmi Android application.
 
-This document is the architectural source of truth.
+These rules are mandatory for every AI-assisted code change.
 
-Your highest priority is:
+The primary objective is:
 
-**PRESERVE THE EXISTING APPLICATION WHILE MAKING THE SMALLEST POSSIBLE CHANGE REQUIRED BY THE TASK.**
+> **Preserve the existing application while making the smallest architectural and code change required to complete the task.**
 
-Do not redesign the application.
+The AI must not redesign working systems merely because another architecture appears preferable.
 
-Do not invent a new architecture.
+However, when an approved architecture restructuring task is explicitly requested, the AI must reorganize the affected code toward the architecture defined in this document.
 
-Do not move, rename, or reorganize unrelated code.
+---
 
-Do not replace existing systems with alternatives simply because you prefer another design.
+# 1. CORE PRINCIPLES
 
-When uncertain:
+The following principles always apply.
 
-**PRESERVE THE CURRENT STRUCTURE.**
+### 1.1 Preserve existing functionality
 
-============================================================
+Do not:
 
-1. CURRENT PROJECT STRUCTURE
-   ============================================================
+* Remove working functionality without justification.
+* Rewrite unrelated code.
+* Change public APIs unnecessarily.
+* Replace working systems with alternatives merely because they are preferred.
+* Reformat unrelated files.
+* Rename classes unnecessarily.
+* Move unrelated files.
+* Introduce new abstractions without an architectural reason.
 
-Remmi is a single Android application module.
+---
 
-Gradle modules:
+### 1.2 Ownership before implementation
 
-:app
-:db-scripts
+Before creating, moving, or modifying a class, determine:
 
-Do not create additional Gradle modules unless explicitly requested.
+> **Who owns this responsibility?**
 
-The important architecture roots are:
+Possible owners are:
 
+* `core`
+* `ui`
+* `plugins/<plugin>`
+* EventBus
+* Android service
+* Database service
+* File service
+* Automation feature
+
+The class MUST be placed inside the directory owned by that responsibility.
+
+Do not place a class according to convenience.
+
+Do not put unrelated classes together simply because they are used by the same feature.
+
+---
+
+### 1.3 One responsibility per class
+
+Every class must have a clear responsibility.
+
+Avoid:
+
+* God classes.
+* Manager classes containing business logic.
+* Services containing unrelated responsibilities.
+* Plugins containing core functionality.
+* UI classes containing infrastructure logic.
+* Repositories acting as hidden service locators.
+* Controllers becoming feature implementations.
+
+If a class is performing multiple unrelated responsibilities, inspect the existing architecture before deciding whether the responsibilities should be separated.
+
+Do not automatically split classes unless required.
+
+---
+
+# 2. TOP-LEVEL PROJECT STRUCTURE
+
+Remmi is an Android application.
+
+The principal architectural source directories are:
+
+```text
 core/
+ui/
 plugins/
+```
 
-Main application files include:
+Other project-level directories may exist when required by the existing project, such as:
 
-MainActivity.kt
-RemmiApplication.kt
+```text
+db-scripts/
+```
 
-============================================================
-2. TOP-LEVEL OWNERSHIP
-   ======================
+Do not create additional top-level architectural directories unless explicitly approved.
 
-The hierarchy is:
+The three primary application ownership boundaries are:
 
-RemmiHost
-?
-creates and starts
-RemmiController
-?
-creates and owns
-??? PluginManager
-??? DatabaseServiceManager / database services
-??? AndroidServiceManager
-??? EventBus
-??? AutomationEngine
+```text
+core/
+    Internal application infrastructure
 
-RemmiController owns application lifecycle coordination.
+ui/
+    Shared application UI
 
-RemmiController is allowed to:
+plugins/
+    Feature/plugin ownership
+```
 
-* Create core managers/services.
-* Hold references to core managers/services.
-* Start the application.
-* Stop the application.
-* Coordinate application lifecycle.
+---
 
-RemmiController must NOT become a feature implementation class.
+# 3. ARCHITECTURAL OWNERSHIP
 
-Do not add:
+The architecture is divided into three major areas.
 
-* Plugin-specific logic.
-* Database implementation.
-* Android API implementation.
-* File implementation.
-* Automation feature logic.
-* UI feature logic.
+## 3.1 `core/`
 
-to RemmiController.
-
-============================================================
-3. COMMUNICATION LAW
-   ====================
-
-ALL communication between:
-
-* Plugins.
-* Core managers.
-* Services.
-* AutomationEngine.
-
-must go through EventBus.
+`core/` owns internal application infrastructure.
 
 Examples:
 
-Plugin
-?
-EventBus
-?
-Database service
+* Application lifecycle.
+* Host.
+* Controller.
+* Managers.
+* EventBus.
+* Android infrastructure.
+* Database infrastructure.
+* File infrastructure.
+* Automation infrastructure.
+* Generic plugin infrastructure.
+* Shared core contracts/interfaces.
 
-Database service
-?
-EventBus
-?
-interested listeners
+Core must NOT contain plugin-specific business functionality.
 
-Plugin
-?
-EventBus
-?
-Android service
+---
 
-Plugin
-?
-EventBus
-?
-AutomationEngine
+## 3.2 `ui/`
 
-Plugin
-?
-EventBus
-?
-another interested plugin
+`ui/` owns shared application UI.
 
-Plugin
-?
-EventBus
-?
-File service
+This includes:
 
-Direct calls between architectural components are prohibited unless they are explicitly part of the same internal subsystem.
+* Core application screens.
+* Reusable components.
+* Generic popups.
+* Shared UI infrastructure.
 
-============================================================
-4. PLUGIN ISOLATION LAW
-   =======================
+`ui/` must NOT contain plugin-specific screens or plugin-specific popups.
 
-A plugin owns all plugin-specific functionality.
+---
 
-Plugin-specific functionality must exist inside:
+## 3.3 `plugins/`
 
-plugins/<plugin-name>/
+`plugins/` owns application features.
 
-Do not create plugin-specific functionality inside:
+Each plugin must be as self-contained as reasonably possible.
 
+A plugin owns:
+
+* Plugin models.
+* Plugin actions.
+* Plugin UI.
+* Plugin screens.
+* Plugin-specific popups.
+* Plugin widgets.
+* Plugin repository/domain persistence configuration.
+* Plugin-specific business logic.
+
+A plugin must not directly access core implementations.
+
+The EventBus is the communication boundary between plugins and core.
+
+---
+
+# 4. CANONICAL DIRECTORY STRUCTURE
+
+The expected high-level structure is:
+
+```text
 core/
-another plugin/
+    ...
 
-Examples of plugin-specific code:
-
-* Actions.
-* Plugin implementation.
-* Models.
-* Repository contracts/implementations owned by the plugin.
-* Business logic.
-* Screens.
-* Popups.
-* External plugin interactions.
-* Widgets.
-* Feature-specific services.
-
-============================================================
-5. REQUIRED PLUGIN STRUCTURE
-   ============================
-
-Every plugin MUST use the following canonical structure:
-
-plugins/ <pluginName>/ <PluginName>Plugin.kt <PluginName>Actions.kt <PluginName>Widgets.kt <PluginName>Repository.kt
-
-```
-    models/
+ui/
+    components/
         ...
+
+    popups/
+        ...
+
+    screens/
+        ...
+
+plugins/
+    <plugin-name>/
+        <PluginName>Plugin.kt
+        <PluginName>Actions.kt
+        <PluginName>Repository.kt
+        <PluginName>Widgets.kt
+
+        models/
+            ...
+
+        ui/
+            screens/
+                ...
+
+            popups/
+                ...
+
+            widgets/
+                ...
+```
+
+The exact existing project structure takes precedence where this contract does not explicitly require a change.
+
+Do not create directories simply to make the structure look cleaner.
+
+---
+
+# 5. CLASS PLACEMENT LAW
+
+## THIS RULE IS MANDATORY
+
+Before adding or moving a class, determine its responsibility and place it in the correct directory.
+
+The AI must not use a generic folder as a dumping ground.
+
+Examples:
+
+| Responsibility            | Location                                                           |
+| ------------------------- | ------------------------------------------------------------------ |
+| Core application screen   | `ui/screens/`                                                      |
+| Shared reusable component | `ui/components/`                                                   |
+| Generic popup             | `ui/popups/`                                                       |
+| Plugin screen             | `plugins/<plugin>/ui/screens/`                                     |
+| Plugin popup              | `plugins/<plugin>/ui/popups/`                                      |
+| Plugin widget             | `plugins/<plugin>/ui/widgets/` or canonical plugin widget location |
+| Plugin model              | `plugins/<plugin>/models/`                                         |
+| Plugin actions            | `plugins/<plugin>/<Plugin>Actions.kt`                              |
+| Plugin repository         | `plugins/<plugin>/<Plugin>Repository.kt`                           |
+| Plugin root/lifecycle     | `plugins/<plugin>/<Plugin>Plugin.kt`                               |
+| Database implementation   | `core/.../database/`                                               |
+| File implementation       | `core/.../files/`                                                  |
+| Android implementation    | `core/.../android/`                                                |
+| Automation implementation | `core/.../automation/`                                             |
+| EventBus implementation   | `core/eventBus/`                                                   |
+
+Never place a screen in a generic component directory.
+
+Never place a component in a screen directory.
+
+Never place a popup in a screen directory.
+
+Never place plugin UI in `ui/screens/`.
+
+Never place core infrastructure in a plugin.
+
+---
+
+# 6. UI ARCHITECTURE
+
+The top-level `ui/` directory contains UI shared by the application and reusable UI components.
+
+It does NOT own plugin-specific functionality.
+
+The structure is:
+
+```text
+ui/
+    components/
+    popups/
+    screens/
+```
+
+---
+
+## 6.1 SHARED COMPONENTS
+
+Reusable UI components belong in:
+
+```text
+ui/components/
+```
+
+A component belongs here when it is generic and reusable by multiple screens or features.
+
+Examples:
+
+* Navigation menu.
+* Add button.
+* Shared editor scaffold.
+* Shared field.
+* Shared picker.
+* Reusable visual component.
+* Shared design element.
+
+A component should not contain feature-specific business logic.
+
+Do not place a plugin-specific component in `ui/components/` merely because another screen happens to use it.
+
+If the component belongs to a plugin's functionality, it belongs to that plugin.
+
+---
+
+## 6.2 SHARED POPUPS
+
+Generic application-wide popups belong in:
+
+```text
+ui/popups/
+```
+
+Examples:
+
+* Generic color selector.
+* Generic confirmation popup.
+* Generic reusable selection popup.
+
+A popup belongs in `ui/popups/` only when it is genuinely generic.
+
+---
+
+## 6.3 CORE SCREENS
+
+Core application screens belong in:
+
+```text
+ui/screens/
+```
+
+Examples:
+
+* Home.
+* Settings.
+* Application shell.
+* Main navigation.
+* Other application-wide screens.
+
+Plugin screens MUST NOT be placed here.
+
+---
+
+# 7. PLUGIN ARCHITECTURE
+
+Each plugin is an independent feature boundary.
+
+Example:
+
+```text
+plugins/
+    tasks/
+    calendar/
+    alarms/
+    recipes/
+```
+
+A plugin should contain everything specific to its functionality.
+
+---
+
+## 7.1 CANONICAL PLUGIN STRUCTURE
+
+The preferred structure is:
+
+```text
+plugins/<plugin>/
+    <Plugin>Plugin.kt
+    <Plugin>Actions.kt
+    <Plugin>Repository.kt
+    <Plugin>Widgets.kt
+
+    models/
 
     ui/
         screens/
-            ...
-
         popups/
-            ...
+        widgets/
 ```
 
-The canonical structure is:
-
-<PluginName>Plugin.kt <PluginName>Actions.kt <PluginName>Widgets.kt <PluginName>Repository.kt
-models/
-ui/
-screens/
-popups/
-
-This structure is the default structure for every plugin.
+Existing plugins that already have a valid established structure must not be reorganized during unrelated tasks.
 
 ---
 
-## 5.1 PLUGIN ROOT FILES
+## 7.2 PLUGIN ROOT FILES
 
-The following plugin files MUST be directly inside the plugin directory:
+These files belong directly in the plugin root:
 
-<PluginName>Plugin.kt <PluginName>Actions.kt <PluginName>Widgets.kt <PluginName>Repository.kt
-
-Example:
-
-plugins/example/
-ExamplePlugin.kt
-ExampleActions.kt
-ExampleWidgets.kt
-ExampleRepository.kt
-
-Do NOT put these files inside additional directories.
-
-For example, this is WRONG:
-
-plugins/example/repository/ExampleRepository.kt
-
-The correct structure is:
-
-plugins/example/ExampleRepository.kt
-
----
-
-## 5.2 MODELS
-
-Plugin-specific models MUST be inside:
-
-plugins/<pluginName>/models/
-
-Example:
-
-plugins/example/models/
-ExampleModel.kt
-ExampleSettings.kt
-
-Do not place plugin-specific models in core/.
-
----
-
-## 5.3 UI
-
-ALL plugin UI MUST be inside:
-
-plugins/<pluginName>/ui/
-
-The ui directory MUST contain:
-
-screens/
-popups/
-
-Screens MUST be inside:
-
-plugins/<pluginName>/ui/screens/
-
-Popups MUST be inside:
-
-plugins/<pluginName>/ui/popups/
-
-Correct:
-
-plugins/example/
-ExamplePlugin.kt
-ExampleActions.kt
-ExampleWidgets.kt
-ExampleRepository.kt
-
+```text
+<Plugin>Plugin.kt
+<Plugin>Actions.kt
+<Plugin>Repository.kt
+<Plugin>Widgets.kt
 ```
-models/
-    ExampleModel.kt
-
-ui/
-    screens/
-        ExampleMainScreen.kt
-        ExampleSettingsScreen.kt
-
-    popups/
-        ExampleEditPopup.kt
-        ExampleDeletePopup.kt
-```
-
-The following structures are WRONG:
-
-plugins/example/screens/
-plugins/example/popups/
-
-plugins/example/ui/ExampleMainScreen.kt
-
-plugins/example/ui/ExampleEditPopup.kt
-
-Plugin screens and popups MUST NOT exist outside:
-
-ui/screens/
-ui/popups/
-
----
-
-## 5.4 REPOSITORY DIRECTORY RESTRICTION
-
-Do NOT create:
-
-plugins/<pluginName>/repository/
-
-when the plugin has only one repository file.
-
-A single repository file MUST be:
-
-plugins/<pluginName>/<PluginName>Repository.kt
-
-Do not create a directory simply to contain one file.
-
-If a plugin genuinely requires multiple repository files, a repository directory MAY be introduced only when explicitly justified by the implementation.
-
-Do not create empty directories.
-
-Do not create additional architectural layers merely to make the project appear more structured.
-
----
-
-## 5.5 LOGIC DIRECTORY RESTRICTION
-
-Do NOT create:
-
-plugins/<pluginName>/logic/
-
-by default.
-
-Do not create generic logic directories unless the task explicitly requires a separate logical subsystem and there is a real architectural reason for it.
-
-Plugin logic should remain in the appropriate existing plugin files unless a separate file is genuinely necessary.
-
----
-
-## 5.6 NO ADDITIONAL DEFAULT PLUGIN DIRECTORIES
-
-The canonical plugin structure contains only:
-
-<PluginName>Plugin.kt <PluginName>Actions.kt <PluginName>Widgets.kt <PluginName>Repository.kt
-models/
-ui/
-screens/
-popups/
-
-Do NOT add additional plugin directories such as:
-
-repository/
-logic/
-external/
-services/
-components/
-dialogs/
-
-unless explicitly required by the task and justified by a real architectural responsibility.
-
-Do not invent additional layers.
-
----
-
-## 5.7 EXISTING PLUGINS
-
-If an existing plugin already follows the canonical structure, do not reorganize it.
-
-If an existing plugin does NOT follow the canonical structure, do not automatically migrate it during an unrelated task.
-
-Only migrate an existing plugin structure when:
-
-* Explicitly requested.
-* Directly required by the current task.
-* Performing an approved architecture cleanup.
-
-Do not reorganize every plugin during unrelated work.
-
-============================================================
-6. INTERNAL VS EXTERNAL PLUGIN UI
-   =================================
-
-Plugin UI is owned by the plugin that implements the functionality.
-
-Internal plugin UI belongs in:
-
-plugins/<plugin>/ui/
-
-Screens belong in:
-
-plugins/<plugin>/ui/screens/
-
-Popups belong in:
-
-plugins/<plugin>/ui/popups/
-
-Do NOT create a separate:
-
-ui/external/
-
-directory as part of the default plugin structure.
-
-If another plugin needs to request UI interaction from a plugin, the owning plugin remains responsible for that UI.
-
-Example:
-
-Alarm plugin owns its alarm configuration UI.
-
-If Calendar needs the user to configure an alarm:
-
-Calendar must NOT contain:
-
-AlarmDialog
-AlarmConfigurationDialog
-Alarm-specific configuration UI
-
-Calendar should request the Alarm plugin interaction through EventBus/plugin action contracts.
-
-The Alarm plugin owns the alarm UI.
-
-The alarm UI remains inside:
-
-plugins/alarm/ui/screens/
-plugins/alarm/ui/popups/
-
-Do not move UI ownership to the requesting plugin.
-
-This rule applies to:
-
-* Alarms.
-* Tasks.
-* Contacts.
-* Maps.
-* Locations.
-* Ingredients.
-* Recipes.
-* Any future plugin.
-
-============================================================
-7. SPECIFIC EXISTING VIOLATION RULE
-   ===================================
-
-Do not create new cross-plugin UI ownership.
-
-Existing examples that should eventually be corrected include:
-
-Calendar containing alarm-related dialogs.
-
-Calendar containing task-related dialogs.
-
-Future changes must move toward plugin ownership.
-
-However:
-
-DO NOT automatically refactor unrelated cross-plugin UI during a small task.
-
-Only fix it when:
-
-* Explicitly requested.
-* Directly required by the task.
-* Performing an approved architecture cleanup.
-
-============================================================
-8. EVENT BUS LAW
-   ================
-
-There must be exactly one application EventBus system.
 
 Do not create:
 
-* A second EventBus.
-* Plugin-specific EventBus.
-* Manager-specific EventBus.
-* Alternative communication system that bypasses EventBus.
+```text
+repository/
+actions/
+plugin/
+widgets/
+```
 
-Current EventBus location:
+for these files unless the architecture is explicitly changed.
 
+---
+
+# 8. PLUGIN MODELS
+
+Plugin-specific models belong in:
+
+```text
+plugins/<plugin>/models/
+```
+
+Examples:
+
+```text
+plugins/tasks/models/Task.kt
+plugins/tasks/models/TaskSettings.kt
+```
+
+Do not place plugin-specific models in:
+
+```text
+core/
+ui/
+another plugin/
+```
+
+Shared contracts should only be moved outside the plugin when they genuinely belong to a shared subsystem.
+
+Do not create generic model dumping folders.
+
+---
+
+# 9. PLUGIN UI
+
+ALL plugin-specific UI belongs inside:
+
+```text
+plugins/<plugin>/ui/
+```
+
+The preferred structure is:
+
+```text
+plugins/<plugin>/ui/
+    screens/
+    popups/
+    widgets/
+```
+
+---
+
+## 9.1 PLUGIN SCREENS
+
+Plugin screens MUST be inside:
+
+```text
+plugins/<plugin>/ui/screens/
+```
+
+Never:
+
+```text
+plugins/<plugin>/screens/
+plugins/<plugin>/ui/<Screen>.kt
+ui/screens/
+core/screens/
+```
+
+unless the screen is genuinely core/shared UI.
+
+---
+
+## 9.2 PLUGIN POPUPS
+
+Plugin-specific popups MUST be inside:
+
+```text
+plugins/<plugin>/ui/popups/
+```
+
+These popups remain owned by the plugin.
+
+Other plugins may request or use functionality owned by that plugin through the appropriate architectural mechanism.
+
+Do not copy plugin-specific UI into another plugin.
+
+Example:
+
+If the Alarm plugin owns alarm configuration:
+
+```text
+plugins/alarm/ui/popups/AlarmConfigurationPopup.kt
+```
+
+Calendar must not create:
+
+```text
+plugins/calendar/ui/popups/AlarmPopup.kt
+```
+
+to duplicate alarm functionality.
+
+---
+
+## 9.3 PLUGIN WIDGETS
+
+Plugin-specific widgets belong to the plugin.
+
+The primary plugin widget definition remains:
+
+```text
+plugins/<plugin>/<Plugin>Widgets.kt
+```
+
+Additional widget UI implementation may be placed under:
+
+```text
+plugins/<plugin>/ui/widgets/
+```
+
+when genuinely necessary.
+
+Do not create widget infrastructure in `core/` for plugin-specific functionality.
+
+Generic Android widget infrastructure remains in the Android boundary.
+
+---
+
+# 10. NO GENERIC PLUGIN DIRECTORIES
+
+Do not create these by default:
+
+```text
+repository/
+logic/
+services/
+external/
+components/
+dialogs/
+managers/
+controllers/
+helpers/
+utils/
+```
+
+A directory must represent a real architectural responsibility.
+
+Do not create a directory merely because a file could technically be placed there.
+
+Especially:
+
+### Do not create:
+
+```text
+plugins/<plugin>/repository/
+```
+
+for one repository.
+
+Use:
+
+```text
+plugins/<plugin>/<Plugin>Repository.kt
+```
+
+### Do not create:
+
+```text
+plugins/<plugin>/logic/
+```
+
+as a generic business-logic dumping folder.
+
+---
+
+# 11. PLUGIN ACTIONS
+
+`<Plugin>Actions.kt` defines actions that users can perform through the plugin.
+
+Examples:
+
+```text
+CreateTask
+UpdateTask
+DeleteTask
+CompleteTask
+```
+
+Actions represent requests to perform operations.
+
+The action must connect to the EventBus communication system.
+
+The conceptual flow is:
+
+```text
+UI
+ ↓
+Plugin Action
+ ↓
+EventBus Command
+ ↓
+Interested Service / Component
+ ↓
+Operation
+ ↓
+EventBus Event
+ ↓
+Interested listeners
+```
+
+The action itself must not directly call:
+
+* DatabaseManager.
+* DatabaseService.
+* AndroidServiceManager.
+* FileService.
+* AutomationEngine.
+* Another plugin implementation.
+
+Use the EventBus boundary.
+
+---
+
+# 12. PLUGIN CLASS
+
+`<Plugin>Plugin.kt` is the head/lifecycle entry point of the plugin.
+
+It is responsible for connecting the plugin's internal components with the application lifecycle.
+
+It may:
+
+* Initialize plugin-specific functionality.
+* Create plugin-owned components where appropriate.
+* Register/unregister the plugin's EventBus listeners.
+* Start plugin functionality.
+* Stop plugin functionality.
+* Release plugin resources.
+
+It must NOT become a general-purpose application manager.
+
+It must NOT directly access core implementations.
+
+The plugin communicates with the rest of the application through the EventBus.
+
+---
+
+# 13. PLUGIN REPOSITORY
+
+`<Plugin>Repository.kt` represents the plugin's repository/domain persistence configuration.
+
+It may contain:
+
+* Plugin-specific data mapping.
+* Local state/cache management.
+* Persistence configuration.
+* Domain-to-persistence mapping.
+* Query/result handling where appropriate.
+
+However:
+
+> **A repository must never become a hidden EventBus bypass.**
+
+Plugins must not use a repository to directly access database infrastructure if the architecture requires database communication through EventBus.
+
+Do not assume that a repository means direct database access.
+
+Inspect its existing role before modifying it.
+
+---
+
+# 14. COMMUNICATION LAW
+
+## EVENTBUS IS THE APPLICATION COMMUNICATION BOUNDARY
+
+Communication between architectural components MUST use the EventBus.
+
+This includes communication between:
+
+* Plugins.
+* Database services.
+* File services.
+* Android services.
+* AutomationEngine.
+* Other core services/components.
+
+Conceptually:
+
+```text
+Plugin
+   ↓
+EventBus
+   ↓
+Service
+```
+
+and:
+
+```text
+Service
+   ↓
+EventBus
+   ↓
+Interested listener
+```
+
+and:
+
+```text
+Plugin
+   ↓
+EventBus
+   ↓
+Another plugin
+```
+
+Direct cross-boundary calls are prohibited unless they are explicitly part of the same internal subsystem.
+
+---
+
+# 15. MANAGER LAW
+
+## CRITICAL RULE
+
+> **Managers do not perform EventBus communication or business operations.**
+
+Managers are lifecycle/factory/orchestration-at-startup classes.
+
+Their primary responsibility is:
+
+1. Create their dedicated class/service.
+2. Provide the dependencies required by that class.
+3. Give the EventBus to the created component when that component requires EventBus communication.
+4. Start/stop or register/unregister the created component where required.
+
+After creation, the created service/component owns its functionality.
+
+---
+
+## 15.1 DATABASE MANAGER
+
+The DatabaseManager is responsible for creating and initializing the database service.
+
+Conceptually:
+
+```text
+DatabaseManager
+      ↓
+creates
+      ↓
+DatabaseService
+      ↓
+receives EventBus
+```
+
+DatabaseManager MUST NOT:
+
+* Execute database operations.
+* Subscribe to database commands.
+* Publish database events.
+* Contain Supabase logic.
+* Contain SQL.
+* Become a database service.
+* Route database communication.
+
+The DatabaseService owns database functionality.
+
+---
+
+## 15.2 DATABASE SERVICE
+
+The DatabaseService is responsible for database functionality.
+
+For the current architecture, this includes the Supabase/database integration.
+
+It:
+
+* Receives EventBus communication.
+* Listens for database-related commands.
+* Executes database operations.
+* Publishes resulting events.
+* Owns database-specific implementation.
+* Manages its database connection/client where appropriate.
+
+Conceptually:
+
+```text
+EventBus
+   ↓
+DatabaseService
+   ↓
+Supabase / Database
+   ↓
+DatabaseService
+   ↓
+EventBus
+```
+
+The DatabaseService is self-contained within its responsibility.
+
+---
+
+# 16. ANDROID MANAGER LAW
+
+AndroidManager is responsible for creating Android-specific services.
+
+Examples:
+
+* AlarmService.
+* NotificationService.
+* CalendarService.
+* ContactService.
+* LocationService.
+* WeatherService.
+* System settings services.
+* Android widget services.
+* Other Android integrations.
+
+The manager:
+
+* Creates the service.
+* Supplies required dependencies.
+* Supplies the EventBus where required.
+* Starts/stops the service when appropriate.
+
+The manager does NOT implement the Android functionality.
+
+---
+
+# 17. ANDROID SERVICE LAW
+
+Each Android service must be self-contained within its responsibility.
+
+Conceptually:
+
+```text
+AndroidManager
+      ↓
+creates
+      ↓
+AndroidService
+      ↓
+EventBus
+```
+
+The service:
+
+* Receives commands through EventBus.
+* Performs the Android operation.
+* Publishes resulting events through EventBus.
+
+The service may call other internal classes/folders belonging to its own Android subsystem where appropriate.
+
+It must not expose its implementation directly to plugins.
+
+Plugins must communicate through EventBus.
+
+---
+
+# 18. FILE SERVICE LAW
+
+File functionality belongs to the Android/core service boundary.
+
+The architecture must not create unnecessary layers such as:
+
+```text
+FileManager
+FileServiceManager
+PluginFileManager
+```
+
+when an existing FileService already owns the responsibility.
+
+The manager's role is only to create/configure the FileService.
+
+The FileService owns:
+
+* File operations.
+* File-system implementation.
+* File loading.
+* File creation.
+* File modification.
+* File deletion.
+* File existence checks.
+* Relevant file-related behavior.
+
+Communication follows:
+
+```text
+Plugin
+ ↓
+EventBus
+ ↓
+FileService
+ ↓
+File System
+```
+
+and:
+
+```text
+FileService
+ ↓
+EventBus
+ ↓
+Interested listeners
+```
+
+---
+
+# 19. PLUGIN MANAGER LAW
+
+PluginManager is responsible for plugin lifecycle.
+
+It may:
+
+* Discover plugins.
+* Create plugins.
+* Register plugins.
+* Start plugins.
+* Stop plugins.
+* Unload plugins.
+* Provide generic plugin infrastructure.
+
+PluginManager MUST NOT:
+
+* Execute plugin business logic.
+* Execute database operations.
+* Execute file operations.
+* Execute Android operations.
+* Act as EventBus router.
+* Become a feature manager.
+
+The PluginManager creates/configures the plugin and gives it the dependencies required for initialization.
+
+The plugin itself owns its EventBus registration and plugin functionality where appropriate.
+
+---
+
+# 20. AUTOMATION ENGINE
+
+AutomationEngine owns automatic application behavior.
+
+Examples:
+
+* Automatic refreshes.
+* Briefings.
+* Scheduled automated operations.
+* Automatic responses.
+* Background automation.
+
+AutomationEngine communicates through EventBus.
+
+Conceptually:
+
+```text
+EventBus
+   ↓
+AutomationEngine
+   ↓
+Automation feature
+   ↓
+EventBus
+```
+
+AutomationEngine must not directly call plugins or services when EventBus communication is required.
+
+Automation feature-specific code belongs under:
+
+```text
+automation/features/<feature-name>/
+```
+
+Do not place feature-specific logic directly into AutomationEngine unless it is genuinely engine-level logic.
+
+---
+
+# 21. EVENTBUS ARCHITECTURE
+
+There must be exactly one application EventBus.
+
+Current location:
+
+```text
 core/eventBus/
+```
 
-Current major components include:
+It may contain:
 
+```text
 EventBus.kt
 
 commands/
-CommandListener.kt
-CommandOperations.kt
-RemmiCommand.kt
-StandardCommands.kt
+    CommandListener.kt
+    CommandOperations.kt
+    RemmiCommand.kt
+    StandardCommands.kt
 
 events/
-EventListener.kt
-EventOperations.kt
-RemmiEvent.kt
-StandardEvents.kt
+    EventListener.kt
+    EventOperations.kt
+    RemmiEvent.kt
+    StandardEvents.kt
+```
 
-Additional EventBus components include:
+Additional existing EventBus types may include:
 
+```text
 EventType.kt
 MessageContext.kt
 PluginEvent.kt
 RemmiMessage.kt
+```
 
-============================================================
-9. COMMAND AND EVENT LAW
-   ========================
+Preserve the existing structure unless the current task explicitly changes it.
 
-Commands and events are different.
+---
 
-COMMAND:
+# 22. COMMANDS VS EVENTS
 
-A request to perform an action.
+Commands and events are different concepts.
+
+## COMMAND
+
+A command is a request.
 
 Examples:
 
+```text
 CreateTaskCommand
 UpdateAlarmCommand
 DeleteCalendarEventCommand
+```
 
-EVENT:
+Conceptually:
 
-A fact that occurred.
+```text
+"Please perform this operation."
+```
+
+---
+
+## EVENT
+
+An event is a fact that already happened.
 
 Examples:
 
+```text
 TaskCreatedEvent
 AlarmUpdatedEvent
 CalendarEventDeletedEvent
+```
+
+Conceptually:
+
+```text
+"This operation has happened."
+```
 
 Never use an event as a command.
 
-Never use a command to announce something that already happened.
+Never use a command to announce a completed operation.
 
-Each EventBus communication type owns its own:
+---
+
+# 23. EVENTBUS EXTENSIBILITY
+
+Future communication types may include:
+
+```text
+queries/
+responses/
+```
+
+Do not implement them unless requested.
+
+Each communication type should own its:
 
 * Base type.
 * Listener.
+* Operations.
 * Publish behavior.
 * Subscribe behavior.
 * Unsubscribe behavior.
 * Standard implementations.
 
-Event-specific operations belong inside:
+`EventBus.kt` should coordinate communication rather than become a giant implementation class.
 
-core/eventBus/events/
+Do not place all communication logic into `EventBus.kt`.
 
-Command-specific operations belong inside:
+---
 
-core/eventBus/commands/
-
-EventBus.kt should coordinate/delegate communication.
-
-Do not move all command/event implementation back into EventBus.kt.
-
-============================================================
-10. EXTENSIBILITY LAW
-    =====================
-
-The EventBus communication system must allow future communication types.
-
-For example, future additions may include:
-
-queries/
-responses/
-
-Do not implement these now unless requested.
-
-Do not overengineer.
-
-When adding a new communication type:
-
-Create its own directory and contracts.
-
-Do not pollute EventBus.kt with unrelated type-specific behavior.
-
-============================================================
-11. PLUGIN DATABASE ACCESS LAW
-    ==============================
+# 24. DATABASE ACCESS LAW
 
 Plugins must NEVER directly access:
 
-* SupabaseService.
-* DatabaseService.
-* DatabaseManager.
-* Database clients.
+* `DatabaseManager`.
+* `DatabaseService`.
+* `SupabaseService`.
+* Supabase clients.
 * SQL.
-* Supabase SDK.
 * Database tables.
+* Database SDKs.
 
-Plugins communicate database requests through EventBus.
+The expected architecture is:
 
-Example:
-
-TasksPlugin
-?
-CreateTaskCommand
-?
-EventBus
-?
-DatabaseManager
-?
-Database
-
-The Database service publishes resulting events.
-
-Example:
-
-TaskCreatedEvent
-TaskUpdatedEvent
-TaskDeletedEvent
-
-Plugins may listen to those events.
-
-============================================================
-12. PLUGIN REPOSITORY RULE
-    ==========================
-
-Plugin repositories may exist.
-
-However, a plugin repository must not become a hidden bypass around EventBus.
-
-Before modifying a repository:
-
-Inspect its role.
-
-Determine whether it is:
-
-A. Local plugin data/cache/state.
-B. Domain mapping.
-C. Query/result caching.
-D. A direct database access layer.
-
-Direct persistence requests from plugins must not bypass EventBus.
-
-Do not delete repositories automatically.
-
-Do not replace repositories without inspecting current usage.
-
-A single plugin repository belongs at the plugin root:
-
-plugins/<pluginName>/<PluginName>Repository.kt
-
-Do not create a repository directory for a single repository file.
-
-============================================================
-13. ANDROID CONTEXT LAW
-    =======================
-
-Android Context access is restricted.
-
-Plugins must NOT directly receive or access Android Context.
-
-Plugins must NOT access Android APIs directly.
-
-Business logic must not receive unrestricted Context.
-
-Android-specific operations belong to the Android service boundary.
-
-Relevant existing structure includes:
-
-core/android/
-alarms/
-notifications/
-services/
-system/
-files/
-
-AndroidServiceManager coordinates Android services, including file-related services.
-
-If a plugin needs Android functionality:
-
+```text
 Plugin
-?
-EventBus request
-?
-Android service listener
-?
-Specific Android operation
-
-Examples:
-
-* Schedule alarm.
-* Show notification.
-* Request permission.
-* Access contacts.
-* Access calendar.
-* Access location.
-* Read weather through Android integration.
-* Access widgets.
-* Access system settings.
-* Read/write application files.
-* Create/delete application files.
-* Check file existence.
-* Perform other Android file-system operations.
-
-Do not pass the entire Context to a plugin.
-
-Do not expose AndroidServiceManager internals to plugins.
-
-Expose specific operations/contracts.
-
-============================================================
-14. ANDROID SERVICE OWNERSHIP
-    =============================
-
-Android-specific functionality belongs inside the Android service boundary.
-
-Existing Android service categories include:
-
-alarms/
-notifications/
-services/
-system/
-files/
-
-Examples include:
-
-AlarmService
-SystemAlarmService
-NotificationService
-SystemNotificationService
-AndroidServiceManager
-AndroidWidgetService
-SystemSettingsService
-CalendarService
-ContactService
-LocationService
-WeatherService
-FileService
-
-AndroidServiceManager owns and coordinates Android services, including FileService.
-
-There must NOT be a separate FileServiceManager at the application architecture level.
-
-File functionality is part of the Android service boundary.
-
-Keep Android implementation inside the Android boundary.
-
-Do not move plugin business logic into these services.
-
-Do not use Android services as a shortcut to bypass EventBus.
-
-Do not expose Android service implementations directly to plugins.
-
-Plugins interact with file functionality through EventBus and the appropriate file-service command/event contracts.
-
-============================================================
-15. AUTOMATION OWNERSHIP
-    ========================
-
-AutomationEngine owns automation execution.
-
-AutomationEngine receives communication through EventBus.
-
-Plugins must not directly call AutomationEngine.
-
-Automation features belong inside:
-
-automation/features/
-
-Current examples include:
-
-dailybriefing/
-
-All future automation features should be added under:
-
-automation/features/<feature-name>/
-
-AutomationEngine coordinates features.
-
-Feature-specific logic must not be placed directly inside AutomationEngine unless it is genuinely engine-level logic.
-
-============================================================
-16. DATABASE OWNERSHIP
-    ======================
-
-Database functionality belongs under:
-
-core/service/database/
-
-Existing classes include:
-
-DatabaseManager
+ ↓
+Action / Command
+ ↓
+EventBus
+ ↓
 DatabaseService
-SupabaseService
+ ↓
+Database
+```
 
-Database implementation belongs here.
-
-Do not move database code into:
-
-plugins/
-automation/
-screens/
-popups/
-
-============================================================
-17. DATABASE SCHEMA SYNCHRONIZATION LAW
-    =======================================
-
-The database schema and startup definitions MUST remain synchronized with plugin-owned persisted item structures.
-
-When a plugin changes the structure of an item that is persisted in the database, the corresponding database definition MUST be checked and updated in:
-
-db-scripts/src/main/resources/startup.sql
-
-This applies whenever a plugin:
-
-* Adds a new persisted item.
-* Adds a new persisted field/column.
-* Removes a persisted item.
-* Removes a persisted field/column.
-* Renames a persisted item.
-* Renames a persisted field/column.
-* Changes the type of a persisted field.
-* Changes constraints.
-* Changes relationships.
-* Changes indexes.
-* Changes defaults.
-* Changes other database structure required by the changed item.
-
-A plugin item structure change is NOT complete until startup.sql has been checked.
+Results return through EventBus events.
 
 ---
 
-## 17.1 REQUIRED SYNCHRONIZATION WORKFLOW
+# 25. ANDROID ACCESS LAW
 
-When modifying a plugin's persisted item structure:
+Plugins must not directly access Android infrastructure when the architecture requires an Android service boundary.
 
-1. Inspect the plugin's existing model/item structure.
-2. Inspect the corresponding database definition in:
+Plugins must not directly receive unrestricted Android `Context`.
 
-db-scripts/src/main/resources/startup.sql
+Plugins must not directly access:
 
-3. Determine whether the database schema must change.
-4. If the schema must change, update startup.sql in the same task.
-5. Keep the database definition consistent with the plugin's current persisted structure.
-6. Verify that the resulting schema matches the plugin's expected fields, types, relationships, and constraints.
+* Android services.
+* Android file APIs.
+* Contacts APIs.
+* Calendar APIs.
+* Location APIs.
+* Notification APIs.
+* Alarm APIs.
+* System settings.
+* Other Android infrastructure.
+
+The expected architecture is:
+
+```text
+Plugin
+ ↓
+EventBus
+ ↓
+Android Service
+ ↓
+Android API
+```
+
+Do not expose an entire Android manager or `Context` to a plugin.
+
+Expose functionality through commands/events.
+
+---
+
+# 26. NO MEGA CONTEXT
+
+Never create:
+
+```text
+PluginContext
+AppContext
+CoreContext
+ManagerContext
+ServiceLocator
+```
+
+or equivalent classes that expose the entire application.
+
+Dependencies must remain explicit.
+
+A class should receive only what it actually needs.
+
+---
+
+# 27. UI OWNERSHIP LAW
+
+UI ownership must follow functionality ownership.
+
+### Core UI
+
+```text
+ui/screens/
+ui/components/
+ui/popups/
+```
+
+### Plugin UI
+
+```text
+plugins/<plugin>/ui/screens/
+plugins/<plugin>/ui/popups/
+plugins/<plugin>/ui/widgets/
+```
+
+A plugin-specific screen belongs to its plugin.
+
+A plugin-specific popup belongs to its plugin.
+
+A generic reusable component belongs to shared UI.
+
+Do not move ownership merely because another component uses the UI.
+
+---
+
+# 28. CROSS-PLUGIN UI
+
+Do not duplicate plugin-specific UI in another plugin.
 
 Example:
 
-If a plugin changes:
+If Alarm owns:
 
-ExampleItem
-name
-description
+```text
+plugins/alarm/ui/popups/AlarmConfigurationPopup.kt
+```
 
-to:
+Calendar must not create an alarm-specific popup.
 
-ExampleItem
-name
-description
-priority
+The Alarm plugin remains the owner.
 
-then the corresponding database definition in:
+Cross-plugin interaction must occur through the established plugin/EventBus architecture.
 
+---
+
+# 29. DATABASE SCHEMA OWNERSHIP
+
+Database implementation belongs to core database services.
+
+Database startup schema belongs to:
+
+```text
 db-scripts/src/main/resources/startup.sql
+```
 
-MUST also be updated to include the new persisted field.
+Plugin ownership of a model does NOT give the plugin direct database access.
 
----
+Responsibilities remain:
 
-## 17.2 DELETED OR RENAMED STRUCTURES
-
-If a plugin removes or renames a persisted item or field, inspect startup.sql and update the corresponding database definition when required.
-
-Do not leave obsolete schema definitions behind when the task explicitly changes the persisted structure.
-
-Do not delete database structures blindly.
-
-Before removing a database item or field:
-
-1. Search for references.
-2. Verify that the structure is owned by the affected plugin.
-3. Verify that it is safe to remove.
-4. Update startup.sql.
-5. Build and verify affected code.
-
----
-
-## 17.3 DATABASE OWNERSHIP REMAINS UNCHANGED
-
-This rule does NOT give plugins direct database access.
-
-Plugins must still follow the Plugin Database Access Law.
-
-Plugins communicate database operations through:
-
+```text
 Plugin
-?
-EventBus
-?
-Database service
-?
-Database
+    owns domain/model structure
 
-The plugin owns its domain/item structure.
+DatabaseService
+    owns database implementation
 
-The database service owns database implementation.
-
-startup.sql defines the database startup schema.
-
-These responsibilities must remain separate.
+startup.sql
+    owns complete bootstrap schema
+```
 
 ---
 
-## 17.4 MINIMAL SCHEMA CHANGES
+# 30. STARTUP.SQL RULE
 
-Only modify the relevant database definitions in:
+`startup.sql` is the complete authoritative database bootstrap/rebuild definition.
 
-db-scripts/src/main/resources/startup.sql
+It is NOT a migration-only file.
 
-Do not redesign the database schema.
+It MUST contain the complete current schema required to recreate the Remmi database from an empty state.
 
-Do not modify unrelated tables, fields, relationships, indexes, policies, or other database definitions.
+When modifying one table, do not reduce the file to that table.
 
-Do not change existing database structure unless it is required by the current plugin change or explicitly requested.
+For example:
 
-IMPORTANT:
-
-The requirement to preserve the complete startup.sql file does NOT mean that unrelated schema definitions should be changed.
-
-Unrelated definitions must remain unchanged and must continue to be present.
-
----
-
-## 17.5 UI-ONLY AND NON-PERSISTED CHANGES
-
-Do NOT modify startup.sql for changes that do not affect persisted database structure.
-
-Examples:
-
-* UI-only changes.
-* Screen layout changes.
-* Popup changes.
-* Widget appearance changes.
-* Non-persisted state changes.
-* Local UI behavior changes.
-* Business logic changes that do not alter persisted structure.
-
-Only synchronize startup.sql when the plugin's persisted item/database structure requires it.
-
----
-
-## 17.6 STARTUP.SQL MUST ALWAYS BE A COMPLETE DATABASE DEFINITION
-
-`db-scripts/src/main/resources/startup.sql` is the COMPLETE and AUTHORITATIVE database bootstrap definition for the Remmi application.
-
-`startup.sql` MUST always contain the complete database structure required to initialize the Remmi database from an empty state.
-
-`startup.sql` MUST contain the definitions and instructions for ALL Remmi database tables.
-
-It must NOT contain only:
-
-* The table currently being edited.
-* The table currently being created.
-* The latest database change.
-* The latest plugin's database structure.
-* The SQL required for the current task.
-
-When any database table is modified, `startup.sql` MUST still contain the complete definitions for every other existing database table.
-
-For example, if the database contains:
-
-Table A
-Table B
-Table C
-Table D
-
-and Table B is modified, the final `startup.sql` MUST still contain:
-
-* The required destruction/reset instructions.
-* Complete definition for Table A.
-* Complete definition for Table B, including the requested change.
-* Complete definition for Table C.
-* Complete definition for Table D.
-* All required relationships.
-* All required constraints.
-* All required indexes.
-* All required defaults.
-* All required policies.
-* All required triggers/functions or other database objects.
-
-Do NOT remove unchanged tables simply because they are unrelated to the current task.
-
----
-
-## 17.7 STARTUP.SQL IS A FULL DATABASE REBUILD SCRIPT
-
-`startup.sql` MUST be treated as a complete database reconstruction/bootstrap script.
-
-The script must contain everything required to recreate the current Remmi database schema from a clean/empty state according to the project's existing database setup.
-
-Where required by the existing implementation, the startup sequence must support:
-
-1. Destroying/removing existing Remmi database structures required for a clean rebuild.
-2. Recreating all required tables.
-3. Recreating all required columns and data types.
-4. Recreating all required primary keys.
-5. Recreating all required foreign keys and relationships.
-6. Recreating all required constraints.
-7. Recreating all required indexes.
-8. Recreating all required defaults.
-9. Recreating all required policies.
-10. Recreating all required triggers/functions.
-11. Recreating all other required database objects.
-12. Leaving the database in the complete schema expected by the current application.
-
-Do not redesign the database as part of this requirement.
-
-Preserve the existing database architecture and structure unless the current task explicitly requires a change.
-
----
-
-## 17.8 STARTUP.SQL MUST CONTAIN ALL TABLES
-
-Whenever `startup.sql` is created or modified, it MUST contain every current Remmi database table.
-
-This applies even when the current task only affects one table.
-
-If the database contains:
-
+```text
 users
 tasks
 alarms
 calendar_events
+```
 
-and the `tasks` table changes, the final `startup.sql` MUST still define:
+If `tasks` changes, the final script must still contain:
 
+```text
 users
 tasks
 alarms
 calendar_events
+```
 
-The `tasks` definition must contain the requested change.
-
-The other tables must remain fully defined.
-
-The agent MUST NOT replace the existing startup.sql with:
-
-CREATE TABLE tasks (...)
-
-or:
-
-DROP TABLE tasks;
-CREATE TABLE tasks (...);
-
-while removing the other tables from the file.
-
-The complete schema must remain.
+with complete definitions.
 
 ---
 
-## 17.9 STARTUP.SQL MUST CONTAIN COMPLETE TABLE DEFINITIONS
+# 31. STARTUP.SQL COMPLETENESS
 
-It is not sufficient for startup.sql to merely mention every table.
+Whenever `startup.sql` is modified, preserve:
 
-Every table must have its complete current definition.
-
-For every table, preserve the applicable:
-
-* Columns.
-* Data types.
+* Every existing table.
+* Every required column.
 * Primary keys.
 * Foreign keys.
 * Relationships.
@@ -1065,915 +1310,726 @@ For every table, preserve the applicable:
 * Indexes.
 * Policies.
 * Triggers.
-* Other required table/database configuration.
+* Functions.
+* Other required database objects.
+* Destruction/reset instructions.
+* Correct dependency/creation order.
 
-If a table is unchanged by the current task, its complete existing definition must remain in startup.sql.
+If an existing object is unrelated to the task, preserve it.
 
----
+If uncertain:
 
-## 17.10 STARTUP.SQL MUST CONTAIN DESTRUCTION/RESET INSTRUCTIONS
+> **KEEP IT.**
 
-`startup.sql` must preserve the project's established destruction/reset instructions required to rebuild the complete database.
-
-When a table is added or modified, do NOT remove destruction/reset instructions for other existing tables simply because those tables were not changed.
-
-The startup process must be able to move from an existing database state to the complete schema represented by the script according to the project's established reset strategy.
-
-When modifying destruction order:
-
-* Respect foreign-key dependencies.
-* Preserve the existing project's approach where possible.
-* Do not introduce destructive behavior beyond the established startup/rebuild strategy.
-* Do not remove existing reset instructions without verifying their purpose.
-
-If the existing script uses DROP TABLE statements, preserve the complete set required for the full schema.
-
-If the existing script uses another reset mechanism, preserve that mechanism.
-
-Do not invent a new reset architecture.
+Never replace a complete `startup.sql` with a partial script.
 
 ---
 
-## 17.11 STARTUP.SQL IS NOT A MIGRATION-ONLY FILE
+# 32. DATABASE SYNCHRONIZATION
 
-`startup.sql` is NOT a migration-only file.
+Whenever a persisted plugin model/item changes:
 
-Do not convert it into a file containing only:
+1. Inspect the plugin model.
+2. Read the complete `startup.sql`.
+3. Find the corresponding database definition.
+4. Determine whether the schema must change.
+5. Apply the minimum required schema modification.
+6. Preserve all unrelated schema.
+7. Verify the resulting schema.
+8. Build the affected application code.
 
-* ALTER TABLE statements for the latest change.
-* The newly added table.
-* The newly added column.
-* The latest database modification.
-* A partial schema.
-* Only structures touched by the current task.
-
-If a separate migration system exists, follow it only when explicitly required.
-
-Do not invent a separate migration system merely to avoid maintaining the complete startup.sql.
-
-`startup.sql` must remain a complete bootstrap/rebuild definition.
+A persisted model change is incomplete until its database representation has been checked.
 
 ---
 
-## 17.12 PRESERVE ALL EXISTING TABLE DEFINITIONS
+# 33. NON-PERSISTED CHANGES
 
-When editing startup.sql, existing table definitions MUST be preserved unless the current task explicitly requires them to change.
+Do NOT modify `startup.sql` for:
 
-Do not accidentally remove tables because they were not part of the current task.
-
-Do not omit tables because they are owned by another plugin.
-
-Do not omit tables because they were not recently modified.
-
-Do not omit tables because the current task only concerns one plugin.
-
-Do not rewrite unchanged table definitions unnecessarily.
-
-If an existing table is part of the Remmi database schema, its complete definition must remain represented in startup.sql.
+* UI changes.
+* Screen changes.
+* Popup changes.
+* Widget appearance.
+* Non-persisted state.
+* Pure business logic changes.
+* Other changes that do not alter persisted database structure.
 
 ---
 
-## 17.13 FULL SCHEMA REBUILD AFTER A SINGLE-TABLE CHANGE
+# 34. MINIMAL CHANGE LAW
 
-If a task changes one table, the expected behavior is:
+The smallest possible change is always preferred.
 
-1. Read the existing complete startup.sql.
-2. Preserve all existing tables.
-3. Preserve all existing destruction/reset instructions.
-4. Modify only the required table definition.
-5. Preserve all other database definitions.
-6. Verify that startup.sql still represents the complete schema.
-
-Example:
-
-Before:
-
-users
-tasks
-alarms
-calendar_events
-
-Task:
-
-Add `priority` to tasks.
-
-After:
-
-users
-tasks with priority
-alarms
-calendar_events
-
-NOT:
-
-tasks with priority
-
-The final startup.sql must still contain the complete schema.
-
----
-
-## 17.14 NEW TABLE REQUIREMENT
-
-When a new persisted plugin item requires a new database table:
-
-1. Add the new table definition to startup.sql.
-2. Preserve all existing table definitions.
-3. Add the required destruction/reset instruction for the new table where appropriate.
-4. Respect foreign-key and dependency ordering.
-5. Preserve all existing relationships and database objects.
-6. Verify that the startup script can recreate the complete database.
-
-Adding one table must NEVER result in removing or omitting existing tables.
-
----
-
-## 17.15 TABLE REMOVAL REQUIREMENT
-
-When a persisted database table is intentionally removed:
-
-1. Search for all references to the table.
-2. Verify ownership and dependencies.
-3. Verify that removal is explicitly required.
-4. Remove the table definition from startup.sql.
-5. Remove or update its destruction/reset instruction as appropriate.
-6. Update dependent relationships, indexes, policies, triggers, functions, or other objects when required.
-7. Verify that every remaining table is still represented.
-8. Verify that startup.sql remains a complete rebuildable schema.
-
-Removing one table does NOT mean rebuilding startup.sql around the edited table.
-
-The resulting script must still contain every remaining database table.
-
----
-
-## 17.16 STARTUP.SQL COMPLETENESS CHECK
-
-Whenever startup.sql is modified, the agent MUST verify that it still contains the complete database schema.
-
-At minimum, verify:
-
-1. Every existing Remmi database table is represented.
-2. Every table has a complete current definition.
-3. The affected table contains the requested change.
-4. Required relationships are still represented.
-5. Required constraints are still represented.
-6. Required indexes are still represented.
-7. Required defaults are still represented.
-8. Required policies are still represented.
-9. Required triggers/functions are still represented when applicable.
-10. Required destruction/reset instructions remain present.
-11. Creation order is compatible with dependencies.
-12. No unrelated table was accidentally removed.
-13. No unrelated database object was accidentally removed.
-14. startup.sql remains capable of recreating the complete current database schema.
-
-If the project contains another authoritative source listing database tables, compare startup.sql against that source.
-
-Do not assume that the table being modified is the only table that needs to appear in startup.sql.
-
----
-
-## 17.17 STARTUP.SQL IS THE DATABASE BOOTSTRAP SOURCE OF TRUTH
-
-For database bootstrap purposes:
-
-# startup.sql
-
-complete current Remmi database schema.
-
-The agent MUST NOT interpret startup.sql as:
-
-"SQL needed for the current task."
-
-The agent MUST interpret startup.sql as:
-
-"Complete SQL needed to recreate the current Remmi database."
-
-Therefore:
-
-Every modification to startup.sql must preserve the completeness of the file.
-
-A successful database schema change is:
-
-"The complete startup script still represents the entire current database schema, including the requested change."
-
-It is NOT merely:
-
-"The requested table or column exists."
-
----
-
-## 17.18 CRITICAL AI AGENT RULE
-
-NEVER replace the existing complete startup.sql with a partial SQL script.
-
-Before modifying startup.sql, assume:
-
-**THIS FILE MUST ALWAYS BE COMPLETE.**
-
-If the current task modifies one table:
-
-The final file must still contain ALL existing tables.
-
-If the current task modifies one column:
-
-The final file must still contain ALL existing tables and the complete definition of every table.
-
-If the current task adds one table:
-
-The final file must still contain ALL existing tables plus the new table.
-
-If the current task removes one table:
-
-The final file must still contain ALL remaining tables.
-
-If the current task changes one relationship:
-
-The final file must still contain ALL tables and ALL other required database objects.
-
-The agent must preserve the complete schema unless the task explicitly changes the schema itself.
-
-============================================================
-17.19 DATABASE OWNERSHIP REMAINS UNCHANGED
-==========================================
-
-The complete startup.sql requirement does NOT give plugins direct database access.
-
-Plugins must still follow the Plugin Database Access Law.
-
-Plugins communicate database operations through:
-
-Plugin
-?
-EventBus
-?
-Database service
-?
-Database
-
-The plugin owns its domain/item structure.
-
-The database service owns database implementation.
-
-startup.sql owns the complete database bootstrap definition.
-
-These responsibilities remain separate.
-
-============================================================
-18. FILE SERVICE OWNERSHIP
-    ==========================
-
-File functionality belongs to the Android service boundary.
-
-File service implementation must remain under the Android-related service structure.
-
-Plugins must NEVER directly access:
-
-* FileService.
-* File service implementations.
-* Android file APIs.
-* Android Context for file access.
-* File-system implementation details.
-
-Plugins communicate file requests through EventBus.
-
-Example:
-
-Plugin
-?
-File command
-?
-EventBus
-?
-AndroidServiceManager / FileService
-?
-File operation
-
-The FileService may publish resulting events through EventBus when other components need to know that a file operation occurred.
-
-Examples:
-
-FileCreatedEvent
-FileUpdatedEvent
-FileDeletedEvent
-
-Use commands for requests and events for facts that already occurred.
-
-Do not create a separate FileManager or FileServiceManager merely to wrap FileService.
-
-Do not move file implementation into plugins.
-
-Do not move file implementation into Database services.
-
-Do not expose Android Context to plugins for file operations.
-
-============================================================
-19. PLUGIN MANAGER LAW
-    ======================
-
-PluginManager owns generic plugin lifecycle and generic plugin operations.
-
-PluginManager may:
-
-* Load plugins.
-* Unload plugins.
-* Register plugins.
-* Discover plugins.
-* Manage plugin lifecycle.
-* Provide generic plugin infrastructure.
-
-PluginManager must NOT become:
-
-* Database manager.
-* File manager.
-* Android service manager.
-* Event router.
-* Plugin business logic container.
-* UI manager.
-* Feature manager.
-
-Plugin-specific behavior remains in the plugin.
-
-============================================================
-20. AUTOMATION AND PLUGIN ACCESS
-    ================================
-
-Plugins do not directly access:
-
-* AutomationEngine.
-* DatabaseManager.
-* AndroidServiceManager.
-* FileService.
-* File service implementations.
-
-Managers and plugins communicate through EventBus.
-
-Do not inject all managers into plugins.
-
-Do not create a PluginContext replacement.
-
-============================================================
-21. NO MEGA CONTEXT OR SERVICE LOCATOR
-    ======================================
-
-Do not create:
-
-PluginContext
-AppContext
-CoreContext
-ManagerContext
-ServiceLocator
-
-that exposes everything.
-
-Classes receive only the specific dependency or contract they need.
-
-Do not replace one mega-context with another mega-context.
-
-============================================================
-22. UI OWNERSHIP
-    ================
-
-Shared application UI belongs under:
-
-core/screens/
-
-Existing shared components include:
-
-components/
-NutritionRadarGraph
-RemmiEditorScaffold
-RemmiFields
-RemmiPickers
-
-Application-wide screens may remain in core/screens.
-
-Examples:
-
-HomeScreen
-SettingsScreen
-RemmiApp
-RemmiScreen
-AppMenu
-
-Plugin-specific UI belongs inside its plugin.
-
-The canonical plugin UI structure is:
-
-plugins/<pluginName>/ui/
-screens/
-popups/
-
-Do not create:
-
-core/ui/
-
-Do not create global plugin UI directories outside the plugin.
-
-Do not place plugin-specific screens or popups directly under the plugin root.
-
-============================================================
-23. GLOBAL UI STATE RULE
-    ========================
-
-Avoid global UI state managers.
-
-UI state must have a clear owner.
-
-Examples:
-
-Screen state
-?
-Screen/ViewModel/state holder.
-
-Plugin state
-?
-Plugin.
-
-Popup state
-?
-Popup owner.
-
-Navigation state
-?
-Navigation system.
-
-Do not introduce new global UI state systems.
-
-Before removing an existing global UI state class:
-
-Find all usages.
-
-Move each state responsibility to its proper owner.
-
-Do not blindly delete it.
-
-============================================================
-24. WIDGET OWNERSHIP
-    ====================
-
-Plugin-specific widgets belong to the plugin that owns their functionality.
-
-Examples:
-
-TasksWidget
-AlarmWidget
-CalendarWidget
-
-Generic Android widget infrastructure belongs under the Android boundary.
-
-The primary plugin widget file belongs at the plugin root:
-
-plugins/<pluginName>/<PluginName>Widgets.kt
-
-Do not create a widgets directory for the primary plugin widget file unless explicitly required.
-
-Do not move plugin-specific widget business logic into core.
-
-Dashboard/widget infrastructure should be inspected carefully before moving.
-
-Do not restructure it during unrelated work.
-
-============================================================
-25. MODEL OWNERSHIP
-    ===================
-
-Plugin-specific models belong inside their plugin.
-
-Examples:
-
-plugins/tasks/models/
-plugins/alarm/models/
-plugins/calendar/models/
-
-Shared contracts belong in the subsystem that owns them.
-
-Do not create generic dumping folders.
-
-Do not place plugin-specific models in core.
-
-============================================================
-26. FEATURE OWNERSHIP
-    =====================
-
-Before adding a class, determine:
-
-Who owns this responsibility?
-
-Possible owners:
-
-* Plugin.
-* EventBus.
-* Automation feature.
-* Database service.
-* File service.
-* Android service.
-* Shared core screen/component.
-
-Place the class with its owner.
-
-Never place a feature inside another unrelated feature.
-
-============================================================
-27. MINIMAL CHANGE LAW
-    ======================
-
-Before creating a new class:
+Before creating a class:
 
 1. Search for existing equivalent functionality.
-2. Reuse or extend existing functionality if appropriate.
-3. Create a new class only when ownership is genuinely new.
+2. Determine whether it can be reused.
+3. Determine ownership.
+4. Only create a new class if responsibility is genuinely new.
 
 Do not duplicate:
 
-* Services.
 * Managers.
+* Services.
 * Repositories.
-* Models.
-* Event types.
 * Commands.
-* UI components.
+* Events.
+* Models.
+* Components.
+* UI.
 
-If file functionality already exists inside the Android service boundary, reuse it.
+---
 
-Do not create a new FileManager or FileServiceManager to duplicate or wrap the existing file service.
+# 35. FILE MODIFICATION SAFETY
 
-When changing a persisted plugin item structure, update startup.sql as required.
+Before deleting a file:
 
-IMPORTANT:
-
-For database changes, "minimal change" refers to the amount of schema that is actually changed.
-
-It does NOT mean that startup.sql should contain only the changed table.
-
-startup.sql MUST remain complete.
-
-The correct approach is:
-
-**Minimal schema modification + complete startup.sql preservation.**
-
-============================================================
-28. FILE MODIFICATION SAFETY
-    ============================
+1. Search all references.
+2. Verify ownership.
+3. Verify replacement functionality exists.
+4. Update references.
+5. Build.
+6. Delete only when safe.
 
 Do not:
 
-* Delete files without checking usages.
-* Rename public classes unnecessarily.
-* Move files unnecessarily.
-* Rewrite entire files for small changes.
+* Rewrite complete files for small changes.
 * Reformat unrelated code.
-* Change package names unnecessarily.
+* Rename public APIs unnecessarily.
+* Move unrelated files.
 * Touch unrelated plugins.
 
-Before deleting:
+---
 
-1. Search references.
-2. Verify ownership.
-3. Remove references.
-4. Build.
-5. Then delete.
+# 36. ARCHITECTURAL RESTRUCTURING
 
-When migrating file functionality into the Android service boundary:
+When explicitly asked to redesign/restructure existing code, the AI may reorganize the affected architecture.
 
-* Inspect existing FileService/FileManager usage first.
-* Identify all references to the old file-service architecture.
-* Preserve existing behavior.
-* Remove obsolete manager layers only after references are migrated.
-* Do not perform unrelated Android-service refactoring.
+However, it must still proceed incrementally.
 
-When changing persisted plugin data structures:
+Before making a large restructuring:
 
-* Inspect startup.sql before making the change.
-* Search for references to the affected database structure.
-* Update the required schema definition.
-* Preserve ALL other database definitions.
-* Preserve ALL existing tables.
-* Preserve required destruction/reset instructions.
-* Verify that startup.sql remains a complete database bootstrap script.
-* Do not modify unrelated database definitions unnecessarily.
+1. Inspect the affected structure.
+2. Identify ownership violations.
+3. Identify misplaced classes.
+4. Identify duplicated responsibilities.
+5. Identify direct communication that violates EventBus rules.
+6. Identify manager classes containing service logic.
+7. Identify UI classes in incorrect directories.
+8. Identify plugin-specific code outside the plugin.
+9. Identify unnecessary layers.
 
-============================================================
-29. REQUIRED WORKFLOW
-    =====================
+Then define:
 
-For every task:
+* Current structure.
+* Target structure.
+* Files to move.
+* Files to modify.
+* Files to delete.
+* Dependencies affected.
+* Risks.
 
-STEP 1 — READ RULES
+Then implement incrementally.
 
-Read this architecture contract.
+---
 
-STEP 2 — DEFINE SCOPE
+# 37. CLASS DISTRIBUTION REQUIREMENT
+
+## CRITICAL AI RULE
+
+Every class must be placed according to what the class **is responsible for**, not where it happens to be used.
+
+Before creating or moving a class, answer internally:
+
+```text
+What does this class do?
+Who owns that responsibility?
+Is it UI?
+Is it a screen?
+Is it a popup?
+Is it a reusable component?
+Is it a model?
+Is it a plugin?
+Is it a service?
+Is it a manager?
+Is it EventBus infrastructure?
+Is it database infrastructure?
+Is it Android infrastructure?
+Is it automation infrastructure?
+```
+
+Then place it accordingly.
+
+### Examples
+
+A screen:
+
+```text
+ui/screens/
+```
+
+or:
+
+```text
+plugins/<plugin>/ui/screens/
+```
+
+A popup:
+
+```text
+ui/popups/
+```
+
+or:
+
+```text
+plugins/<plugin>/ui/popups/
+```
+
+A reusable component:
+
+```text
+ui/components/
+```
+
+A plugin model:
+
+```text
+plugins/<plugin>/models/
+```
+
+A database service:
+
+```text
+core/.../database/
+```
+
+An Android service:
+
+```text
+core/.../android/
+```
+
+An EventBus command:
+
+```text
+core/eventBus/commands/
+```
+
+An EventBus event:
+
+```text
+core/eventBus/events/
+```
+
+Never place all classes from one feature into a single directory regardless of responsibility.
+
+---
+
+# 38. MANAGER VS SERVICE RESPONSIBILITY
+
+This distinction is mandatory.
+
+## Manager
+
+A manager creates/configures/starts/stops its dedicated class.
+
+```text
+Manager
+    ↓
+create/configure
+    ↓
+Service
+```
+
+The manager does NOT implement the service's functionality.
+
+---
+
+## Service
+
+The service contains the actual functionality.
+
+```text
+Service
+    ↓
+receives EventBus messages
+    ↓
+performs operation
+    ↓
+publishes EventBus messages
+```
+
+Managers must not become service proxies.
+
+Do not implement:
+
+```text
+DatabaseManager.createTask()
+DatabaseManager.deleteTask()
+FileManager.readFile()
+AndroidManager.showNotification()
+PluginManager.executePluginAction()
+```
+
+when those operations belong to the corresponding service/plugin.
+
+---
+
+# 39. MANAGERS AND EVENTBUS
+
+Managers may receive or be given the EventBus as a dependency when necessary to initialize their services.
+
+However:
+
+> **The manager itself must not become an EventBus communication endpoint.**
+
+The manager should not:
+
+* Subscribe to application commands.
+* Publish application events.
+* Route messages.
+* Execute service commands.
+* Contain event handlers.
+
+Instead:
+
+```text
+Manager
+   ↓
+creates Service(EventBus)
+   ↓
+Service subscribes/publishes
+```
+
+This rule applies to:
+
+* DatabaseManager.
+* AndroidManager.
+* FileServiceManager.
+* PluginManager.
+* Other lifecycle managers.
+
+---
+
+# 40. SELF-CONTAINED SERVICES
+
+A service should be self-contained within its responsibility.
+
+For example:
+
+```text
+DatabaseService
+```
+
+owns database behavior.
+
+```text
+FileService
+```
+
+owns file behavior.
+
+```text
+NotificationService
+```
+
+owns notification behavior.
+
+```text
+LocationService
+```
+
+owns location behavior.
+
+Each service may use internal implementation classes belonging to its subsystem.
+
+It must not require another manager to perform its ordinary operation.
+
+---
+
+# 41. FORBIDDEN ARCHITECTURAL ACTIONS
+
+NEVER:
+
+* Create a second EventBus.
+* Create plugin-specific EventBuses.
+* Bypass EventBus across architectural boundaries.
+* Give plugins direct database access.
+* Give plugins direct Android infrastructure access.
+* Give plugins unrestricted Context.
+* Give plugins direct AutomationEngine access.
+* Give plugins direct manager access.
+* Turn managers into service implementations.
+* Put service functionality inside managers.
+* Put plugin business logic into core.
+* Put plugin screens in `ui/screens/`.
+* Put plugin popups in `ui/popups/`.
+* Put shared UI inside plugins without ownership justification.
+* Create `PluginContext`.
+* Create a service locator.
+* Create unnecessary managers.
+* Create unnecessary service wrappers.
+* Create unnecessary repositories.
+* Create generic `logic/` folders.
+* Create repository folders for a single repository.
+* Duplicate plugin functionality.
+* Duplicate plugin-specific UI.
+* Move unrelated code.
+* Refactor unrelated plugins during unrelated tasks.
+* Rewrite the entire project unnecessarily.
+* Delete files without checking references.
+* Replace `startup.sql` with a partial schema.
+* Remove unrelated tables from `startup.sql`.
+* Remove unrelated database objects.
+* Convert `startup.sql` into a migration-only file.
+* Modify `startup.sql` for non-persisted changes.
+* Change unrelated database definitions.
+* Introduce a new architecture simply because it is cleaner.
+
+---
+
+# 42. REQUIRED WORKFLOW FOR EVERY TASK
+
+Every coding task MUST follow this process.
+
+## STEP 1 — READ
+
+Read:
+
+```text
+documents/AI_ARCHITECTURE_CONTRACT.md
+```
+
+Treat it as mandatory.
+
+---
+
+## STEP 2 — DEFINE SCOPE
 
 Identify the minimum relevant:
 
 * Files.
 * Directories.
+* Classes.
 * Dependencies.
+* Database definitions if applicable.
 
-STEP 3 — INSPECT
+Do not scan or modify the entire project unnecessarily.
 
-Inspect only those files.
+---
 
-Do not scan the entire project unless required.
+## STEP 3 — LIST RELEVANT FILES
 
-For plugin data/model changes, inspect the corresponding startup.sql definition.
+Before modifying code, identify the files directly related to the task.
 
-For database-related tasks, inspect the COMPLETE startup.sql, not only the affected table.
+For restructuring tasks, include:
 
-STEP 4 — PLAN
+* Current files.
+* Target files.
+* Files that may need moving.
+* Files that may need deletion.
 
-Briefly state:
+---
 
-* Existing structure being used.
-* Files that will change.
-* Why each file changes.
-* Whether startup.sql must change.
-* If startup.sql changes, confirm that ALL existing tables and required database objects will remain represented.
+## STEP 4 — INSPECT
 
-STEP 5 — IMPLEMENT
+Inspect the existing implementation before changing it.
 
-Make the smallest possible change.
+For plugin changes:
+
+* Inspect the plugin.
+* Inspect relevant models.
+* Inspect relevant UI.
+* Inspect relevant actions.
+* Inspect repository usage.
+* Inspect EventBus contracts when communication changes.
 
 For database changes:
 
-* Preserve the complete startup.sql.
-* Modify only the required schema definitions.
-* Do not remove unchanged tables.
-* Do not create a partial startup.sql.
+* Read the COMPLETE `startup.sql`.
 
-STEP 6 — VERIFY
+For restructuring:
 
-Check:
-
-* Imports.
-* References.
-* Dependencies.
-* Compilation.
-* Relevant tests.
-* Database schema consistency when persisted plugin structures changed.
-* startup.sql completeness.
-* All existing tables are still represented.
-* All existing table definitions remain complete.
-* Required destruction/reset instructions remain present.
-* Database creation order remains valid.
-* No unrelated database definitions were accidentally removed.
-
-STEP 7 — REPORT
-
-Return only:
-
-* Files inspected.
-* Files changed.
-* Summary.
-* Build/test result.
-* Remaining issues.
-
-For database changes, explicitly confirm:
-
-* `startup.sql` remains a complete database bootstrap script.
-* All existing tables remain represented.
-* The requested schema change was applied.
-* No unrelated database definitions were removed.
-
-============================================================
-30. STRUCTURAL CHANGE SAFETY
-    ============================
-
-If a task requires architectural restructuring:
-
-DO NOT immediately perform a large rewrite.
-
-First provide:
-
-1. Current affected structure.
-2. Proposed affected structure.
-3. Files to move.
-4. Files to modify.
-5. Files to delete.
-6. Dependencies affected.
-7. Risks.
-
-Then refactor incrementally.
-
-After each major step:
-
-* Fix imports.
-* Build affected code.
-* Fix errors.
-* Continue.
+* Inspect the affected architectural boundaries.
 
 ---
 
-## 30.1 FILE-SERVICE MIGRATION
+## STEP 5 — PLAN
 
-For file-service migration specifically:
+Briefly report:
 
-Before removing any old file manager/service boundary:
+```text
+Current structure:
+...
 
-1. Identify all current file-service implementations.
-2. Identify all callers.
-3. Identify all EventBus commands/events related to file operations.
-4. Determine which functionality belongs inside the Android service boundary.
-5. Migrate callers to the existing Android service/EventBus boundary.
-6. Remove obsolete layers only after all references are migrated.
-7. Build and verify affected functionality.
+Target structure:
+...
 
----
+Files to change:
+...
 
-## 30.2 PLUGIN STRUCTURE MIGRATION
+Files to move:
+...
 
-For plugin structure changes:
+Files to delete:
+...
 
-1. Inspect the existing plugin structure.
-2. Do not automatically reorganize existing plugins.
-3. If the task explicitly requires structural migration, compare the current structure with the canonical structure in Section 5.
-4. Move only files that violate the required structure.
-5. Update package declarations/imports/references as necessary.
-6. Do not introduce repository/, logic/, external/, or other directories unless explicitly required by the task.
-7. Build and verify after the migration.
-
-The target structure is:
-
-plugins/<pluginName>/ <PluginName>Plugin.kt <PluginName>Actions.kt <PluginName>Widgets.kt <PluginName>Repository.kt
-
+Reason:
+...
 ```
-models/
 
+For database changes also state:
+
+```text
+startup.sql change required: YES/NO
+
+If YES:
+All existing tables and required database objects will remain represented.
+```
+
+---
+
+## STEP 6 — IMPLEMENT
+
+Make the smallest change that satisfies the task.
+
+When restructuring is explicitly requested:
+
+* Move misplaced classes.
+* Correct ownership.
+* Correct package declarations.
+* Correct imports.
+* Correct EventBus boundaries.
+* Separate manager responsibilities from service responsibilities.
+* Preserve behavior.
+* Remove obsolete layers only when safe.
+
+Do not perform unrelated cleanup.
+
+---
+
+## STEP 7 — VERIFY STRUCTURE
+
+After implementation, verify:
+
+### Class ownership
+
+* Every class is in the correct directory.
+* Screens are in screen directories.
+* Popups are in popup directories.
+* Components are in component directories.
+* Models are in model directories.
+* Plugin-specific code remains in the plugin.
+* Core functionality remains in core.
+* UI functionality remains in UI.
+
+### Communication
+
+* Cross-boundary communication uses EventBus.
+* Managers are not communication endpoints.
+* Services own their functionality.
+* Plugins do not directly access managers/services.
+* No second EventBus exists.
+
+### Database
+
+If applicable:
+
+* Plugin persisted structure matches startup.sql.
+* startup.sql remains complete.
+* All tables remain present.
+* All required objects remain present.
+* Reset/destruction instructions remain present.
+
+---
+
+## STEP 8 — BUILD AND TEST
+
+Run the relevant build and tests.
+
+At minimum, verify compilation of the affected code.
+
+If the project provides relevant tests, run them.
+
+Do not claim success without actually verifying it.
+
+---
+
+# 43. FINAL REPORT FORMAT
+
+After completing a task, report only:
+
+```text
+Files inspected:
+- ...
+
+Files changed:
+- ...
+
+Files moved:
+- ...
+
+Files deleted:
+- ...
+
+Summary:
+- ...
+
+Build/test result:
+- ...
+
+Remaining issues:
+- ...
+```
+
+For database changes, explicitly include:
+
+```text
+startup.sql:
+- Complete bootstrap schema preserved: YES/NO
+- All existing tables preserved: YES/NO
+- Requested schema change applied: YES/NO
+- Unrelated database definitions removed: YES/NO
+```
+
+Do not provide unnecessary explanations.
+
+---
+
+# 44. WHEN UNCERTAIN
+
+When uncertain:
+
+> **DO NOT GUESS.**
+
+Inspect the existing implementation.
+
+If the responsibility is unclear:
+
+> Preserve the existing implementation until ownership can be established.
+
+If uncertain whether something belongs in `startup.sql`:
+
+> **KEEP IT.**
+
+If uncertain whether an existing table should remain:
+
+> **KEEP IT.**
+
+If uncertain whether a manager should perform an operation:
+
+> The manager should only create/configure the dedicated class. The dedicated service/component should perform the operation.
+
+If uncertain where a class belongs:
+
+Determine what the class actually does and place it according to responsibility.
+
+Never use an arbitrary directory simply because it already exists.
+
+---
+
+# 45. ARCHITECTURAL PRIORITY ORDER
+
+When rules appear to conflict, apply them in this order:
+
+1. Preserve working functionality.
+2. Preserve the ownership boundaries defined by this contract.
+3. Preserve EventBus communication boundaries.
+4. Preserve service/manager separation.
+5. Place classes according to responsibility.
+6. Make the smallest required change.
+7. Avoid unrelated refactoring.
+8. Preserve existing implementation details where they do not conflict with the architecture.
+
+The fundamental rule is:
+
+> **Correct ownership + clear responsibility + EventBus communication + self-contained services + minimal change.**
+
+---
+
+# 46. FINAL ARCHITECTURE SUMMARY
+
+The intended architecture is:
+
+```text
+                         RemmiHost
+                             │
+                             ▼
+                      RemmiController
+                             │
+        ┌────────────────────┼─────────────────────┐
+        │                    │                     │
+        ▼                    ▼                     ▼
+ PluginManager         DatabaseManager        AndroidManager
+        │                    │                     │
+        ▼                    ▼                     ▼
+    Plugins          DatabaseService       Android Services
+        │                    │                     │
+        └────────────────────┼─────────────────────┘
+                             │
+                             ▼
+                          EventBus
+                             ▲
+                             │
+                    AutomationEngine
+```
+
+The managers create and configure their dedicated classes.
+
+The dedicated classes perform the actual functionality.
+
+Communication between architectural boundaries occurs through EventBus.
+
+The UI is separated according to responsibility:
+
+```text
 ui/
-    screens/
+    components/
     popups/
+    screens/
 ```
 
-Do not combine plugin structure cleanup with unrelated feature work.
+Plugins are self-contained:
 
----
+```text
+plugins/
+    <plugin>/
+        <Plugin>Plugin.kt
+        <Plugin>Actions.kt
+        <Plugin>Repository.kt
+        <Plugin>Widgets.kt
 
-## 30.3 DATABASE STRUCTURE MIGRATION
+        models/
 
-When a task changes a persisted plugin item structure:
+        ui/
+            screens/
+            popups/
+            widgets/
+```
 
-1. Identify the affected plugin item/model.
+The fundamental communication model is:
 
-2. Read the COMPLETE:
+```text
+                 ┌───────────────┐
+                 │   EventBus    │
+                 └───────┬───────┘
+                         │
+          ┌──────────────┼──────────────┐
+          │              │              │
+          ▼              ▼              ▼
+       Plugins       Core Services   Automation
+                         │
+               ┌─────────┼─────────┐
+               ▼         ▼         ▼
+           Database     File     Android
+           Service    Service    Services
+```
 
-   db-scripts/src/main/resources/startup.sql
+Managers do not perform these operations.
 
-3. Identify ALL existing database tables.
+They create and configure the classes that do.
 
-4. Identify ALL existing database objects required for startup.
+The final architectural rule is:
 
-5. Locate the corresponding database definition.
-
-6. Compare the plugin structure with the database definition.
-
-7. Determine the minimum required schema change.
-
-8. Apply the change to the affected definition.
-
-9. Preserve EVERY unrelated table definition.
-
-10. Preserve EVERY unrelated database object definition.
-
-11. Preserve required destruction/reset instructions.
-
-12. Verify dependency and creation order.
-
-13. Verify that the entire startup.sql remains a complete database bootstrap script.
-
-14. Build and verify the affected code.
-
-15. Confirm that the plugin structure and complete startup.sql remain synchronized.
-
-The final startup.sql MUST represent the entire current database schema, not merely the database changes introduced by the current task.
-
-============================================================
-30.4 DATABASE STARTUP.SQL CHANGE SAFETY
-=======================================
-
-Whenever startup.sql is modified:
-
-1. NEVER start by replacing the file with a new partial script.
-2. Read the existing startup.sql first.
-3. Identify every existing table.
-4. Identify every required database object.
-5. Identify the existing destruction/reset strategy.
-6. Preserve all existing tables.
-7. Preserve all existing database objects.
-8. Modify only the required definitions.
-9. Add new definitions only when required.
-10. Remove definitions only when explicitly required and verified safe.
-11. Verify the complete script after modification.
-12. Ensure the file can still represent a full database rebuild.
-
-If the agent cannot determine whether an existing table/object should remain:
-
-**KEEP IT.**
-
-Do not remove database definitions merely because they are not related to the current task.
-
-============================================================
-31. FORBIDDEN ACTIONS
-    =====================
-
-NEVER:
-
-* Rewrite the entire project.
-* Invent a new architecture.
-* Add new managers without permission.
-* Add a new EventBus.
-* Add a second database access system.
-* Give plugins direct database access.
-* Give plugins direct file-service access.
-* Give plugins Android Context.
-* Give plugins direct AutomationEngine access.
-* Give plugins direct AndroidServiceManager access.
-* Give plugins direct Android API access.
-* Add PluginContext or equivalent mega-context.
-* Put plugin-specific UI in core.
-* Put plugin screens outside ui/screens/.
-* Put plugin popups outside ui/popups/.
-* Create ui/external/ by default.
-* Create repository/ for a single repository file.
-* Create logic/ by default.
-* Put one plugin's popup inside another plugin.
-* Move unrelated code.
-* Refactor unrelated code.
-* Delete working functionality.
-* Change database structure without explicit permission.
-* Change public APIs without necessity.
-* Create unnecessary boilerplate.
-* Create unnecessary abstractions.
-* Create a separate FileManager/FileServiceManager when the responsibility already belongs to AndroidServiceManager.
-* Bypass EventBus for plugin-to-file-service communication.
-* Reorganize existing plugins during unrelated tasks.
-* Change a persisted plugin item structure without checking startup.sql.
-* Leave startup.sql inconsistent with a plugin's persisted item structure.
-* Modify unrelated database definitions unnecessarily while synchronizing a plugin's persisted structure.
-* Modify startup.sql for UI-only or non-persisted changes.
-* Replace startup.sql with a partial schema.
-* Keep only the table currently being edited in startup.sql.
-* Remove unchanged tables from startup.sql.
-* Remove unchanged database objects from startup.sql.
-* Convert startup.sql into a migration-only script.
-* Remove destruction/reset instructions for unchanged tables merely because they were not modified.
-* Assume another plugin's table does not belong in startup.sql.
-* Recreate only the affected table when modifying database structure.
-* Treat "minimal change" as permission to omit the rest of the database schema.
-* Leave startup.sql unable to recreate the complete current database schema.
-* Accidentally delete existing table definitions while adding or modifying another table.
-* Create a new startup.sql containing only the latest database change.
-* Remove complete table definitions merely because they were not involved in the current task.
-
-============================================================
-32. WHEN UNCERTAIN
-    ==================
-
-When unsure:
-
-**DO NOT GUESS.**
-
-Inspect the relevant code.
-
-If still unclear:
-
-**PRESERVE THE EXISTING IMPLEMENTATION.**
-
-When unsure whether a table belongs in startup.sql:
-
-**KEEP IT.**
-
-When unsure whether an unchanged table should remain in startup.sql:
-
-**KEEP IT.**
-
-When unsure whether a destruction/reset instruction should remain:
-
-**KEEP IT** unless there is clear evidence that it is obsolete and its removal is explicitly required.
-
-When unsure whether a database definition is unrelated:
-
-Do not remove it.
-
-When unsure whether a change requires startup.sql modification:
-
-Inspect the persisted structure and existing startup.sql before deciding.
-
-The safe database default is:
-
-**Preserve the complete existing startup schema**
-+
-**apply the smallest required database change**
-+
-**preserve all other tables and database objects**
-+
-**preserve required destruction/reset instructions**
-+
-**verify the complete schema remains rebuildable.**
-
-The preferred solution is always:
-
-**The smallest change**
-that **preserves the architecture**
-and **does not break working code**
-while keeping **startup.sql as a complete, authoritative, rebuildable representation of the entire Remmi database schema.**
+> **Managers create. Services operate. Plugins own features. UI owns presentation. EventBus connects boundaries. Classes live in the directory that owns their responsibility.**

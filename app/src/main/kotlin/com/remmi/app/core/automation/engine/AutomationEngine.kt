@@ -66,6 +66,7 @@ class AutomationEngine(
         
         // 1. Subscribe Engine
         eventBus.subscribeEvent(this)
+        eventBus.subscribeCommand(this)
         
         // 2. Start sub-features
         lockScreenManager.start()
@@ -85,6 +86,7 @@ class AutomationEngine(
         
         // 2. Unsubscribe Engine
         eventBus.unsubscribeEvent(this)
+        eventBus.unsubscribeCommand(this)
         
         running = false
     }
