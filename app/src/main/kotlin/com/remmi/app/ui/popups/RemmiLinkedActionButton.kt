@@ -1,19 +1,13 @@
 package com.remmi.app.ui.popups
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalMinimumInteractiveComponentSize
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -33,22 +27,21 @@ fun RemmiLinkedActionButton(
 ) {
     // Strictly disable the mandatory touch target expansion to avoid visual artifacts/shadows
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-        Box(
-            modifier = modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(
-                    if (active) MaterialTheme.colorScheme.primaryContainer 
-                    else Color.Transparent
-                )
-                .clickable { onClick() },
-            contentAlignment = Alignment.Center
+        Surface(
+            onClick = onClick,
+            modifier = modifier.size(56.dp),
+            shape = CircleShape,
+            color = if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            }
         }
     }
 }

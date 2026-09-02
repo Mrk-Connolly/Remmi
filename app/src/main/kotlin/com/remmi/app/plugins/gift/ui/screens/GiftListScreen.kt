@@ -23,6 +23,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remmi.app.ui.components.RemmiHomeScreen
+import com.remmi.app.ui.components.RemmiFAB
 import com.remmi.app.ui.components.RemmiCard
 import com.remmi.app.plugins.contacts.ContactActions
 import com.remmi.app.plugins.contacts.models.ContactItem
@@ -76,16 +77,12 @@ fun GiftListScreen(
         RemmiHomeScreen(
             title = "Gift List",
             floatingActionButton = {
-                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                    FloatingActionButton(
-                        onClick = { showContactPicker = true },
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        shape = CircleShape,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Contact")
-                    }
-                }
+                RemmiFAB(
+                    onClick = { showContactPicker = true },
+                    icon = Icons.Default.Add,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    contentDescription = "Add Contact"
+                )
             }
         ) { padding ->
             PullToRefreshBox(

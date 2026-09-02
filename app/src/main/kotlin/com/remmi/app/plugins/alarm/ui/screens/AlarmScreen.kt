@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.ui.components.RemmiHomeScreen
+import com.remmi.app.ui.components.RemmiFAB
 import com.remmi.app.core.eventBus.commands.DeleteAlarmCommand
 import com.remmi.app.ui.components.RemmiCard
 import com.remmi.app.plugins.alarm.AlarmActions
@@ -40,17 +41,6 @@ fun AlarmScreen(
     var alarms by remember { mutableStateOf(emptyList<AlarmUiModel>()) }
     var editorMode by remember { mutableStateOf<AlarmEditorMode?>(null) }
     
-    // Track editor state for hiding bottom menu
-    LaunchedEffect(editorMode) {
-        com.remmi.app.core.controller.GlobalUIState.isEditorActive.value = editorMode != null
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            com.remmi.app.core.controller.GlobalUIState.isEditorActive.value = false
-        }
-    }
-
     var isRefreshing by remember { mutableStateOf(false) }
 
     val onRefresh: () -> Unit = remember {
@@ -85,16 +75,12 @@ fun AlarmScreen(
         RemmiHomeScreen(
             title = "Alarms",
             floatingActionButton = {
-                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                    FloatingActionButton(
-                        onClick = { editorMode = AlarmEditorMode.Create },
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        shape = CircleShape,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Alarm")
-                    }
-                }
+                RemmiFAB(
+                    onClick = { editorMode = AlarmEditorMode.Create },
+                    icon = Icons.Default.Add,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    contentDescription = "Add Alarm"
+                )
             }
         ) { padding ->
             PullToRefreshBox(

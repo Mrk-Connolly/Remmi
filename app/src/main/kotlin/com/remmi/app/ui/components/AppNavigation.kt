@@ -1,24 +1,29 @@
 package com.remmi.app.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Extension
@@ -45,6 +50,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -63,19 +70,26 @@ import com.remmi.app.ui.components.getIconForName
 /**
  * Main navigation orchestrator for the Remmi application.
  */
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 @Composable
 fun AppNavigation(
     runtime: RemmiController
 ) {
     val navController = rememberNavController()
     val isEditorActive by GlobalUIState.isEditorActive
+    var pluginsOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
             if (!isEditorActive) {
                 RemmiBottomNavigation(
                     navController = navController,
-                    runtime = runtime
+                    runtime = runtime,
+                    pluginsOpen = pluginsOpen,
+                    onPluginsOpenChange = { pluginsOpen = it }
                 )
             }
         }
@@ -144,12 +158,29 @@ fun AppNavigation(
             }
         }
     }
+
+    if (pluginsOpen && !isEditorActive) {
+        PluginBottomSheet(
+            runtime = runtime,
+            onDismiss = { pluginsOpen = false },
+            onPluginClick = { plugin ->
+                pluginsOpen = false
+                navController.navigate(
+                    RemmiDestination.pluginRoute(plugin.metadata.id)
+                ) {
+                    launchSingleTop = true
+                }
+            }
+        )
+    }
 }
 
 @Composable
 fun RemmiBottomNavigation(
     navController: NavHostController,
-    runtime: RemmiController
+    runtime: RemmiController,
+    pluginsOpen: Boolean,
+    onPluginsOpenChange: (Boolean) -> Unit
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -161,10 +192,8 @@ fun RemmiBottomNavigation(
             .mapNotNull { runtime.pluginManager.plugins[it.id] }
     }
 
-    var pluginsOpen by remember { mutableStateOf(false) }
-
     val navigate: (String) -> Unit = { route ->
-        pluginsOpen = false
+        onPluginsOpenChange(false)
         navController.navigate(route) {
             popUpTo(RemmiDestination.HOME.route) {
                 saveState = true
@@ -174,7 +203,6 @@ fun RemmiBottomNavigation(
         }
     }
 
-    // Shared navigation item colors following user's primary color
     val navigationItemColors = NavigationBarItemDefaults.colors(
         selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
         selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -188,37 +216,12 @@ fun RemmiBottomNavigation(
             .fillMaxWidth()
             .navigationBarsPadding()
     ) {
-        AnimatedVisibility(
-            visible = pluginsOpen,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(
-                    start = DesignTokens.SpacingMedium,
-                    end = DesignTokens.SpacingMedium,
-                    bottom = DesignTokens.BottomNavigationHeight - 4.dp
-                ),
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            PluginMenu(
-                plugins = activePlugins,
-                onPluginClick = { plugin ->
-                    navController.navigate(
-                        RemmiDestination.pluginRoute(plugin.metadata.id)
-                    ) {
-                        launchSingleTop = true
-                    }
-                    pluginsOpen = false
-                }
-            )
-        }
-
         NavigationBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(DesignTokens.BottomNavigationHeight),
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            tonalElevation = 0.dp // Elevation handled by surface container color
+            tonalElevation = 0.dp
         ) {
             NavigationBarItem(
                 selected = currentRoute == RemmiDestination.HOME.route,
@@ -256,7 +259,7 @@ fun RemmiBottomNavigation(
         }
 
         FloatingActionButton(
-            onClick = { pluginsOpen = !pluginsOpen },
+            onClick = { onPluginsOpenChange(!pluginsOpen) },
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .offset(y = (-DesignTokens.SpacingSmall))
@@ -267,7 +270,7 @@ fun RemmiBottomNavigation(
             elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp)
         ) {
             Icon(
-                imageVector = if (pluginsOpen) Icons.Default.Close else Icons.Default.Extension,
+                imageVector = if (pluginsOpen) Icons.Default.Close else Icons.Default.Apps,
                 contentDescription = if (pluginsOpen) "Close plugins" else "Open plugins",
                 modifier = Modifier.size(DesignTokens.IconSizeLarge)
             )
@@ -275,22 +278,67 @@ fun RemmiBottomNavigation(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PluginBottomSheet(
+    runtime: RemmiController,
+    onDismiss: () -> Unit,
+    onPluginClick: (RemmiPlugin) -> Unit
+) {
+    val metadata by runtime.pluginManager.pluginMetadata.collectAsState()
+    val activePlugins = remember(metadata) {
+        metadata
+            .filter { it.enabled }
+            .mapNotNull { runtime.pluginManager.plugins[it.id] }
+    }
+
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        modifier = Modifier.fillMaxHeight(),
+        dragHandle = {
+            BottomSheetDefaults.DragHandle()
+        },
+        shape = RoundedCornerShape(
+            topStart = DesignTokens.CornerRadiusLarge,
+            topEnd = DesignTokens.CornerRadiusLarge
+        )
+    ) {
+        PluginMenu(
+            plugins = activePlugins,
+            onPluginClick = onPluginClick
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PluginMenu(
     plugins: List<RemmiPlugin>,
     onPluginClick: (RemmiPlugin) -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(DesignTokens.CornerRadiusLarge),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 8.dp,
-        shadowElevation = 12.dp
+    val groupedPlugins = remember(plugins) {
+        plugins.groupBy { plugin ->
+            pluginGroupFor(plugin.metadata.id)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(
+                start = DesignTokens.SpacingLarge,
+                end = DesignTokens.SpacingLarge,
+                bottom = DesignTokens.SpacingLarge
+            ),
+        verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingLarge)
     ) {
-        Column(
-            modifier = Modifier.padding(DesignTokens.SpacingLarge),
-            verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSmall)
-        ) {
+        Column {
             Text(
                 text = "Plugins",
                 style = MaterialTheme.typography.headlineSmall,
@@ -299,63 +347,121 @@ private fun PluginMenu(
             )
 
             Text(
-                text = "Extend your Remmi system",
+                text = "Quick Access",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        if (plugins.isEmpty()) {
+            Text(
+                text = "No plugins enabled.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = DesignTokens.SpacingMedium)
+                modifier = Modifier.padding(vertical = DesignTokens.SpacingMedium)
             )
-
-            if (plugins.isEmpty()) {
-                Text(
-                    text = "No plugins enabled.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                plugins.forEach { plugin ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(DesignTokens.CornerRadiusMedium))
-                            .clickable { onPluginClick(plugin) }
-                            .padding(vertical = DesignTokens.SpacingSmall),
-                        verticalAlignment = Alignment.CenterVertically
+        } else {
+            groupedPlugins
+                .toSortedMap(compareBy { it.ordinal })
+                .forEach { (group, groupPlugins) ->
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = getIconForName(plugin.metadata.icon),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(DesignTokens.IconSizeMedium)
-                            )
-                        }
+                        Text(
+                            text = group.displayName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                        Column(modifier = Modifier.padding(start = DesignTokens.SpacingMedium)) {
-                            Text(
-                                text = plugin.metadata.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "v${plugin.metadata.version}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(
+                                DesignTokens.SpacingMedium
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(
+                                DesignTokens.SpacingMedium
+                            ),
+                            maxItemsInEachRow = 3
+                        ) {
+                            groupPlugins.forEach { plugin ->
+                                Column(
+                                    modifier = Modifier
+                                        .width(84.dp)
+                                        .clip(
+                                            RoundedCornerShape(
+                                                DesignTokens.CornerRadiusMedium
+                                            )
+                                        )
+                                        .clickable { onPluginClick(plugin) }
+                                        .padding(vertical = DesignTokens.SpacingSmall),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(56.dp)
+                                            .background(
+                                                color = MaterialTheme.colorScheme.primary.copy(
+                                                    alpha = 0.1f
+                                                ),
+                                                shape = CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = getIconForName(plugin.metadata.icon),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(
+                                                DesignTokens.IconSizeLarge
+                                            )
+                                        )
+                                    }
+
+                                    Text(
+                                        text = plugin.metadata.name,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
                         }
                     }
                 }
-            }
         }
     }
 }
+
+enum class PluginGroup(
+    val displayName: String
+) {
+    PRODUCTIVITY("Productivity"),
+    COMMUNICATION("Communication"),
+    INFORMATION("Information"),
+    AUTOMATION("Automation"),
+    OTHER("Other")
+}
+
+private fun pluginGroupFor(pluginId: String): PluginGroup =
+    when (pluginId.lowercase()) {
+        "calendar", "tasks", "notes", "reminders", "todo", "todos" ->
+            PluginGroup.PRODUCTIVITY
+
+        "messages", "messaging", "email", "mail", "contacts" ->
+            PluginGroup.COMMUNICATION
+
+        "weather", "news", "rss", "search" ->
+            PluginGroup.INFORMATION
+
+        "automation", "automations", "automatization", "workflows" ->
+            PluginGroup.AUTOMATION
+
+        else -> PluginGroup.OTHER
+    }
 
 sealed class RemmiDestination(val route: String) {
     data object HOME : RemmiDestination("home")

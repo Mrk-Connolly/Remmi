@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.ui.components.RemmiHomeScreen
+import com.remmi.app.ui.components.RemmiFAB
 import com.remmi.app.ui.DesignTokens
 import com.remmi.app.core.eventBus.commands.DeleteTaskCommand
 import com.remmi.app.ui.components.RemmiCard
@@ -48,17 +49,6 @@ fun TasksScreen(
     var tasks by remember { mutableStateOf(emptyList<TaskItem>()) }
     var editorMode by remember { mutableStateOf<TaskEditorMode?>(null) }
     
-    // Track editor state for hiding bottom menu
-    LaunchedEffect(editorMode) {
-        com.remmi.app.core.controller.GlobalUIState.isEditorActive.value = editorMode != null
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            com.remmi.app.core.controller.GlobalUIState.isEditorActive.value = false
-        }
-    }
-
     var taskToManage by remember { mutableStateOf<TaskItem?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
 
@@ -127,31 +117,26 @@ fun TasksScreen(
         }
     } else {
         RemmiHomeScreen(
-            title = "Tasks",
+            title = "",
             floatingActionButton = {
-                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        FloatingActionButton(
-                            onClick = { editorMode = TaskEditorMode.Multitask },
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.padding(bottom = 8.dp),
-                            shape = CircleShape,
-                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = "Add Multitask")
-                        }
-                        FloatingActionButton(
-                            onClick = { editorMode = TaskEditorMode.Create },
-                            modifier = Modifier.padding(bottom = 16.dp),
-                            shape = CircleShape,
-                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Task")
-                        }
-                    }
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    RemmiFAB(
+                        onClick = { editorMode = TaskEditorMode.Multitask },
+                        icon = Icons.AutoMirrored.Filled.PlaylistAdd,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        contentDescription = "Add Multitask"
+                    )
+                    RemmiFAB(
+                        onClick = { editorMode = TaskEditorMode.Create },
+                        icon = Icons.Default.Add,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        contentDescription = "Add Task"
+                    )
                 }
             }
         ) { padding ->

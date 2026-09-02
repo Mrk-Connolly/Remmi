@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.ui.components.RemmiHomeScreen
+import com.remmi.app.ui.components.RemmiFAB
 import com.remmi.app.ui.DesignTokens
 import com.remmi.app.ui.components.RemmiCard
 import com.remmi.app.plugins.calendar.CalendarActions
@@ -49,7 +50,7 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 enum class CalendarViewMode {
-    MONTH, WEEK
+    MONTH
 }
 
 /**
@@ -69,22 +70,12 @@ fun CalendarScreen(
     
     var viewMode by rememberSaveable { mutableStateOf(CalendarViewMode.MONTH) }
     var selectedFilter by rememberSaveable { mutableStateOf("All") }
-    
+    var showWeeklyGrid by rememberSaveable { mutableStateOf(false) }
+
     val now = remember { Instant.fromEpochMilliseconds(System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date }
     val calendarState = rememberSelectableCalendarState()
     val listState = rememberLazyListState()
     
-    // Track editor state for hiding bottom menu
-    LaunchedEffect(editorMode) {
-        com.remmi.app.core.controller.GlobalUIState.isEditorActive.value = editorMode != null
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            com.remmi.app.core.controller.GlobalUIState.isEditorActive.value = false
-        }
-    }
-
     var isRefreshing by remember { mutableStateOf(false) }
 
     val refreshData: suspend () -> Unit = {
@@ -125,20 +116,28 @@ fun CalendarScreen(
                 }
             }
         )
+    } else if (showWeeklyGrid) {
+        WeeklyScheduleScreen(
+            actions = actions,
+            controller = controller,
+            onBack = { showWeeklyGrid = false },
+            onAddEvent = { date: LocalDate, startTime: LocalTime?, endTime: LocalTime? ->
+                editorMode = CalendarEditorMode.CreateOnDate(date, startTime, endTime)
+            },
+            onEditEvent = { event: CalendarItem ->
+                editorMode = CalendarEditorMode.Edit(event)
+            }
+        )
     } else {
         RemmiHomeScreen(
-            title = "Calendar",
+            title = "",
             floatingActionButton = {
-                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                    FloatingActionButton(
-                        onClick = { editorMode = CalendarEditorMode.Create },
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        shape = CircleShape,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Event")
-                    }
-                }
+                RemmiFAB(
+                    onClick = { editorMode = CalendarEditorMode.Create },
+                    icon = Icons.Default.Add,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    contentDescription = "Add Event"
+                )
             }
         ) { padding ->
             val today = now
@@ -201,7 +200,7 @@ fun CalendarScreen(
                     monthState = calendarState.monthState,
                     viewMode = viewMode,
                     onViewModeToggle = {
-                        viewMode = if (viewMode == CalendarViewMode.MONTH) CalendarViewMode.WEEK else CalendarViewMode.MONTH
+                        showWeeklyGrid = true
                     },
                     existingGroups = groups.map { it.name },
                     onFilterSelected = { selectedFilter = it }
@@ -627,6 +626,10 @@ fun java.time.LocalDate.toKotlinLocalDate(): LocalDate =
 
 sealed class CalendarEditorMode {
     data object Create : CalendarEditorMode()
-    data class CreateOnDate(val date: LocalDate) : CalendarEditorMode()
+    data class CreateOnDate(
+        val date: LocalDate, 
+        val startTime: LocalTime? = null, 
+        val endTime: LocalTime? = null
+    ) : CalendarEditorMode()
     data class Edit(val event: CalendarItem) : CalendarEditorMode()
 }

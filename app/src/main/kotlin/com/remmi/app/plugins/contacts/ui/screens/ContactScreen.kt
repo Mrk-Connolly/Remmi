@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.ui.components.RemmiHomeScreen
+import com.remmi.app.ui.components.RemmiFAB
 import com.remmi.app.ui.components.RemmiCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -38,17 +39,6 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
     var selectedContact by remember { mutableStateOf<ContactItem?>(null) }
     var editorMode by remember { mutableStateOf<ContactEditorMode?>(null) }
     
-    // Track editor state for hiding bottom menu
-    LaunchedEffect(editorMode, selectedContact) {
-        com.remmi.app.core.controller.GlobalUIState.isEditorActive.value = editorMode != null || selectedContact != null
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            com.remmi.app.core.controller.GlobalUIState.isEditorActive.value = false
-        }
-    }
-
     var isRefreshing by remember { mutableStateOf(false) }
 
     val onRefresh: () -> Unit = remember {
@@ -94,16 +84,12 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
         RemmiHomeScreen(
             title = "Contacts",
             floatingActionButton = {
-                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                    FloatingActionButton(
-                        onClick = { editorMode = ContactEditorMode.Create },
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        shape = CircleShape,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Contact")
-                    }
-                }
+                RemmiFAB(
+                    onClick = { editorMode = ContactEditorMode.Create },
+                    icon = Icons.Default.Add,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    contentDescription = "Add Contact"
+                )
             }
         ) { padding ->
             PullToRefreshBox(

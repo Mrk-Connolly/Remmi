@@ -33,21 +33,26 @@ fun RemmiHomeScreen(
 ) {
     // Ensure bottom menu is visible
     DisposableEffect(Unit) {
+        val previous = GlobalUIState.isEditorActive.value
         GlobalUIState.isEditorActive.value = false
-        onDispose { }
+        onDispose { 
+            GlobalUIState.isEditorActive.value = previous
+        }
     }
 
     Scaffold(
         topBar = {
-            if (onBack != null || title.isNotEmpty()) {
+            if (title.isNotEmpty() || onBack != null) {
                 TopAppBar(
                     title = {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        if (title.isNotEmpty()) {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     },
                     navigationIcon = {
                         if (onBack != null) {
@@ -86,9 +91,10 @@ fun RemmiSecondaryScreen(
     content: @Composable (PaddingValues) -> Unit
 ) {
     DisposableEffect(Unit) {
+        val previous = GlobalUIState.isEditorActive.value
         GlobalUIState.isEditorActive.value = true
         onDispose { 
-            GlobalUIState.isEditorActive.value = false
+            GlobalUIState.isEditorActive.value = previous
         }
     }
 
@@ -173,9 +179,10 @@ private fun RemmiEditorBaseScaffold(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     DisposableEffect(Unit) {
+        val previous = GlobalUIState.isEditorActive.value
         GlobalUIState.isEditorActive.value = true
         onDispose { 
-            GlobalUIState.isEditorActive.value = false
+            GlobalUIState.isEditorActive.value = previous
         }
     }
 

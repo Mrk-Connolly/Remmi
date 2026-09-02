@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.ui.components.RemmiHomeScreen
+import com.remmi.app.ui.components.RemmiFAB
 import com.remmi.app.ui.popups.RecipeNutritionRadarGraph
 import com.remmi.app.ui.components.RemmiCard
 import com.remmi.app.plugins.recipebook.RecipeActions
@@ -86,14 +87,12 @@ fun RecipeScreen(
         RemmiHomeScreen(
             title = "Recipes",
             floatingActionButton = {
-                FloatingActionButton(
+                RemmiFAB(
                     onClick = { isAddingRecipe = true },
+                    icon = Icons.Default.Add,
                     modifier = Modifier.padding(bottom = 16.dp),
-                    shape = CircleShape,
-                    elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Recipe")
-                }
+                    contentDescription = "Add Recipe"
+                )
             }
         ) { padding ->
             Column(

@@ -78,7 +78,7 @@ fun SettingsScreen(
         }
     }
 
-    RemmiHomeScreen(
+    RemmiSecondaryScreen(
         title = "Settings",
         onBack = onBack,
         floatingActionButton = {

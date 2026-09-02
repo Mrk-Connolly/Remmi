@@ -9,7 +9,7 @@ import androidx.compose.runtime.mutableStateOf
  */
 object GlobalUIState {
     
-    /** Indicates if a full-screen editor is currently active (hides menus) */
+    /** Indicates if a full-screen editor or secondary screen is currently active (hides bottom menu) */
     val isEditorActive = mutableStateOf(false)
     
     /** Visibility of the main island navigation menu */

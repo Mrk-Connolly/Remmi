@@ -64,9 +64,13 @@ fun CalendarScreenEditor(
 
     // Date/Time State
     var startingDate by remember { mutableStateOf(initialEvent?.startingDate ?: initialDate ?: today) }
-    var startingTime by remember { mutableStateOf(initialEvent?.startingTime ?: LocalTime(9, 0)) }
+    var startingTime by remember { 
+        mutableStateOf(initialEvent?.startingTime ?: (mode as? CalendarEditorMode.CreateOnDate)?.startTime ?: LocalTime(9, 0)) 
+    }
     var endingDate by remember { mutableStateOf(initialEvent?.endingDate ?: startingDate) }
-    var endingTime by remember { mutableStateOf(initialEvent?.endingTime ?: LocalTime(10, 0)) }
+    var endingTime by remember { 
+        mutableStateOf(initialEvent?.endingTime ?: (mode as? CalendarEditorMode.CreateOnDate)?.endTime ?: LocalTime(10, 0)) 
+    }
     
     // Repeat State
     var isRepeatable by remember { mutableStateOf(initialEvent?.isRepeatable ?: false) }

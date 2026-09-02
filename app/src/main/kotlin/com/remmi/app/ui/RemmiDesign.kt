@@ -1,6 +1,7 @@
 package com.remmi.app.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -89,9 +90,11 @@ fun RemmiTheme(
     )
 
     val shapes = Shapes(
+        extraSmall = RoundedCornerShape(DesignTokens.CornerRadiusSmall / 2),
         small = RoundedCornerShape(DesignTokens.CornerRadiusSmall),
         medium = RoundedCornerShape(DesignTokens.CornerRadiusMedium),
-        large = RoundedCornerShape(DesignTokens.CornerRadiusLarge)
+        large = RoundedCornerShape(DesignTokens.CornerRadiusLarge),
+        extraLarge = CircleShape
     )
 
     MaterialTheme(
