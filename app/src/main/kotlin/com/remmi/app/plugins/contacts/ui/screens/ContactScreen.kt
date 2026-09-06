@@ -17,6 +17,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -68,6 +69,13 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
         }
     }
 
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+            MaterialTheme.colorScheme.background
+        )
+    )
+
     if (editorMode != null) {
         ContactEditorScreen(
             mode = editorMode!!,
@@ -83,6 +91,7 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
     } else {
         RemmiHomeScreen(
             title = "Contacts",
+            backgroundBrush = backgroundBrush,
             floatingActionButton = {
                 RemmiFAB(
                     onClick = { editorMode = ContactEditorMode.Create },
@@ -112,6 +121,12 @@ fun ContactScreen(actions: ContactActions, controller: RemmiController) {
                                 existingGroups.forEach { group ->
                                     DropdownMenuItem(
                                         text = { Text(group) },
+                                        leadingIcon = { 
+                                            Icon(
+                                                imageVector = if (group == "All") Icons.Default.List else Icons.Default.Group,
+                                                contentDescription = null
+                                            )
+                                        },
                                         onClick = {
                                             selectedGroupFilter = group
                                             isFilterExpanded = false

@@ -146,7 +146,8 @@ class SupabaseService(
                 Log.i("Remmi", "[SupabaseService] - Upserting item into ${command.tableName}")
                 @Suppress("UNCHECKED_CAST")
                 val typedCommand = command as UpsertDataCommand<RemmiModel>
-                update(typedCommand.tableName, typedCommand.item, typedCommand.serializer)
+                val jsonElement = json.encodeToJsonElement(typedCommand.serializer, typedCommand.item)
+                client.postgrest.from(typedCommand.tableName).upsert(jsonElement)
             }
 
             is DeleteDataCommand -> {

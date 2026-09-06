@@ -94,7 +94,7 @@ fun RemmiTheme(
         small = RoundedCornerShape(DesignTokens.CornerRadiusSmall),
         medium = RoundedCornerShape(DesignTokens.CornerRadiusMedium),
         large = RoundedCornerShape(DesignTokens.CornerRadiusLarge),
-        extraLarge = CircleShape
+        extraLarge = RoundedCornerShape(DesignTokens.CornerRadiusLarge)
     )
 
     MaterialTheme(

@@ -20,6 +20,7 @@ class IngredientActions(
     private val metadataRepo: MetadataRepository,
     private val stockRepo: StockRepository,
     private val batchRepo: BatchRepository,
+    private val shopRepo: ShopRepository,
     override val id: String = "ingredient_actions",
     override val name: String = "Ingredient Actions"
 ) : RemmiAction {
@@ -48,6 +49,25 @@ class IngredientActions(
     suspend fun getMetadataList(): List<IngredientMetadata> {
         return metadataRepo.getAll()
     }
+    
+    suspend fun getShops(): List<Shop> {
+        return shopRepo.getAll()
+    }
+
+    suspend fun addShop(name: String, location: String? = null): Shop {
+        val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+        val shop = Shop(
+            id = UUID.randomUUID().toString(),
+            created = now,
+            modified = now,
+            userId = null,
+            name = name,
+            location = location
+        )
+        shopRepo.add(shop)
+        eventBus?.publishCommand(UpsertDataCommand(tableName = "shops", item = shop, serializer = Shop.serializer()))
+        return shop
+    }
 
     /**
      * Add a new ingredient and initial stock via commands.
@@ -64,7 +84,9 @@ class IngredientActions(
         allowedUnits: List<MeasurementUnit> = emptyList(),
         conversions: List<IngredientConversion> = emptyList(),
         baseNutrition: NutritionProfile? = null,
-        shelfLife: Pair<Int?, Int?>? = null
+        shelfLife: Pair<Int?, Int?>? = null,
+        shopId: String? = null,
+        price: Double? = null
     ) {
         val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
         
@@ -94,7 +116,7 @@ class IngredientActions(
             modified = now,
             userId = null,
             metadataId = meta.id,
-            primaryUnit = unit,
+            primaryUnit = if (unit == MeasurementUnit.GRAMS || unit == MeasurementUnit.KILOGRAMS) MeasurementUnit.GRAMS else if (unit == MeasurementUnit.MILLILITERS || unit == MeasurementUnit.LITERS) MeasurementUnit.MILLILITERS else unit,
             storageLocation = storageLocation
         )
         stockRepo.add(stock)
@@ -102,15 +124,24 @@ class IngredientActions(
 
         // 3. Create Initial Batch
         if (initialQuantity > 0) {
+            // Scaling logic: normalize to Grams or Milliliters for storage if applicable
+            val scaledQuantity = when (unit) {
+                MeasurementUnit.KILOGRAMS -> initialQuantity * 1000.0
+                MeasurementUnit.LITERS -> initialQuantity * 1000.0
+                else -> initialQuantity
+            }
+
             val batch = StockBatch(
                 id = UUID.randomUUID().toString(),
                 created = now,
                 modified = now,
                 userId = null,
                 stockId = stock.id,
-                quantity = initialQuantity,
+                quantity = scaledQuantity,
                 purchaseDate = now.toLocalDateTime(TimeZone.currentSystemDefault()).date,
-                expiryDate = expiryDate
+                expiryDate = expiryDate,
+                shopId = shopId,
+                price = price
             )
             batchRepo.add(batch)
             eventBus?.publishCommand(UpsertDataCommand(tableName = "stock_batches", item = batch, serializer = StockBatch.serializer()))
@@ -184,6 +215,7 @@ class IngredientActions(
         eventBus?.publishCommand(FetchAllDataCommand(tableName = "ingredient_metadata", serializer = IngredientMetadata.serializer()))
         eventBus?.publishCommand(FetchAllDataCommand(tableName = "user_stock", serializer = UserStock.serializer()))
         eventBus?.publishCommand(FetchAllDataCommand(tableName = "stock_batches", serializer = StockBatch.serializer()))
+        eventBus?.publishCommand(FetchAllDataCommand(tableName = "shops", serializer = Shop.serializer()))
     }
 
     // ----------------------------------------------------------------------------

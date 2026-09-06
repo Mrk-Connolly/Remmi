@@ -40,12 +40,6 @@ class ContactWidget(
             elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "⭐ Favorite Contacts",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(Modifier.height(8.dp))
-
                 if (favorites.isEmpty()) {
                     Text("No favorites yet", style = MaterialTheme.typography.bodySmall)
                 } else {

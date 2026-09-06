@@ -13,6 +13,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,10 @@ enum class IngredientSortOption {
     QUANTITY_LOW, QUANTITY_HIGH, EXPIRY_DATE
 }
 
+enum class IngredientScreenState {
+    LIST, ADD, REGISTER
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IngredientStockScreen(
@@ -42,11 +47,13 @@ fun IngredientStockScreen(
     var inventory by remember { mutableStateOf<List<IngredientUiModel>>(emptyList()) }
     var isRefreshing by remember { mutableStateOf(false) }
     
+    var screenState by remember { mutableStateOf(IngredientScreenState.LIST) }
+    var registerInitialName by remember { mutableStateOf("") }
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedFoodGroup by remember { mutableStateOf<FoodGroup?>(null) }
     var sortOption by remember { mutableStateOf(IngredientSortOption.EXPIRY_DATE) }
 
-    var showAddDialog by remember { mutableStateOf(false) }
     var selectedItemForDetail by remember { mutableStateOf<IngredientUiModel?>(null) }
     var selectedItemForAdjustment by remember { mutableStateOf<IngredientUiModel?>(null) }
 
@@ -76,155 +83,51 @@ fun IngredientStockScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        inventory = actions.getInventory()
-    }
-
-    val filteredAndSorted = remember(inventory, searchQuery, selectedFoodGroup, sortOption) {
-        inventory.filter { item ->
-            val matchesName = item.metadata.name.contains(searchQuery, ignoreCase = true)
-            val matchesGroup = selectedFoodGroup == null || item.metadata.foodGroup == selectedFoodGroup
-            matchesName && matchesGroup
-        }.sortedWith { a, b ->
-            when (sortOption) {
-                IngredientSortOption.QUANTITY_LOW -> a.totalQuantity.compareTo(b.totalQuantity)
-                IngredientSortOption.QUANTITY_HIGH -> b.totalQuantity.compareTo(a.totalQuantity)
-                IngredientSortOption.EXPIRY_DATE -> {
-                    val dateA = a.nearestExpiry ?: LocalDate(9999, 12, 31)
-                    val dateB = b.nearestExpiry ?: LocalDate(9999, 12, 31)
-                    dateA.compareTo(dateB)
-                }
-            }
+    LaunchedEffect(screenState) {
+        if (screenState == IngredientScreenState.LIST) {
+            inventory = actions.getInventory()
         }
     }
 
-    RemmiHomeScreen(
-        title = "Inventory",
-        floatingActionButton = {
-            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    var showScanOptions by remember { mutableStateOf(false) }
-                    
-                    if (showScanOptions) {
-                        SmallFloatingActionButton(
-                            onClick = { 
-                                scope.launch { actions.startReceiptScan(true) }
-                                isScanning = true
-                                showScanOptions = false
-                            },
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            shape = CircleShape,
-                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                        ) {
-                            Icon(Icons.Default.PhotoCamera, contentDescription = "Camera")
-                        }
-                        SmallFloatingActionButton(
-                            onClick = { 
-                                scope.launch { actions.startReceiptScan(false) }
-                                isScanning = true
-                                showScanOptions = false
-                            },
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            shape = CircleShape,
-                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                        ) {
-                            Icon(Icons.Default.Image, contentDescription = "Gallery")
-                        }
-                    }
-
-                    FloatingActionButton(
-                        onClick = { showScanOptions = !showScanOptions },
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        shape = CircleShape,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                    ) {
-                        Icon(if (showScanOptions) Icons.Default.Close else Icons.Default.Receipt, contentDescription = "Scan Receipt")
-                    }
-                    
-                    FloatingActionButton(
-                        onClick = { showAddDialog = true },
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        shape = CircleShape,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Ingredient")
-                    }
+    when (screenState) {
+        IngredientScreenState.ADD -> {
+            AddIngredientScreen(
+                actions = actions,
+                onBack = { screenState = IngredientScreenState.LIST },
+                onRegisterNew = { name -> 
+                    registerInitialName = name
+                    screenState = IngredientScreenState.REGISTER 
                 }
-            }
+            )
         }
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Header Section
-            IngredientHeader(
+        IngredientScreenState.REGISTER -> {
+            RegisterIngredientScreen(
+                actions = actions,
+                initialName = registerInitialName,
+                onBack = { screenState = IngredientScreenState.ADD }
+            )
+        }
+        IngredientScreenState.LIST -> {
+            StockListScreen(
+                inventory = inventory,
+                isRefreshing = isRefreshing,
+                isScanning = isScanning,
                 searchQuery = searchQuery,
                 onSearchChange = { searchQuery = it },
                 selectedFoodGroup = selectedFoodGroup,
                 onFoodGroupChange = { selectedFoodGroup = it },
                 sortOption = sortOption,
-                onSortChange = { sortOption = it }
-            )
-
-            PullToRefreshBox(
-                isRefreshing = isRefreshing || isScanning,
+                onSortChange = { sortOption = it },
                 onRefresh = onRefresh,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                if (isScanning) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                } else if (inventory.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No ingredients in your stock yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                } else if (filteredAndSorted.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No matches found.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(filteredAndSorted, key = { it.stock.id }) { item ->
-                            IngredientRow(
-                                item = item,
-                                onAdjust = { selectedItemForAdjustment = item },
-                                onLongClick = { selectedItemForDetail = item }
-                            )
-                        }
-                    }
+                onAdd = { screenState = IngredientScreenState.ADD },
+                onAdjust = { selectedItemForAdjustment = it },
+                onDetail = { selectedItemForDetail = it },
+                onScanReceipt = { useCamera ->
+                    scope.launch { actions.startReceiptScan(useCamera) }
+                    isScanning = true
                 }
-            }
+            )
         }
-    }
-
-    if (showAddDialog) {
-        AddIngredientDialog(
-            onDismiss = { showAddDialog = false },
-            onConfirm = { name, group, qty, unit, expiry, brand, allowedUnits, conversions, nutrition, shelfLife ->
-                scope.launch {
-                    actions.addIngredient(
-                        name = name, 
-                        foodGroup = group, 
-                        initialQuantity = qty, 
-                        unit = unit, 
-                        expiryDate = expiry, 
-                        brand = brand, 
-                        allowedUnits = allowedUnits, 
-                        conversions = conversions,
-                        baseNutrition = nutrition,
-                        shelfLife = shelfLife
-                    )
-                    inventory = actions.getInventory()
-                    showAddDialog = false
-                }
-            }
-        )
     }
 
     selectedItemForDetail?.let { item ->
@@ -267,6 +170,155 @@ fun IngredientStockScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StockListScreen(
+    inventory: List<IngredientUiModel>,
+    isRefreshing: Boolean,
+    isScanning: Boolean,
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    selectedFoodGroup: FoodGroup?,
+    onFoodGroupChange: (FoodGroup?) -> Unit,
+    sortOption: IngredientSortOption,
+    onSortChange: (IngredientSortOption) -> Unit,
+    onRefresh: () -> Unit,
+    onAdd: () -> Unit,
+    onAdjust: (IngredientUiModel) -> Unit,
+    onDetail: (IngredientUiModel) -> Unit,
+    onScanReceipt: (Boolean) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val filteredAndSorted = remember(inventory, searchQuery, selectedFoodGroup, sortOption) {
+        inventory.filter { item ->
+            val matchesName = item.metadata.name.contains(searchQuery, ignoreCase = true)
+            val matchesGroup = selectedFoodGroup == null || item.metadata.foodGroup == selectedFoodGroup
+            matchesName && matchesGroup
+        }.sortedWith { a, b ->
+            when (sortOption) {
+                IngredientSortOption.QUANTITY_LOW -> a.totalQuantity.compareTo(b.totalQuantity)
+                IngredientSortOption.QUANTITY_HIGH -> b.totalQuantity.compareTo(a.totalQuantity)
+                IngredientSortOption.EXPIRY_DATE -> {
+                    val dateA = a.nearestExpiry ?: LocalDate(9999, 12, 31)
+                    val dateB = b.nearestExpiry ?: LocalDate(9999, 12, 31)
+                    dateA.compareTo(dateB)
+                }
+            }
+        }
+    }
+
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+            MaterialTheme.colorScheme.background
+        )
+    )
+
+    RemmiHomeScreen(
+        title = "",
+        backgroundBrush = backgroundBrush,
+        floatingActionButton = {
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    var showScanOptions by remember { mutableStateOf(false) }
+                    
+                    if (showScanOptions) {
+                        SmallFloatingActionButton(
+                            onClick = { 
+                                onScanReceipt(true)
+                                showScanOptions = false
+                            },
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = CircleShape,
+                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                        ) {
+                            Icon(Icons.Default.PhotoCamera, contentDescription = "Camera")
+                        }
+                        SmallFloatingActionButton(
+                            onClick = { 
+                                onScanReceipt(false)
+                                showScanOptions = false
+                            },
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = CircleShape,
+                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                        ) {
+                            Icon(Icons.Default.Image, contentDescription = "Gallery")
+                        }
+                    }
+
+                    FloatingActionButton(
+                        onClick = { showScanOptions = !showScanOptions },
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        shape = CircleShape,
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                    ) {
+                        Icon(if (showScanOptions) Icons.Default.Close else Icons.Default.Receipt, contentDescription = "Scan Receipt")
+                    }
+                    
+                    FloatingActionButton(
+                        onClick = onAdd,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        shape = CircleShape,
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Ingredient")
+                    }
+                }
+            }
+        }
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Header Section
+            IngredientHeader(
+                searchQuery = searchQuery,
+                onSearchChange = onSearchChange,
+                selectedFoodGroup = selectedFoodGroup,
+                onFoodGroupChange = onFoodGroupChange,
+                sortOption = sortOption,
+                onSortChange = onSortChange
+            )
+
+            PullToRefreshBox(
+                isRefreshing = isRefreshing || isScanning,
+                onRefresh = onRefresh,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (isScanning) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else if (inventory.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No ingredients in your stock yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else if (filteredAndSorted.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No matches found.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(filteredAndSorted, key = { it.stock.id }) { item ->
+                            IngredientRow(
+                                item = item,
+                                onAdjust = { onAdjust(item) },
+                                onLongClick = { onDetail(item) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun IngredientHeader(
     searchQuery: String,
@@ -298,11 +350,13 @@ fun IngredientHeader(
                 DropdownMenu(expanded = groupMenuExpanded, onDismissRequest = { groupMenuExpanded = false }) {
                     DropdownMenuItem(
                         text = { Text("All Groups") },
+                        leadingIcon = { Icon(Icons.Default.List, contentDescription = null) },
                         onClick = { onFoodGroupChange(null); groupMenuExpanded = false }
                     )
                     FoodGroup.entries.forEach { group ->
                         DropdownMenuItem(
                             text = { Text(group.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }) },
+                            leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null) },
                             onClick = { onFoodGroupChange(group); groupMenuExpanded = false }
                         )
                     }

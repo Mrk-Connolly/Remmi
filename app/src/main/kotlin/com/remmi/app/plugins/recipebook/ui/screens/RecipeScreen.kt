@@ -13,6 +13,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -74,6 +75,13 @@ fun RecipeScreen(
         }
     }
 
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+            MaterialTheme.colorScheme.background
+        )
+    )
+
     if (isAddingRecipe) {
         AddRecipeScreen(
             actions = actions,
@@ -85,7 +93,8 @@ fun RecipeScreen(
         )
     } else {
         RemmiHomeScreen(
-            title = "Recipes",
+            title = "",
+            backgroundBrush = backgroundBrush,
             floatingActionButton = {
                 RemmiFAB(
                     onClick = { isAddingRecipe = true },
@@ -225,11 +234,13 @@ fun HeaderSection(
                 DropdownMenu(expanded = mealMenuExpanded, onDismissRequest = { mealMenuExpanded = false }) {
                     DropdownMenuItem(
                         text = { Text("All Meals") },
+                        leadingIcon = { Icon(Icons.Default.List, contentDescription = null) },
                         onClick = { onMealTypeChange(null); mealMenuExpanded = false }
                     )
                     MealType.entries.forEach { type ->
                         DropdownMenuItem(
                             text = { Text(type.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                            leadingIcon = { Icon(Icons.Default.Restaurant, contentDescription = null) },
                             onClick = { onMealTypeChange(type); mealMenuExpanded = false }
                         )
                     }

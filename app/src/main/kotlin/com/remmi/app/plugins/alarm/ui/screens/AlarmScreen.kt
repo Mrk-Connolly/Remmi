@@ -16,6 +16,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
@@ -58,6 +59,13 @@ fun AlarmScreen(
         alarms = actions.getAllAlarms()
     }
 
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+            MaterialTheme.colorScheme.background
+        )
+    )
+
     if (editorMode != null) {
         AlarmScreenEditor(
             mode = editorMode!!,
@@ -74,6 +82,7 @@ fun AlarmScreen(
     } else {
         RemmiHomeScreen(
             title = "Alarms",
+            backgroundBrush = backgroundBrush,
             floatingActionButton = {
                 RemmiFAB(
                     onClick = { editorMode = AlarmEditorMode.Create },

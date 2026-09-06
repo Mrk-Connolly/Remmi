@@ -1,5 +1,6 @@
 package com.remmi.app.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -10,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +31,7 @@ fun RemmiHomeScreen(
     onBack: (() -> Unit)? = null,
     topBarActions: @Composable RowScope.() -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
+    backgroundBrush: Brush? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     // Ensure bottom menu is visible
@@ -40,41 +43,48 @@ fun RemmiHomeScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            if (title.isNotEmpty() || onBack != null) {
-                TopAppBar(
-                    title = {
-                        if (title.isNotEmpty()) {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        if (onBack != null) {
-                            IconButton(onClick = onBack) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(if (backgroundBrush != null) Modifier.background(backgroundBrush) else Modifier)
+    ) {
+        Scaffold(
+            containerColor = Color.Transparent, // Make scaffold transparent to show Box background
+            topBar = {
+                if (title.isNotEmpty() || onBack != null) {
+                    TopAppBar(
+                        title = {
+                            if (title.isNotEmpty()) {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
-                        }
-                    },
-                    actions = topBarActions,
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent
+                        },
+                        navigationIcon = {
+                            if (onBack != null) {
+                                IconButton(onClick = onBack) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                }
+                            }
+                        },
+                        actions = topBarActions,
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent
+                        )
                     )
-                )
+                }
+            },
+            floatingActionButton = floatingActionButton,
+            content = { padding ->
+                Box(modifier = Modifier.padding(padding)) {
+                    content(PaddingValues(0.dp))
+                }
             }
-        },
-        floatingActionButton = floatingActionButton,
-        content = { padding ->
-            Box(modifier = Modifier.padding(padding)) {
-                content(PaddingValues(0.dp))
-            }
-        }
-    )
+        )
+    }
 }
 
 /**
@@ -88,6 +98,7 @@ fun RemmiSecondaryScreen(
     onBack: () -> Unit,
     topBarActions: @Composable RowScope.() -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
+    backgroundBrush: Brush? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     DisposableEffect(Unit) {
@@ -98,21 +109,31 @@ fun RemmiSecondaryScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = topBarActions
-            )
-        },
-        floatingActionButton = floatingActionButton
-    ) { padding ->
-        content(padding)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(if (backgroundBrush != null) Modifier.background(backgroundBrush) else Modifier)
+    ) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = { Text(title) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    actions = topBarActions,
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
+                )
+            },
+            floatingActionButton = floatingActionButton
+        ) { padding ->
+            content(padding)
+        }
     }
 }
 

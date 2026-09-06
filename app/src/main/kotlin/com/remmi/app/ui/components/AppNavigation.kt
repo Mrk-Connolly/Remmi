@@ -2,44 +2,15 @@ package com.remmi.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Task
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -194,12 +165,14 @@ fun RemmiBottomNavigation(
 
     val navigate: (String) -> Unit = { route ->
         onPluginsOpenChange(false)
-        navController.navigate(route) {
-            popUpTo(RemmiDestination.HOME.route) {
-                saveState = true
+        if (currentRoute != route) {
+            navController.navigate(route) {
+                popUpTo(RemmiDestination.HOME.route) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
             }
-            launchSingleTop = true
-            restoreState = true
         }
     }
 
@@ -225,7 +198,11 @@ fun RemmiBottomNavigation(
         ) {
             NavigationBarItem(
                 selected = currentRoute == RemmiDestination.HOME.route,
-                onClick = { navigate(RemmiDestination.HOME.route) },
+                onClick = { 
+                    if (currentRoute != RemmiDestination.HOME.route) {
+                        navController.popBackStack(RemmiDestination.HOME.route, inclusive = false)
+                    }
+                },
                 icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
                 label = { Text("Home") },
                 colors = navigationItemColors
@@ -351,6 +328,33 @@ private fun PluginMenu(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Weather Quick Access
+                val weather = plugins.find { it.metadata.id == "weather" }
+                if (weather != null) {
+                    QuickAccessButton(
+                        name = "Weather",
+                        icon = "wb_sunny",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onPluginClick(weather) }
+                    )
+                }
+
+                // Call Recorder Quick Access
+                val recorder = plugins.find { it.metadata.id == "call_recorder" }
+                if (recorder != null) {
+                    QuickAccessButton(
+                        name = "Recorder",
+                        icon = "mic",
+                        modifier = Modifier.weight(1f),
+                        onClick = { onPluginClick(recorder) }
+                    )
+                }
+            }
         }
 
         if (plugins.isEmpty()) {
@@ -436,6 +440,55 @@ private fun PluginMenu(
     }
 }
 
+@Composable
+private fun QuickAccessButton(
+    name: String,
+    icon: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(64.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = getIconForName(icon),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
 enum class PluginGroup(
     val displayName: String
 ) {
@@ -447,14 +500,14 @@ enum class PluginGroup(
 }
 
 private fun pluginGroupFor(pluginId: String): PluginGroup =
-    when (pluginId.lowercase()) {
-        "calendar", "tasks", "notes", "reminders", "todo", "todos" ->
+    when (pluginId.lowercase().trim()) {
+        "calendar", "tasks", "weather", "call_recorder", "recorder", "notes", "reminders", "todo", "todos" ->
             PluginGroup.PRODUCTIVITY
 
         "messages", "messaging", "email", "mail", "contacts" ->
             PluginGroup.COMMUNICATION
 
-        "weather", "news", "rss", "search" ->
+        "news", "rss", "search" ->
             PluginGroup.INFORMATION
 
         "automation", "automations", "automatization", "workflows" ->

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.ui.components.RemmiHomeScreen
@@ -42,19 +43,21 @@ fun MapsScreen(
             }
     }
 
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+            MaterialTheme.colorScheme.background
+        )
+    )
+
     RemmiHomeScreen(
-        title = "Map View"
+        title = "",
+        backgroundBrush = backgroundBrush
     ) { padding ->
-        RemmiCard(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-        ) {
-            MaplibreMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraState = cameraState,
-                baseStyle = BaseStyle.Demo
-            )
-        }
+        MaplibreMap(
+            modifier = Modifier.fillMaxSize(),
+            cameraState = cameraState,
+            baseStyle = BaseStyle.Demo
+        )
     }
 }

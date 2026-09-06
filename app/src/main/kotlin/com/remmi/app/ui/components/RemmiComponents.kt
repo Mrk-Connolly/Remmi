@@ -20,13 +20,14 @@ fun RemmiCard(
     onClick: (() -> Unit)? = null,
     containerColor: Color = MaterialTheme.colorScheme.surface,
     elevation: Dp = 0.dp,
+    shape: androidx.compose.ui.graphics.Shape = MaterialTheme.shapes.large,
     content: @Composable ColumnScope.() -> Unit
 ) {
     if (onClick != null) {
         Card(
             modifier = modifier,
             onClick = onClick,
-            shape = MaterialTheme.shapes.large,
+            shape = shape,
             colors = CardDefaults.cardColors(containerColor = containerColor),
             elevation = CardDefaults.cardElevation(defaultElevation = elevation),
             content = content
@@ -34,7 +35,7 @@ fun RemmiCard(
     } else {
         Card(
             modifier = modifier,
-            shape = MaterialTheme.shapes.large,
+            shape = shape,
             colors = CardDefaults.cardColors(containerColor = containerColor),
             elevation = CardDefaults.cardElevation(defaultElevation = elevation),
             content = content
@@ -129,19 +130,24 @@ fun RemmiPrioritySwitch(
  */
 fun getIconForName(name: String?): ImageVector {
     return when (name?.lowercase()) {
-        "calendar" -> Icons.Default.CalendarMonth
-        "tasks" -> Icons.Default.Task
+        "calendar", "calendar_month" -> Icons.Default.CalendarMonth
+        "tasks", "task" -> Icons.Default.Task
+        "check_circle" -> Icons.Default.CheckCircle
         "settings" -> Icons.Default.Settings
         "home" -> Icons.Default.Home
         "alarm" -> Icons.Default.Alarm
-        "weather" -> Icons.Default.Cloud
+        "weather", "cloud", "wb_sunny" -> Icons.Default.WbSunny
         "map", "location" -> Icons.Default.Place
-        "gift" -> Icons.Default.CardGiftcard
-        "contact", "people" -> Icons.Default.Person
+        "gift", "card_giftcard" -> Icons.Default.CardGiftcard
+        "contact", "person", "people" -> Icons.Default.Person
         "restaurant", "food" -> Icons.Default.Restaurant
         "receipt" -> Icons.Default.Receipt
         "lock" -> Icons.Default.Lock
         "notifications" -> Icons.Default.Notifications
+        "apps" -> Icons.Default.Apps
+        "extension" -> Icons.Default.Extension
+        "kitchen" -> Icons.Default.Kitchen
+        "mic", "call_recorder" -> Icons.Default.Mic
         else -> Icons.Default.Help
     }
 }

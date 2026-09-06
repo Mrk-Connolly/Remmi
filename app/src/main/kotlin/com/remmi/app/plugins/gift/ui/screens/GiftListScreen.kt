@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
@@ -19,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,6 +62,13 @@ fun GiftListScreen(
         contactsInGiftList = contactActions.getAllContacts().filter { it.inGiftList }
     }
 
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+            MaterialTheme.colorScheme.background
+        )
+    )
+
     if (selectedContactForGifts != null) {
         UserGiftListScreen(
             contact = selectedContactForGifts!!,
@@ -76,6 +85,7 @@ fun GiftListScreen(
 
         RemmiHomeScreen(
             title = "Gift List",
+            backgroundBrush = backgroundBrush,
             floatingActionButton = {
                 RemmiFAB(
                     onClick = { showContactPicker = true },
@@ -232,6 +242,7 @@ fun ContactPickerList(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(8.dp),
         title = { Text("Add from Contacts") },
         text = {
             Box(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {

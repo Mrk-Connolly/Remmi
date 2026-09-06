@@ -12,6 +12,7 @@ import com.remmi.app.core.android.services.AndroidServiceManager
 import com.remmi.app.core.android.system.WeatherInfo
 import com.remmi.app.plugins.calendar.models.CalendarItem
 import com.remmi.app.plugins.tasks.models.TaskItem
+import kotlinx.coroutines.*
 import kotlinx.datetime.Instant
 
 /**
@@ -43,6 +44,10 @@ class AutomationEngine(
     private var pendingBriefingEvents: List<CalendarItem>? = null
     private var pendingWeather: WeatherInfo? = null
 
+    /** Background jobs */
+    private var periodicJob: Job? = null
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
 
     // ----------------------------------------------------------------------------
     //                                 CONSTRUCTOR
@@ -71,7 +76,24 @@ class AutomationEngine(
         // 2. Start sub-features
         lockScreenManager.start()
         
+        startPeriodicSync()
+        
         running = true
+    }
+
+    private fun startPeriodicSync() {
+        periodicJob = scope.launch {
+            while (isActive) {
+                Log.d("Remmi", "[AutomationEngine] - Executing hourly periodic sync")
+                // 1. Refresh Calendar
+                eventBus.publishCommand(SyncPluginDataCommand("calendar"))
+                
+                // 2. Refresh Weather (Triggers weather plugin to fetch new data)
+                eventBus.publishCommand(FetchWeatherCommand())
+                
+                delay(3600000) // 1 hour
+            }
+        }
     }
 
     /**                                 Stop
@@ -83,6 +105,7 @@ class AutomationEngine(
         
         // 1. Stop sub-features
         lockScreenManager.stop()
+        periodicJob?.cancel()
         
         // 2. Unsubscribe Engine
         eventBus.unsubscribeEvent(this)

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Remmi</string>
+    <string name="accessibility_service_description">Used by Call Recorder plugin to detect when a WhatsApp call is active.</string>
 </resources>

@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.eventBus.EventBus
 import com.remmi.app.core.eventBus.commands.RemmiCommand
+import com.remmi.app.core.eventBus.commands.FetchWeatherCommand
 import com.remmi.app.core.eventBus.events.RemmiEvent
 import com.remmi.app.core.eventBus.events.WeatherFetchedEvent
 import com.remmi.app.core.plugin.PluginMetadata
@@ -14,6 +15,9 @@ import com.remmi.app.core.plugin.repository.RemmiRepository
 import com.remmi.app.core.plugin.ui.RemmiScreen
 import com.remmi.app.plugins.weather.ui.screens.WeatherScreen
 import com.remmi.app.core.plugin.ui.RemmiWidget
+import com.remmi.app.plugins.weather.models.LocationMode
+import com.remmi.app.plugins.weather.models.TemperatureUnit
+import com.remmi.app.plugins.weather.models.WindSpeedUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,7 +34,12 @@ class WeatherPlugin(
     override val repository: RemmiRepository<out RemmiModel>
         get() = throw UnsupportedOperationException("Weather plugin has no main repository")
 
-    private val _actions = WeatherActions().apply {
+    private val client = OpenMeteoClient()
+    private val locationManager = WeatherLocationManager()
+    private val weatherRepository = WeatherRepository(client, locationManager)
+    private val automation = WeatherAutomation(eventBus)
+
+    private val _actions = WeatherActions(weatherRepository).apply {
         this.eventBus = this@WeatherPlugin.eventBus
     }
 
@@ -45,10 +54,21 @@ class WeatherPlugin(
         }
     }
 
-    override suspend fun initialize() {}
+    override suspend fun initialize() {
+        Log.d("Remmi", "[WeatherPlugin] - Initializing components")
+    }
 
     override suspend fun onCommand(command: RemmiCommand) {
-        // Individual services handle their commands directly in the new architecture.
+        when (command) {
+            is FetchWeatherCommand -> {
+                Log.d("Remmi", "[WeatherPlugin] - Handling FetchWeatherCommand")
+                val context = WeatherContext.context ?: return
+                val weather = weatherRepository.fetchWeather(context)
+                weather?.let {
+                    eventBus.publishEvent(WeatherFetchedEvent(it))
+                }
+            }
+        }
     }
 
     override suspend fun onEvent(event: RemmiEvent) {
@@ -61,6 +81,17 @@ class WeatherPlugin(
     }
 
     override fun onLoad() {
+        Log.d("Remmi", "[WeatherPlugin] - onLoad")
+        
+        // Load initial data from cache for immediate display
+        WeatherContext.context?.let { ctx ->
+            weatherRepository.getCachedWeather(ctx)?.let { cached ->
+                Log.d("Remmi", "[WeatherPlugin] - Loaded cached weather on load")
+                actions.updateWeatherData(cached)
+            }
+        }
+        
+        // Periodic sync is handled by AutomationEngine
         CoroutineScope(Dispatchers.IO).launch {
             refresh()
         }
@@ -71,7 +102,9 @@ class WeatherPlugin(
         actions.fetchWeatherData()
     }
 
-    override fun onUnload() {}
+    override fun onUnload() {
+        automation.stop()
+    }
 
     override suspend fun reformat() {}
 }

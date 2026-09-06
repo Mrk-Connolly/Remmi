@@ -41,42 +41,6 @@ class CalendarWidget(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            text = "Today's Events",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            // This usually triggers navigation to the calendar screen with editor open
-                            // For now, we'll assume the dashboard container handles the navigation via the box clickable
-                            // but we can also emit a specific command if needed.
-                        },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Add Event",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-
                 if (todayEvents.isEmpty()) {
                     Text(
                         "Nothing scheduled for today.",

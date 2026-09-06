@@ -97,5 +97,16 @@
     "showWidget": true,
     "group": "news",
     "icon": "wb_sunny"
+  },
+  {
+    "id": "call_recorder",
+    "name": "Call Recorder",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "group": "productivity",
+    "icon": "mic"
   }
 ]

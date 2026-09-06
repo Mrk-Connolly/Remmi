@@ -21,3 +21,9 @@ class BatchRepository : MemoryRepository<StockBatch>() {
         Log.d("Remmi", "[BatchRepository] - Constructor initialized")
     }
 }
+
+class ShopRepository : MemoryRepository<Shop>() {
+    init {
+        Log.d("Remmi", "[ShopRepository] - Constructor initialized")
+    }
+}

@@ -1,0 +1,4 @@
+- [x] Fix lazy initialization in `CallRecorderActions.kt`
+- [x] Add safety checks in `CallRecorderPlugin.kt`
+- [x] Verify `AppNavigation.kt` Quick Access configuration
+- [x] Verify functionality and visibility

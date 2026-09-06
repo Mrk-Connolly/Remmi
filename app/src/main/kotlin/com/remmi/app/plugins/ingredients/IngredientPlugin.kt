@@ -34,8 +34,9 @@ class IngredientPlugin(
     private val _metadataRepo: MetadataRepository = MetadataRepository()
     private val _stockRepo: StockRepository = StockRepository()
     private val _batchRepo: BatchRepository = BatchRepository()
+    private val _shopRepo: ShopRepository = ShopRepository()
     
-    private val _actions: IngredientActions = IngredientActions(_metadataRepo, _stockRepo, _batchRepo).apply {
+    private val _actions: IngredientActions = IngredientActions(_metadataRepo, _stockRepo, _batchRepo, _shopRepo).apply {
         this.eventBus = this@IngredientPlugin.eventBus
     }
 
@@ -114,6 +115,12 @@ class IngredientPlugin(
                             (event.items as List<StockBatch>).forEach { _batchRepo.add(it) }
                             Log.d("Remmi", "[IngredientPlugin] - Updated batch repository")
                         }
+                        is Shop -> {
+                            _shopRepo.clear()
+                            @Suppress("UNCHECKED_CAST")
+                            (event.items as List<Shop>).forEach { _shopRepo.add(it) }
+                            Log.d("Remmi", "[IngredientPlugin] - Updated shop repository")
+                        }
                     }
                 }
             }
@@ -159,5 +166,6 @@ class IngredientPlugin(
         _metadataRepo.clear()
         _stockRepo.clear()
         _batchRepo.clear()
+        _shopRepo.clear()
     }
 }

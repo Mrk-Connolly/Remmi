@@ -25,7 +25,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -103,6 +105,13 @@ fun CalendarScreen(
         Log.d("Remmi", "[CalendarScreen] - Groups updated: ${groups.size}")
     }
 
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+            MaterialTheme.colorScheme.background
+        )
+    )
+
     if (editorMode != null) {
         CalendarScreenEditor(
             mode = editorMode!!,
@@ -131,6 +140,7 @@ fun CalendarScreen(
     } else {
         RemmiHomeScreen(
             title = "",
+            backgroundBrush = backgroundBrush,
             floatingActionButton = {
                 RemmiFAB(
                     onClick = { editorMode = CalendarEditorMode.Create },
@@ -405,9 +415,17 @@ fun CalendarHeader(
                 Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
             }
             DropdownMenu(expanded = showFilterMenu, onDismissRequest = { showFilterMenu = false }) {
-                DropdownMenuItem(text = { Text("All") }, onClick = { onFilterSelected("All"); showFilterMenu = false })
+                DropdownMenuItem(
+                    text = { Text("All") },
+                    leadingIcon = { Icon(Icons.Default.List, contentDescription = null) },
+                    onClick = { onFilterSelected("All"); showFilterMenu = false }
+                )
                 existingGroups.forEach { group ->
-                    DropdownMenuItem(text = { Text(group) }, onClick = { onFilterSelected(group); showFilterMenu = false })
+                    DropdownMenuItem(
+                        text = { Text(group) },
+                        leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null) },
+                        onClick = { onFilterSelected(group); showFilterMenu = false }
+                    )
                 }
             }
         }
@@ -487,12 +505,13 @@ fun DateHeader(date: LocalDate, isToday: Boolean, isActive: Boolean) {
         java.time.Month.of(date.monthNumber).getDisplayName(TextStyle.FULL, Locale.getDefault())
     }
 
-    val headerText = if (isToday) "Today, ${date.dayOfMonth} $monthName" else "$dayName, ${date.dayOfMonth} $monthName"
+    val headerText = if (isToday) "< Today, ${date.dayOfMonth} $monthName >" else "< $dayName, ${date.dayOfMonth} $monthName >"
 
     // Smooth selection animations
-    val targetColor = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+    val darkerPrimary = lerp(MaterialTheme.colorScheme.primary, Color.Black, 0.3f)
+    val targetColor = if (isActive) darkerPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
     val textColor by animateColorAsState(targetValue = targetColor, label = "textColor")
-    val dividerAlpha by animateFloatAsState(targetValue = if (isActive) 0.2f else 0f, label = "dividerAlpha")
+    val dividerAlpha by animateFloatAsState(targetValue = if (isActive) 0.5f else 0.1f, label = "dividerAlpha")
     val textScale by animateFloatAsState(targetValue = if (isActive) 1.05f else 1f, label = "textScale")
 
     Surface(
@@ -502,42 +521,28 @@ fun DateHeader(date: LocalDate, isToday: Boolean, isActive: Boolean) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
                 .scale(textScale),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            if (isActive) {
-                // Premium centered design
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Surface(
-                        modifier = Modifier.weight(1f).height(1.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = dividerAlpha)
-                    ) {}
-                    
-                    Text(
-                        text = headerText,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = textColor,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                    
-                    Surface(
-                        modifier = Modifier.weight(1f).height(1.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = dividerAlpha)
-                    ) {}
-                }
-            } else {
-                Text(
-                    text = headerText,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = textColor
-                )
-            }
+            Surface(
+                modifier = Modifier.weight(1f).height(1.dp),
+                color = textColor.copy(alpha = dividerAlpha)
+            ) {}
+            
+            Text(
+                text = headerText,
+                style = if (isActive) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelLarge,
+                fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
+                color = textColor,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+            
+            Surface(
+                modifier = Modifier.weight(1f).height(1.dp),
+                color = textColor.copy(alpha = dividerAlpha)
+            ) {}
         }
     }
 }

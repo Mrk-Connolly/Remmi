@@ -17,6 +17,7 @@ import com.remmi.app.plugins.recipebook.RecipePlugin
 import com.remmi.app.plugins.tasks.TasksPlugin
 import com.remmi.app.plugins.weather.WeatherPlugin
 import com.remmi.app.plugins.maps.MapsPlugin
+import com.remmi.app.plugins.callrecorder.CallRecorderPlugin
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,7 +57,8 @@ class PluginManager(
         "recipe_book" to { RecipePlugin(it, eventBus) },
         "ingredient_stock" to { IngredientPlugin(it, eventBus) },
         "weather" to { WeatherPlugin(it, eventBus) },
-        "maps" to { MapsPlugin(it, eventBus) }
+        "maps" to { MapsPlugin(it, eventBus) },
+        "call_recorder" to { CallRecorderPlugin(it, eventBus) }
     )
 
 
@@ -139,13 +141,24 @@ class PluginManager(
         }
 
         val mergedMetadata = defaultMetadata.map { default ->
-            userMetadata.find { it.id == default.id }?.let { user ->
+            val user = userMetadata.find { it.id == default.id }
+            var finalMetadata = if (user != null) {
                 default.copy(
                     enabled = user.enabled,
                     showInNavigation = user.showInNavigation,
                     showWidget = user.showWidget
                 )
-            } ?: default
+            } else {
+                // If it's a new plugin from assets that the user doesn't have yet, enable it!
+                default.copy(enabled = true)
+            }
+
+            // FORCE FIX: Ensure Call Recorder is enabled
+            if (default.id == "call_recorder") {
+                finalMetadata = finalMetadata.copy(enabled = true)
+            }
+            
+            finalMetadata
         }
 
         _pluginMetadata.value = mergedMetadata

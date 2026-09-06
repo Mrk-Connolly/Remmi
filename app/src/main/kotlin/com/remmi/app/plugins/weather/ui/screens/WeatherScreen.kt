@@ -1,7 +1,7 @@
 package com.remmi.app.plugins.weather.ui.screens
 
 import android.util.Log
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -15,12 +15,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.ui.components.RemmiHomeScreen
 import com.remmi.app.core.android.system.WeatherInfo
 import com.remmi.app.plugins.weather.WeatherActions
+import com.remmi.app.plugins.weather.WeatherContext
+import com.remmi.app.plugins.weather.models.LocationMode
+import com.remmi.app.plugins.weather.models.TemperatureUnit
+import com.remmi.app.plugins.weather.models.WindSpeedUnit
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,26 +36,61 @@ fun WeatherScreen(
     controller: RemmiController
 ) {
     Log.d("Remmi", "[WeatherScreen] - Executing")
-    
+    val context = LocalContext.current
+    WeatherContext.context = context
+
     val weatherData by actions.weatherData
     val isLoading by actions.isLoading
+    val settings by actions.settings.collectAsState()
+    val searchResults by actions.searchResults
 
-    LaunchedEffect(Unit) {
-        if (weatherData == null) {
-            actions.fetchWeatherData()
-        }
-    }
+    var showSettings by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+            MaterialTheme.colorScheme.background
+        )
+    )
 
     RemmiHomeScreen(
-        title = "Weather"
+        title = "Weather",
+        backgroundBrush = backgroundBrush,
+        topBarActions = {
+            IconButton(onClick = { showSettings = !showSettings }) {
+                Icon(if (showSettings) Icons.Default.Close else Icons.Default.Settings, contentDescription = "Settings")
+            }
+        }
     ) { padding ->
-        if (isLoading && weatherData == null) {
+        if (showSettings) {
+            WeatherSettingsView(
+                settings = settings,
+                searchQuery = searchQuery,
+                searchResults = searchResults,
+                onSearchChange = { 
+                    searchQuery = it
+                    scope.launch { actions.searchLocations(it) }
+                },
+                onLocationSelected = { 
+                    scope.launch { 
+                        actions.selectLocation(it)
+                        showSettings = false
+                    }
+                },
+                onSettingsChange = { settings ->
+                    scope.launch { actions.updateSettings(settings) }
+                },
+                padding = padding
+            )
+        } else if (isLoading && weatherData == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
             weatherData?.let { data ->
-                WeatherContent(data, padding)
+                WeatherContent(data, padding, settings.manualCityName)
             } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Weather information unavailable.")
             }
@@ -57,18 +99,10 @@ fun WeatherScreen(
 }
 
 @Composable
-fun WeatherContent(data: WeatherInfo, padding: PaddingValues) {
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-            MaterialTheme.colorScheme.background
-        )
-    )
-
+fun WeatherContent(data: WeatherInfo, padding: PaddingValues, cityName: String?) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundBrush)
             .padding(padding),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -79,6 +113,12 @@ fun WeatherContent(data: WeatherInfo, padding: PaddingValues) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text(
+                    text = cityName ?: "Current Location",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(8.dp))
                 Icon(
                     imageVector = getWeatherIcon(data.icon),
                     contentDescription = data.summary,
@@ -213,7 +253,7 @@ fun WeatherContent(data: WeatherInfo, padding: PaddingValues) {
                             )
                             Text(
                                 text = "${daily.minTemp.toInt()}° / ${daily.maxTemp.toInt()}°",
-                                textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                                textAlign = TextAlign.End,
                                 modifier = Modifier.width(80.dp)
                             )
                         }
@@ -246,8 +286,127 @@ fun WeatherContent(data: WeatherInfo, padding: PaddingValues) {
                 }
             }
         }
+
+        item {
+            Text(
+                text = "Weather data provided by Open-Meteo.com",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        }
         
-        item { Spacer(modifier = Modifier.height(180.dp)) }
+        item { Spacer(modifier = Modifier.height(80.dp)) }
+    }
+}
+
+@Composable
+fun WeatherSettingsView(
+    settings: com.remmi.app.plugins.weather.models.WeatherSettings,
+    searchQuery: String,
+    searchResults: List<com.remmi.app.plugins.weather.models.GeocodingResult>,
+    onSearchChange: (String) -> Unit,
+    onLocationSelected: (com.remmi.app.plugins.weather.models.GeocodingResult) -> Unit,
+    onSettingsChange: (com.remmi.app.plugins.weather.models.WeatherSettings) -> Unit,
+    padding: PaddingValues
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Text("Weather Settings", style = MaterialTheme.typography.headlineSmall)
+
+        // Location Mode
+        Column {
+            Text("Location", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(
+                    selected = settings.locationMode == LocationMode.DEVICE,
+                    onClick = { onSettingsChange(settings.copy(locationMode = LocationMode.DEVICE)) }
+                )
+                Text("Use device location")
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(
+                    selected = settings.locationMode == LocationMode.MANUAL,
+                    onClick = { onSettingsChange(settings.copy(locationMode = LocationMode.MANUAL)) }
+                )
+                Text("Use manual location")
+            }
+        }
+
+        if (settings.locationMode == LocationMode.MANUAL) {
+            Column {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchChange,
+                    label = { Text("Search City") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { if (searchQuery.isNotEmpty()) Icon(Icons.Default.Search, null) }
+                )
+                
+                searchResults.forEach { result ->
+                    ListItem(
+                        headlineContent = { Text(result.name) },
+                        supportingContent = { Text("${result.admin1 ?: ""}, ${result.country ?: ""}") },
+                        modifier = Modifier.clickable { onLocationSelected(result) }
+                    )
+                }
+                
+                if (settings.manualCityName != null) {
+                    Text(
+                        "Selected: ${settings.manualCityName}",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            }
+        }
+
+        // Units
+        Column {
+            Text("Units", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("Temperature")
+                FilterChip(
+                    selected = settings.tempUnit == TemperatureUnit.CELSIUS,
+                    onClick = { onSettingsChange(settings.copy(tempUnit = TemperatureUnit.CELSIUS)) },
+                    label = { Text("°C") }
+                )
+                FilterChip(
+                    selected = settings.tempUnit == TemperatureUnit.FAHRENHEIT,
+                    onClick = { onSettingsChange(settings.copy(tempUnit = TemperatureUnit.FAHRENHEIT)) },
+                    label = { Text("°F") }
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("Wind Speed")
+                FilterChip(
+                    selected = settings.windUnit == WindSpeedUnit.KMH,
+                    onClick = { onSettingsChange(settings.copy(windUnit = WindSpeedUnit.KMH)) },
+                    label = { Text("km/h") }
+                )
+                FilterChip(
+                    selected = settings.windUnit == WindSpeedUnit.MPH,
+                    onClick = { onSettingsChange(settings.copy(windUnit = WindSpeedUnit.MPH)) },
+                    label = { Text("mph") }
+                )
+            }
+        }
+        
+        Spacer(Modifier.weight(1f))
+        
+        Text(
+            text = "Weather data provided by Open-Meteo.com",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
     }
 }
 

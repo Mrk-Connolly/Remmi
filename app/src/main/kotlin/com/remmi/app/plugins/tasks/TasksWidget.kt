@@ -53,21 +53,6 @@ class TasksWidget(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = "Active Tasks",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-                Spacer(Modifier.height(16.dp))
-
                 if (todayTasks.isEmpty()) {
                     Text(
                         "You're all caught up!",

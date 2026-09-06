@@ -166,6 +166,21 @@ data class UserStock(
     override val sourceItemId: String? = null
 ) : RemmiModel
 
+@Serializable
+data class Shop(
+    override val id: String,
+    override val created: Instant,
+    override var modified: Instant,
+    @SerialName("user_id")
+    override val userId: String? = null,
+    val name: String,
+    val location: String? = null,
+    @SerialName("source_plugin")
+    override val sourcePlugin: String? = null,
+    @SerialName("source_item_id")
+    override val sourceItemId: String? = null
+) : RemmiModel
+
 /**
  * PHYSICAL STOCK BATCH
  */
@@ -185,6 +200,10 @@ data class StockBatch(
     val purchaseDate: LocalDate,
     @SerialName("expiry_date")
     val expiryDate: LocalDate? = null,
+    
+    @SerialName("shop_id")
+    val shopId: String? = null,
+    val price: Double? = null,
 
     @SerialName("source_plugin")
     override val sourcePlugin: String? = null,

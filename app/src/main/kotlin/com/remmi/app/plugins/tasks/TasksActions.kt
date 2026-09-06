@@ -62,6 +62,7 @@ class TasksActions(
         isPriority: Boolean = false,
         group: String? = null,
         subgroup: String? = null,
+        parentTask: String? = null,
         repeat: RepeatRule? = null,
         createAlarm: Boolean = false,
         createCalendar: Boolean = false,
@@ -88,6 +89,7 @@ class TasksActions(
                 subgroup = subgroup,
                 completed = false,
                 repeat = repeat,
+                parentTask = parentTask,
                 createAlarm = createAlarm,
                 createCalendar = createCalendar,
                 sourcePlugin = sourcePlugin,
@@ -232,22 +234,51 @@ class TasksActions(
         createCalendar: Boolean
     ): Boolean {
         Log.d("Remmi", "[TasksActions] - [createMultitask] executed for ${titles.size} tasks")
-        var allSuccess = true
-        titles.filter { it.isNotBlank() }.forEach { title ->
-            val success = createTask(
-                title = title,
-                description = description,
-                dueDate = dueDate,
-                isPriority = isPriority,
-                group = group,
-                subgroup = subgroup,
-                repeat = repeat,
-                createAlarm = createAlarm,
-                createCalendar = createCalendar
-            )
-            if (!success) allSuccess = false
+        return try {
+            val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+            var parentId: String? = null
+            
+            // 1. Create Parent Task if subgroup (project name) is provided
+            if (!subgroup.isNullOrBlank()) {
+                parentId = UUID.randomUUID().toString()
+                val parentTask = TaskItem(
+                    id = parentId,
+                    created = now,
+                    modified = now,
+                    title = subgroup,
+                    description = description,
+                    dueDate = dueDate,
+                    isPriority = isPriority,
+                    group = group,
+                    completed = false,
+                    repeat = repeat,
+                    createAlarm = createAlarm,
+                    createCalendar = createCalendar
+                )
+                repository.add(parentTask)
+                eventBus?.publishCommand(UpsertDataCommand("tasks", parentTask, TaskItem.serializer()))
+            }
+
+            // 2. Create Sub-tasks
+            titles.filter { it.isNotBlank() }.forEach { title ->
+                createTask(
+                    title = title,
+                    description = "", // Sub-tasks usually have simple titles
+                    dueDate = dueDate,
+                    isPriority = isPriority,
+                    group = group,
+                    subgroup = null, // Inherited from parent
+                    parentTask = parentId,
+                    repeat = null,
+                    createAlarm = false,
+                    createCalendar = false
+                )
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create multitask", e)
+            false
         }
-        return allSuccess
     }
 
     /**                                 Get All

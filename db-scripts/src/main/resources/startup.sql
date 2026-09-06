@@ -217,6 +217,18 @@ CREATE TABLE user_stock (
 );
 
 -- 3. Batches Table (Physical stock with expiry dates)
+DROP TABLE IF EXISTS shops CASCADE;
+CREATE TABLE shops (
+    id              TEXT PRIMARY KEY,
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+    user_id         UUID DEFAULT auth.uid(),
+    name            TEXT NOT NULL,
+    location        TEXT,
+    source_plugin   TEXT,
+    source_item_id  TEXT
+);
+
 DROP TABLE IF EXISTS stock_batches CASCADE;
 CREATE TABLE stock_batches (
     id                  TEXT PRIMARY KEY,
@@ -228,6 +240,8 @@ CREATE TABLE stock_batches (
     quantity            DOUBLE PRECISION NOT NULL DEFAULT 0,
     purchase_date       DATE NOT NULL,
     expiry_date         DATE,
+    shop_id             TEXT REFERENCES shops(id) ON DELETE SET NULL,
+    price               DOUBLE PRECISION,
 
     source_plugin       TEXT,
     source_item_id      TEXT
@@ -236,20 +250,24 @@ CREATE TABLE stock_batches (
 -- PERMISSIONS
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE ingredient_metadata TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE user_stock TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE shops TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE stock_batches TO authenticated;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE ingredient_metadata TO anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE user_stock TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE shops TO anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE stock_batches TO anon;
 
 -- RLS POLICIES
 ALTER TABLE ingredient_metadata ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_stock ENABLE ROW LEVEL SECURITY;
+ALTER TABLE shops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stock_batches ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "metadata_isolation" ON ingredient_metadata FOR ALL USING (auth.uid() = user_id OR user_id IS NULL) WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
-CREATE POLICY "stock_isolation" ON user_stock FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "batches_isolation" ON stock_batches FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "metadata_all" ON ingredient_metadata FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "stock_all" ON user_stock FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "shops_all" ON shops FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "batches_all" ON stock_batches FOR ALL TO anon USING (true) WITH CHECK (true);
 
 -- EXAMPLES
 INSERT INTO ingredient_metadata (id, created, modified, name, food_group) VALUES

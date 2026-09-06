@@ -6,6 +6,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -21,6 +22,9 @@ class WeatherWidget(
 
     @Composable
     override fun Content() {
+        val context = LocalContext.current
+        WeatherContext.context = context
+
         val weatherData by actions.weatherData
         val isLoading by actions.isLoading
 
@@ -39,12 +43,6 @@ class WeatherWidget(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Current Weather",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    Spacer(Modifier.height(4.dp))
                     if (isLoading && weatherData == null) {
                         Text("Loading...", style = MaterialTheme.typography.bodySmall)
                     } else {

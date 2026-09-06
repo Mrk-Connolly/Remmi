@@ -41,12 +41,6 @@ class AlarmWidget(
             elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "⏰ Upcoming Alarms",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(Modifier.height(8.dp))
-
                 if (alarms.isEmpty()) {
                     Text("No alarms set", style = MaterialTheme.typography.bodySmall)
                 } else {
