@@ -34,10 +34,10 @@ interface AlarmService : CommandListener {
      * */
     fun removeFromSystemClock(title: String, timeMillis: Long)
 
-    /**                                 Fetch System Alarms
-     * Query for existing system alarms.
-     * */
-    fun fetchSystemAlarms(): List<AlarmItem>
+    /**                                 Fetch Next System Alarm
+     * Returns the next scheduled system alarm from AlarmManager.
+     */
+    fun getNextSystemAlarm(): Long?
 
     /**                                 Open System App
      * Show the system alarms interface.

@@ -39,6 +39,9 @@ data class AlarmItem(
     @SerialName("use_vibration")
     val useVibration: Boolean = true,
 
+    @SerialName("skip_ui")
+    val skipUi: Boolean = true,
+
     @SerialName("user_id")
     override val userId: String? = null,
 

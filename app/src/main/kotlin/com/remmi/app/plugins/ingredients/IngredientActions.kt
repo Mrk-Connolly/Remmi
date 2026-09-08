@@ -116,7 +116,7 @@ class IngredientActions(
             modified = now,
             userId = null,
             metadataId = meta.id,
-            primaryUnit = if (unit == MeasurementUnit.GRAMS || unit == MeasurementUnit.KILOGRAMS) MeasurementUnit.GRAMS else if (unit == MeasurementUnit.MILLILITERS || unit == MeasurementUnit.LITERS) MeasurementUnit.MILLILITERS else unit,
+            primaryUnit = if (unit == MeasurementUnit.GRAMS || unit == MeasurementUnit.KILOGRAMS) MeasurementUnit.KILOGRAMS else if (unit == MeasurementUnit.MILLILITERS || unit == MeasurementUnit.LITERS) MeasurementUnit.LITERS else unit,
             storageLocation = storageLocation
         )
         stockRepo.add(stock)
@@ -124,10 +124,13 @@ class IngredientActions(
 
         // 3. Create Initial Batch
         if (initialQuantity > 0) {
-            // Scaling logic: normalize to Grams or Milliliters for storage if applicable
+            // Scaling logic: normalize to Kilograms or Liters base for storage
+            // 1500g -> 1.5kg, 1500ml -> 1.5l
             val scaledQuantity = when (unit) {
-                MeasurementUnit.KILOGRAMS -> initialQuantity * 1000.0
-                MeasurementUnit.LITERS -> initialQuantity * 1000.0
+                MeasurementUnit.GRAMS -> initialQuantity / 1000.0
+                MeasurementUnit.MILLILITERS -> initialQuantity / 1000.0
+                MeasurementUnit.KILOGRAMS -> initialQuantity
+                MeasurementUnit.LITERS -> initialQuantity
                 else -> initialQuantity
             }
 

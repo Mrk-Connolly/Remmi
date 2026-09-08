@@ -234,8 +234,14 @@ fun Double.toCleanString(): String = if (this % 1.0 == 0.0) this.toInt().toStrin
 
 fun formatQuantity(quantity: Double, unit: MeasurementUnit): Pair<String, String> {
     return when {
-        unit == MeasurementUnit.GRAMS && quantity >= 1000 -> (quantity / 1000.0).toCleanString() to "kg"
-        unit == MeasurementUnit.MILLILITERS && quantity >= 1000 -> (quantity / 1000.0).toCleanString() to "l"
+        unit == MeasurementUnit.KILOGRAMS -> {
+            if (quantity < 1.0) (quantity * 1000.0).toCleanString() to "g"
+            else quantity.toCleanString() to "kg"
+        }
+        unit == MeasurementUnit.LITERS -> {
+            if (quantity < 1.0) (quantity * 1000.0).toCleanString() to "ml"
+            else quantity.toCleanString() to "l"
+        }
         else -> quantity.toCleanString() to unit.name.lowercase()
     }
 }

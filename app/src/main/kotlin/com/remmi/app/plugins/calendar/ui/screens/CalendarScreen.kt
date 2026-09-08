@@ -384,7 +384,7 @@ fun CalendarHeader(
             Icon(
                 imageVector = if (viewMode == CalendarViewMode.MONTH) Icons.Default.ViewWeek else Icons.Default.CalendarMonth,
                 contentDescription = "Toggle View",
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -412,7 +412,7 @@ fun CalendarHeader(
         var showFilterMenu by remember { mutableStateOf(false) }
         Box {
             IconButton(onClick = { showFilterMenu = true }, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(20.dp))
             }
             DropdownMenu(expanded = showFilterMenu, onDismissRequest = { showFilterMenu = false }) {
                 DropdownMenuItem(
@@ -505,18 +505,17 @@ fun DateHeader(date: LocalDate, isToday: Boolean, isActive: Boolean) {
         java.time.Month.of(date.monthNumber).getDisplayName(TextStyle.FULL, Locale.getDefault())
     }
 
-    val headerText = if (isToday) "< Today, ${date.dayOfMonth} $monthName >" else "< $dayName, ${date.dayOfMonth} $monthName >"
+    val headerText = if (isToday) "Today, ${date.dayOfMonth} $monthName" else "$dayName, ${date.dayOfMonth} $monthName"
 
     // Smooth selection animations
     val darkerPrimary = lerp(MaterialTheme.colorScheme.primary, Color.Black, 0.3f)
     val targetColor = if (isActive) darkerPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
     val textColor by animateColorAsState(targetValue = targetColor, label = "textColor")
-    val dividerAlpha by animateFloatAsState(targetValue = if (isActive) 0.5f else 0.1f, label = "dividerAlpha")
     val textScale by animateFloatAsState(targetValue = if (isActive) 1.05f else 1f, label = "textScale")
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.background // Solid background for sticky headers
+        color = Color.Transparent // Make header transparent to see background gradient
     ) {
         Row(
             modifier = Modifier
@@ -526,11 +525,6 @@ fun DateHeader(date: LocalDate, isToday: Boolean, isActive: Boolean) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Surface(
-                modifier = Modifier.weight(1f).height(1.dp),
-                color = textColor.copy(alpha = dividerAlpha)
-            ) {}
-            
             Text(
                 text = headerText,
                 style = if (isActive) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelLarge,
@@ -538,11 +532,6 @@ fun DateHeader(date: LocalDate, isToday: Boolean, isActive: Boolean) {
                 color = textColor,
                 modifier = Modifier.padding(horizontal = 12.dp)
             )
-            
-            Surface(
-                modifier = Modifier.weight(1f).height(1.dp),
-                color = textColor.copy(alpha = dividerAlpha)
-            ) {}
         }
     }
 }

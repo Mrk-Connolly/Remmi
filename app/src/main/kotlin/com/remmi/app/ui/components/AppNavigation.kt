@@ -1,5 +1,6 @@
 package com.remmi.app.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +56,7 @@ fun AppNavigation(
     var pluginsOpen by remember { mutableStateOf(false) }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         bottomBar = {
             if (!isEditorActive) {
                 RemmiBottomNavigation(
@@ -188,51 +191,60 @@ fun RemmiBottomNavigation(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 12.dp) // Add padding for floating effect
     ) {
-        NavigationBar(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(DesignTokens.BottomNavigationHeight),
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+            shape = RoundedCornerShape(DesignTokens.CornerRadiusLarge),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
             tonalElevation = 0.dp
         ) {
-            NavigationBarItem(
-                selected = currentRoute == RemmiDestination.HOME.route,
-                onClick = { 
-                    if (currentRoute != RemmiDestination.HOME.route) {
-                        navController.popBackStack(RemmiDestination.HOME.route, inclusive = false)
-                    }
-                },
-                icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                label = { Text("Home") },
-                colors = navigationItemColors
-            )
+            NavigationBar(
+                modifier = Modifier.fillMaxSize(),
+                containerColor = Color.Transparent, // Managed by Surface
+                tonalElevation = 0.dp
+            ) {
+                NavigationBarItem(
+                    selected = currentRoute == RemmiDestination.HOME.route,
+                    onClick = { 
+                        if (currentRoute != RemmiDestination.HOME.route) {
+                            navController.popBackStack(RemmiDestination.HOME.route, inclusive = false)
+                        }
+                    },
+                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                    label = { Text("Home") },
+                    colors = navigationItemColors
+                )
 
-            NavigationBarItem(
-                selected = currentRoute == RemmiDestination.CALENDAR.route,
-                onClick = { navigate(RemmiDestination.CALENDAR.route) },
-                icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Calendar") },
-                label = { Text("Calendar") },
-                colors = navigationItemColors
-            )
+                NavigationBarItem(
+                    selected = currentRoute == RemmiDestination.CALENDAR.route,
+                    onClick = { navigate(RemmiDestination.CALENDAR.route) },
+                    icon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Calendar") },
+                    label = { Text("Calendar") },
+                    colors = navigationItemColors
+                )
 
-            Spacer(modifier = Modifier.size(DesignTokens.IconSizeLarge + 32.dp))
+                Spacer(modifier = Modifier.size(DesignTokens.IconSizeLarge + 32.dp))
 
-            NavigationBarItem(
-                selected = currentRoute == RemmiDestination.TASKS.route,
-                onClick = { navigate(RemmiDestination.TASKS.route) },
-                icon = { Icon(Icons.Default.Task, contentDescription = "Tasks") },
-                label = { Text("Tasks") },
-                colors = navigationItemColors
-            )
+                NavigationBarItem(
+                    selected = currentRoute == RemmiDestination.TASKS.route,
+                    onClick = { navigate(RemmiDestination.TASKS.route) },
+                    icon = { Icon(Icons.Default.Task, contentDescription = "Tasks") },
+                    label = { Text("Tasks") },
+                    colors = navigationItemColors
+                )
 
-            NavigationBarItem(
-                selected = currentRoute == RemmiDestination.SETTINGS.route,
-                onClick = { navigate(RemmiDestination.SETTINGS.route) },
-                icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                label = { Text("Settings") },
-                colors = navigationItemColors
-            )
+                NavigationBarItem(
+                    selected = currentRoute == RemmiDestination.SETTINGS.route,
+                    onClick = { navigate(RemmiDestination.SETTINGS.route) },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                    label = { Text("Settings") },
+                    colors = navigationItemColors
+                )
+            }
         }
 
         FloatingActionButton(

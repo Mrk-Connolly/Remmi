@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.alarm
 
+import android.content.Context
 import android.util.Log
 import com.remmi.app.core.eventBus.CreationContext
 import com.remmi.app.core.eventBus.DeletionContext
@@ -13,15 +14,17 @@ import com.remmi.app.core.plugin.actions.RemmiAction
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.builtins.ListSerializer
 import java.util.UUID
 
 /**
  * Action controller for the Alarm plugin.
  *
- * Handles alarm scheduling, toggling, and synchronization via EventBus commands.
+ * Handles alarm scheduling and local management without a cloud database.
  */
 class AlarmActions(
-    private val repository: AlarmRepository,
+    private val context: Context,
     override val id: String = "alarm_actions",
     override val name: String = "Alarm Actions"
 ) : RemmiAction {
@@ -33,6 +36,9 @@ class AlarmActions(
 
     /** Shared system event bus */
     override var eventBus: EventBus? = null
+
+    private val prefName = "remmi_alarms_local"
+    private val json = Json { ignoreUnknownKeys = true }
 
 
     // ----------------------------------------------------------------------------
@@ -52,13 +58,36 @@ class AlarmActions(
     // ----------------------------------------------------------------------------
 
     /**                                 Get All
-     * Retrieves all alarms from local repository.
+     * Retrieves all alarms from local storage.
      */
     suspend fun getAllAlarms(): List<AlarmUiModel> {
         Log.d("Remmi", "[AlarmActions] - [getAllAlarms] executed")
-        return repository.getAll().map { AlarmUiModel(it, isLocal = false) }.sortedBy { it.alarm.time }
+        val prefs = context.getSharedPreferences(prefName, Context.MODE_PRIVATE)
+        val data = prefs.getString("alarm_list", "[]") ?: "[]"
+        return try {
+            val list = json.decodeFromString(ListSerializer(AlarmItem.serializer()), data)
+            list.map { AlarmUiModel(it, isLocal = true) }.sortedBy { it.alarm.time }
+        } catch (e: Exception) {
+            Log.e("AlarmActions", "Failed to parse local alarms", e)
+            emptyList()
+        }
     }
     
+    private fun saveAlarms(list: List<AlarmItem>) {
+        val prefs = context.getSharedPreferences(prefName, Context.MODE_PRIVATE)
+        val data = json.encodeToString(ListSerializer(AlarmItem.serializer()), list)
+        prefs.edit().putString("alarm_list", data).apply()
+    }
+
+    /**                                 Get Next System Alarm
+     * Returns the next scheduled system alarm from AlarmManager.
+     */
+    suspend fun getNextSystemAlarm(): Long? {
+        Log.d("Remmi", "[AlarmActions] - [getNextSystemAlarm] executed")
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        return alarmManager.nextAlarmClock?.triggerTime
+    }
+
     /**                                 Open System App
      * Open the Android system Clock/Alarm application via EventBus
      * */
@@ -80,6 +109,7 @@ class AlarmActions(
         syncToSystem: Boolean = true,
         useSound: Boolean = true,
         useVibration: Boolean = true,
+        skipUi: Boolean = true,
         sourcePlugin: String? = null,
         sourceItemId: String? = null,
         correlationId: String? = null,
@@ -88,7 +118,7 @@ class AlarmActions(
     ): Boolean {
         Log.d("Remmi", "[AlarmActions] - [addAlarm] executed")
         return try {
-            val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+            val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
             val alarm = AlarmItem(
                 id = UUID.randomUUID().toString(),
                 created = now,
@@ -101,25 +131,17 @@ class AlarmActions(
                 custom = custom,
                 useSound = useSound,
                 useVibration = useVibration,
+                skipUi = skipUi,
                 sourcePlugin = sourcePlugin,
                 sourceItemId = sourceItemId
             )
             
-            // 1. Update local cache
-            repository.add(alarm)
+            // 1. Update local storage
+            val current = getAllAlarms().map { it.alarm }.toMutableList()
+            current.add(alarm)
+            saveAlarms(current)
             
-            // 2. Persist to cloud
-            eventBus?.publishCommand(
-                UpsertDataCommand(
-                    tableName = "alarms",
-                    item = alarm,
-                    serializer = AlarmItem.serializer(),
-                    correlationId = correlationId,
-                    causationId = causationId
-                )
-            )
-            
-            // 3. Schedule internal system alarm
+            // 2. Schedule internal system alarm
             eventBus?.publishCommand(
                 SetSystemAlarmCommand(
                     id = alarm.id,
@@ -132,12 +154,27 @@ class AlarmActions(
                 )
             )
             
-            // 4. Optionally push to external Clock app
+            // 3. Optionally push to external Clock app
             if (syncToSystem) {
+                // Determine repeat days
+                val remmiDays = if (repeatable.contains("d")) listOf(1,2,3,4,5,6,7) 
+                                else if (repeatable.contains("w")) {
+                                    // Map current day?
+                                    listOf(now.toLocalDateTime(TimeZone.currentSystemDefault()).dayOfWeek.ordinal + 1)
+                                }
+                                else if (repeatable.contains("c")) {
+                                    custom.mapNotNull { dayStr ->
+                                        try { kotlinx.datetime.DayOfWeek.valueOf(dayStr.uppercase()).ordinal + 1 } catch(e: Exception) { null }
+                                    }
+                                } else null
+
                 eventBus?.publishCommand(
                     SyncSystemClockCommand(
                         title = alarm.title,
                         timeMillis = alarm.time.toEpochMilliseconds(),
+                        vibrate = alarm.useVibration,
+                        skipUi = alarm.skipUi,
+                        days = remmiDays,
                         correlationId = correlationId,
                         causationId = causationId
                     )
@@ -170,21 +207,17 @@ class AlarmActions(
     suspend fun updateAlarm(alarm: AlarmItem, syncToSystem: Boolean = true): Boolean {
         Log.d("Remmi", "[AlarmActions] - [updateAlarm] executed")
         return try {
-            val updatedAlarm = alarm.copy(modified = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()))
+            val updatedAlarm = alarm.copy(modified = Instant.fromEpochMilliseconds(System.currentTimeMillis()))
             
-            // 1. Update local cache
-            repository.update(updatedAlarm)
+            // 1. Update local storage
+            val current = getAllAlarms().map { it.alarm }.toMutableList()
+            val index = current.indexOfFirst { it.id == alarm.id }
+            if (index != -1) {
+                current[index] = updatedAlarm
+                saveAlarms(current)
+            }
             
-            // 2. Persist to cloud
-            eventBus?.publishCommand(
-                UpsertDataCommand(
-                    tableName = "alarms",
-                    item = updatedAlarm,
-                    serializer = AlarmItem.serializer()
-                )
-            )
-            
-            // 3. Reschedule internal system alarm
+            // 2. Reschedule internal system alarm
             eventBus?.publishCommand(
                 SetSystemAlarmCommand(
                     id = updatedAlarm.id,
@@ -195,12 +228,14 @@ class AlarmActions(
                 )
             )
             
-            // 4. Optionally push to external Clock app
+            // 3. Optionally push to external Clock app
             if (syncToSystem) {
                 eventBus?.publishCommand(
                     SyncSystemClockCommand(
                         title = updatedAlarm.title,
-                        timeMillis = updatedAlarm.time.toEpochMilliseconds()
+                        timeMillis = updatedAlarm.time.toEpochMilliseconds(),
+                        vibrate = updatedAlarm.useVibration,
+                        skipUi = updatedAlarm.skipUi
                     )
                 )
             }
@@ -229,22 +264,14 @@ class AlarmActions(
     ): Boolean {
         Log.d("Remmi", "[AlarmActions] - [deleteAlarm] executed")
         return try {
-            val alarmToDelete = repository.get(id)
+            val alarms = getAllAlarms().map { it.alarm }
+            val alarmToDelete = alarms.find { it.id == id }
             
-            // 1. Remove from local cache
-            repository.remove(id)
+            // 1. Remove from local storage
+            val updated = alarms.filter { it.id != id }
+            saveAlarms(updated)
             
-            // 2. Persist deletion to cloud
-            eventBus?.publishCommand(
-                DeleteDataCommand(
-                    tableName = "alarms",
-                    itemId = id,
-                    correlationId = correlationId,
-                    causationId = causationId
-                )
-            )
-            
-            // 3. Cancel internal system alarm
+            // 2. Cancel internal system alarm
             eventBus?.publishCommand(
                 CancelSystemAlarmCommand(
                     id = id,
@@ -253,7 +280,7 @@ class AlarmActions(
                 )
             )
 
-            // 4. If it was synced to system clock, try to remove it
+            // 3. If it was synced to system clock, try to remove it
             if (alarmToDelete != null) {
                 eventBus?.publishCommand(
                     RemoveSystemClockCommand(
@@ -284,16 +311,10 @@ class AlarmActions(
     }
 
     /**                                 Sync
-     * Requests sync from cloud via command.
+     * No longer needed as we don't sync with cloud.
      */
     suspend fun sync() {
-        Log.d("Remmi", "[AlarmActions] - [sync] executed")
-        eventBus?.publishCommand(
-            FetchAllDataCommand(
-                tableName = "alarms",
-                serializer = AlarmItem.serializer()
-            )
-        )
+        Log.d("Remmi", "[AlarmActions] - [sync] skipped (system only)")
     }
 
     /**                                 Get Today
@@ -301,8 +322,8 @@ class AlarmActions(
      * */
     suspend fun getTodayAlarms(): List<AlarmItem> {
         Log.d("Remmi", "[AlarmActions] - [getTodayAlarms] executed")
-        val today = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
-        return repository.getAll().filter { 
+        val today = Instant.fromEpochMilliseconds(System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return getAllAlarms().map { it.alarm }.filter { 
             it.time.toLocalDateTime(TimeZone.currentSystemDefault()).date == today
         }
     }

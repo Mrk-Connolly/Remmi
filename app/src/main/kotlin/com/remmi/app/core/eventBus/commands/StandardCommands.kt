@@ -154,6 +154,9 @@ data class CancelSystemAlarmCommand(
 data class SyncSystemClockCommand(
     val title: String,
     val timeMillis: Long,
+    val vibrate: Boolean = true,
+    val skipUi: Boolean = true,
+    val days: List<Int>? = null,
     override val commandId: String = UUID.randomUUID().toString(),
     override val source: String = "system",
     override val correlationId: String? = null,
@@ -339,6 +342,7 @@ data class CreateAlarmCommand(
     val syncToSystem: Boolean = true,
     val useSound: Boolean = true,
     val useVibration: Boolean = true,
+    val skipUi: Boolean = true,
     val sourcePlugin: String? = null,
     val sourceItemId: String? = null,
     override val commandId: String = UUID.randomUUID().toString(),

@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.eventBus.EventBus
 import com.remmi.app.core.eventBus.commands.RemmiCommand
+import com.remmi.app.core.eventBus.events.DataFetchedEvent
 import com.remmi.app.core.eventBus.events.RemmiEvent
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
@@ -13,7 +14,11 @@ import com.remmi.app.core.plugin.ui.RemmiWidget
 import com.remmi.app.plugins.callrecorder.logic.AudioPlayerManager
 import com.remmi.app.plugins.callrecorder.logic.CallRecordingManager
 import com.remmi.app.plugins.callrecorder.logic.NativeAndroidRecorder
+import com.remmi.app.plugins.callrecorder.models.CallRecording
 import com.remmi.app.plugins.callrecorder.ui.CallRecorderScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class CallRecorderPlugin(
     override val metadata: PluginMetadata,
@@ -57,10 +62,25 @@ class CallRecorderPlugin(
 
     override suspend fun onCommand(command: RemmiCommand) {}
 
-    override suspend fun onEvent(event: RemmiEvent) {}
+    override suspend fun onEvent(event: RemmiEvent) {
+        when (event) {
+            is DataFetchedEvent<*> -> {
+                if (event.items.isNotEmpty() && event.items[0] is CallRecording) {
+                    Log.d("Remmi", "[CallRecorderPlugin] - Received ${event.items.size} recordings from cloud")
+                    _repository.clear()
+                    @Suppress("UNCHECKED_CAST")
+                    (event.items as List<CallRecording>).forEach { _repository.add(it) }
+                    actions.updateRecordingsList()
+                }
+            }
+        }
+    }
 
     override fun onLoad() {
         Log.d("Remmi", "[CallRecorderPlugin] - onLoad")
+        CoroutineScope(Dispatchers.IO).launch {
+            refresh()
+        }
         CallRecorderContext.context?.let {
             repository.loadFromPrefs(it)
             actions.updateRecordingsList()
@@ -68,7 +88,8 @@ class CallRecorderPlugin(
     }
 
     override suspend fun refresh() {
-        actions.updateRecordingsList()
+        Log.d("Remmi", "[CallRecorderPlugin] - Refreshing data (Syncing with cloud)")
+        actions.sync()
     }
 
     override fun onUnload() {}

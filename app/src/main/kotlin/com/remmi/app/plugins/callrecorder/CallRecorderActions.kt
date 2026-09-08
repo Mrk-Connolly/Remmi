@@ -6,6 +6,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
 import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.plugin.actions.RemmiAction
 import com.remmi.app.plugins.callrecorder.logic.AudioPlayerManager
 import com.remmi.app.plugins.callrecorder.logic.CallRecordingManager
@@ -92,15 +93,32 @@ class CallRecorderActions(
         context.startActivity(Intent.createChooser(intent, "Share Recording"))
     }
 
-    fun saveRecording(recording: CallRecording) {
+    suspend fun saveRecording(recording: CallRecording) {
         repository.add(recording)
+        
+        eventBus?.publishCommand(
+            UpsertDataCommand(
+                tableName = "call_recordings",
+                item = recording,
+                serializer = CallRecording.serializer()
+            )
+        )
+
         CallRecorderContext.context?.let { repository.saveToPrefs(it) }
         updateRecordingsList()
     }
 
-    fun deleteRecording(recording: CallRecording) {
+    suspend fun deleteRecording(recording: CallRecording) {
         playerManager.stop()
         repository.remove(recording.id)
+        
+        eventBus?.publishCommand(
+            DeleteDataCommand(
+                tableName = "call_recordings",
+                itemId = recording.id
+            )
+        )
+
         val file = File(recording.filePath)
         if (file.exists()) {
             file.delete()
@@ -109,14 +127,32 @@ class CallRecorderActions(
         updateRecordingsList()
     }
 
-    fun addToGroup(recording: CallRecording, groupName: String?) {
+    suspend fun addToGroup(recording: CallRecording, groupName: String?) {
         val updated = recording.copy(
             group = groupName, 
             modified = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
         )
         repository.update(updated)
+        
+        eventBus?.publishCommand(
+            UpsertDataCommand(
+                tableName = "call_recordings",
+                item = updated,
+                serializer = CallRecording.serializer()
+            )
+        )
+
         CallRecorderContext.context?.let { repository.saveToPrefs(it) }
         updateRecordingsList()
+    }
+
+    suspend fun sync() {
+        eventBus?.publishCommand(
+            FetchAllDataCommand(
+                tableName = "call_recordings",
+                serializer = CallRecording.serializer()
+            )
+        )
     }
 }
 

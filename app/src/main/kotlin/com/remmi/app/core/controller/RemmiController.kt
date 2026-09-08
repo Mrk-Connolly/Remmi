@@ -28,7 +28,7 @@ class RemmiController(
     /** Core System Managers */
     val databaseManager = DatabaseManager(eventBus)
     val androidManager = AndroidServiceManager(androidContext, eventBus)
-    val pluginManager = PluginManager(eventBus)
+    val pluginManager = PluginManager(androidContext, eventBus)
     val automationEngine = AutomationEngine(eventBus, androidManager)
 
     private var isStarted = false

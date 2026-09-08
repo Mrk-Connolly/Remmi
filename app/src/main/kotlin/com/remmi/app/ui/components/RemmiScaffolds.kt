@@ -49,7 +49,8 @@ fun RemmiHomeScreen(
             .then(if (backgroundBrush != null) Modifier.background(backgroundBrush) else Modifier)
     ) {
         Scaffold(
-            containerColor = Color.Transparent, // Make scaffold transparent to show Box background
+            containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0.dp), // Let background bleed everywhere
             topBar = {
                 if (title.isNotEmpty() || onBack != null) {
                     TopAppBar(
@@ -71,15 +72,26 @@ fun RemmiHomeScreen(
                             }
                         },
                         actions = topBarActions,
+                        windowInsets = TopAppBarDefaults.windowInsets, // Keeps text below status bar
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent
+                            containerColor = Color.Transparent,
+                            scrolledContainerColor = Color.Transparent
                         )
                     )
                 }
             },
             floatingActionButton = floatingActionButton,
-            content = { padding ->
-                Box(modifier = Modifier.padding(padding)) {
+            content = { paddingValues ->
+                // We manually handle top padding for the title/app bar area
+                // to allow the root background to bleed into the status bar.
+                val statusBarsPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                val appBarHeight = if (title.isNotEmpty() || onBack != null) 64.dp else 0.dp
+                
+                Box(modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues) // Usually 0 due to contentWindowInsets
+                    .padding(top = statusBarsPadding + appBarHeight)
+                ) {
                     content(PaddingValues(0.dp))
                 }
             }
@@ -116,6 +128,7 @@ fun RemmiSecondaryScreen(
     ) {
         Scaffold(
             containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0.dp),
             topBar = {
                 TopAppBar(
                     title = { Text(title) },
@@ -125,14 +138,24 @@ fun RemmiSecondaryScreen(
                         }
                     },
                     actions = topBarActions,
+                    windowInsets = TopAppBarDefaults.windowInsets,
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
                     )
                 )
             },
             floatingActionButton = floatingActionButton
-        ) { padding ->
-            content(padding)
+        ) { paddingValues ->
+            val statusBarsPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            val appBarHeight = 64.dp
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(top = statusBarsPadding + appBarHeight)
+            ) {
+                content(PaddingValues(0.dp))
+            }
         }
     }
 }
@@ -208,6 +231,7 @@ private fun RemmiEditorBaseScaffold(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0.dp),
         bottomBar = {
             Surface(
                 color = MaterialTheme.colorScheme.surface,
@@ -257,13 +281,14 @@ private fun RemmiEditorBaseScaffold(
             }
         }
     ) { paddingValues ->
+        val statusBarsPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .imePadding()
                 .padding(horizontal = 24.dp)
-                .padding(top = 24.dp)
+                .padding(top = statusBarsPadding + 24.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {

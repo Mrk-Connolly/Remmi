@@ -37,7 +37,7 @@ fun AlarmScreenEditor(
     onDismiss: () -> Unit,
     onSave: () -> Unit
 ) {
-    Log.d("Remmi", "[AlarmScreenEditor] - Refactored")
+    Log.d("Remmi", "[AlarmScreenEditor] - System Integrated")
     val scope = rememberCoroutineScope()
     val initialAlarm = (mode as? AlarmEditorMode.Edit)?.alarm
 
@@ -46,11 +46,12 @@ fun AlarmScreenEditor(
     var isPriority by remember { mutableStateOf(initialAlarm?.isPriority ?: false) }
     var useSound by remember { mutableStateOf(initialAlarm?.useSound ?: true) }
     var useVibration by remember { mutableStateOf(initialAlarm?.useVibration ?: true) }
+    var skipUi by remember { mutableStateOf(initialAlarm?.skipUi ?: true) }
     
     val timeZone = remember { TimeZone.currentSystemDefault() }
     val initialDateTime = remember(initialAlarm) {
         initialAlarm?.time?.toLocalDateTime(timeZone) ?: 
-        Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone)
+        Instant.fromEpochMilliseconds(System.currentTimeMillis()).toLocalDateTime(timeZone)
     }
 
     var hour by remember { mutableStateOf(initialDateTime.hour) }
@@ -76,7 +77,7 @@ fun AlarmScreenEditor(
     var showDaysDialog by remember { mutableStateOf(false) }
 
     val onSaveAction = {
-        val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()).toLocalDateTime(timeZone)
+        val now = Instant.fromEpochMilliseconds(System.currentTimeMillis()).toLocalDateTime(timeZone)
         val triggerTime = LocalDateTime(now.year, now.month, now.day, hour, minute).toInstant(timeZone)
         
         scope.launch {
@@ -99,7 +100,8 @@ fun AlarmScreenEditor(
                             repeatable = repeatable,
                             custom = custom,
                             useSound = useSound,
-                            useVibration = useVibration
+                            useVibration = useVibration,
+                            skipUi = skipUi
                         )
                     )
                 )
@@ -112,6 +114,8 @@ fun AlarmScreenEditor(
                         isPriority = isPriority,
                         repeatable = repeatable,
                         custom = custom,
+                        useVibration = useVibration,
+                        skipUi = skipUi,
                         syncToSystem = true
                     )
                 )
@@ -133,6 +137,7 @@ fun AlarmScreenEditor(
                 isPriority = isPriority, onIsPriorityChange = { isPriority = it },
                 useSound = useSound, onUseSoundChange = { useSound = it },
                 useVibration = useVibration, onUseVibrationChange = { useVibration = it },
+                skipUi = skipUi, onSkipUiChange = { skipUi = it },
                 hour = hour, minute = minute,
                 onShowTimePicker = { showTimePicker = true },
                 repeatMode = repeatMode, onRepeatModeChange = { repeatMode = it },
@@ -159,6 +164,7 @@ fun AlarmScreenEditor(
                 isPriority = isPriority, onIsPriorityChange = { isPriority = it },
                 useSound = useSound, onUseSoundChange = { useSound = it },
                 useVibration = useVibration, onUseVibrationChange = { useVibration = it },
+                skipUi = skipUi, onSkipUiChange = { skipUi = it },
                 hour = hour, minute = minute,
                 onShowTimePicker = { showTimePicker = true },
                 repeatMode = repeatMode, onRepeatModeChange = { repeatMode = it },
@@ -199,6 +205,7 @@ private fun EditorContent(
     isPriority: Boolean, onIsPriorityChange: (Boolean) -> Unit,
     useSound: Boolean, onUseSoundChange: (Boolean) -> Unit,
     useVibration: Boolean, onUseVibrationChange: (Boolean) -> Unit,
+    skipUi: Boolean, onSkipUiChange: (Boolean) -> Unit,
     hour: Int, minute: Int,
     onShowTimePicker: () -> Unit,
     repeatMode: String, onRepeatModeChange: (String) -> Unit,
@@ -222,23 +229,33 @@ private fun EditorContent(
             label = "Priority Alarm"
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Settings", style = MaterialTheme.typography.titleSmall)
             Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Checkbox(checked = useSound, onCheckedChange = onUseSoundChange)
-                Text("Sound", style = MaterialTheme.typography.bodyMedium)
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(checked = useSound, onCheckedChange = onUseSoundChange)
+                    Text("Sound", style = MaterialTheme.typography.bodyMedium)
+                }
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(checked = useVibration, onCheckedChange = onUseVibrationChange)
+                    Text("Vibration", style = MaterialTheme.typography.bodyMedium)
+                }
             }
             Row(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Checkbox(checked = useVibration, onCheckedChange = onUseVibrationChange)
-                Text("Vibration", style = MaterialTheme.typography.bodyMedium)
+                Checkbox(checked = skipUi, onCheckedChange = onSkipUiChange)
+                Text("Skip System UI (Silent Background)", style = MaterialTheme.typography.bodyMedium)
             }
         }
 

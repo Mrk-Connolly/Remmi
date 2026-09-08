@@ -1,5 +1,6 @@
 package com.remmi.app.plugins.alarm
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
@@ -15,9 +16,9 @@ import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.plugin.model.models.PluginAction
 import com.remmi.app.core.plugin.model.models.RemmiModel
 import com.remmi.app.core.plugin.repository.RemmiRepository
+import com.remmi.app.core.plugin.repository.MemoryRepository
 import com.remmi.app.core.plugin.ui.RemmiScreen
 import com.remmi.app.core.plugin.ui.RemmiWidget
-import com.remmi.app.plugins.calendar.models.CalendarItem
 import com.remmi.app.plugins.alarm.models.AlarmItem
 import com.remmi.app.plugins.alarm.ui.screens.AlarmScreen
 import com.remmi.app.core.controller.GlobalUIState
@@ -25,9 +26,6 @@ import com.remmi.app.core.controller.LinkedCreationData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atTime
-import kotlinx.datetime.toInstant
 
 /**
  * Entry point for the Alarm plugin.
@@ -36,7 +34,8 @@ import kotlinx.datetime.toInstant
  */
 class AlarmPlugin(
     override val metadata: PluginMetadata,
-    private val eventBus: EventBus
+    private val eventBus: EventBus,
+    private val context: Context
 ) : RemmiPlugin {
 
 
@@ -44,17 +43,16 @@ class AlarmPlugin(
     //                                  VARIABLES
     // ----------------------------------------------------------------------------
 
-    /** Internal storage for initialized components */
-    private val _repository: AlarmRepository = AlarmRepository()
-    private val _actions: AlarmActions = AlarmActions(_repository).apply {
+    private val _actions: AlarmActions = AlarmActions(context).apply {
         this.eventBus = this@AlarmPlugin.eventBus
     }
 
-    /** Repository for persistent alarm data. */
-    override val repository: RemmiRepository<out RemmiModel> get() = _repository
-
     /** Action controller for alarm logic. */
     override val actions: AlarmActions get() = _actions
+
+    /** Repository is no longer used for this plugin persistence, but required by interface */
+    private val _dummyRepository = object : MemoryRepository<AlarmItem>() {}
+    override val repository: RemmiRepository<out RemmiModel> get() = _dummyRepository
 
     /** Dashboard widget for alarms. */
     override val widget: RemmiWidget by lazy { AlarmWidget(metadata, actions) }
@@ -149,108 +147,7 @@ class AlarmPlugin(
      * Handle a system-wide or plugin-specific notification (Fact).
      * */
     override suspend fun onEvent(event: RemmiEvent) {
-        Log.d("Remmi", "[AlarmPlugin] - Received event: ${event::class.simpleName}")
-        when (event) {
-            is CalendarEventCreatedEvent -> {
-                if (event.linkedRequests.createAlarm) {
-                    Log.i("Remmi", "[AlarmPlugin] - Calendar event requested alarm. Requesting calendar item...")
-                    eventBus.publishCommand(
-                        FetchDataByIdCommand(
-                            tableName = "calendar",
-                            itemId = event.itemId,
-                            serializer = CalendarItem.serializer(),
-                            correlationId = event.correlationId ?: event.eventId,
-                            causationId = event.eventId,
-                            source = "alarm_plugin"
-                        )
-                    )
-                }
-            }
-            is CalendarEventDeletedEvent -> {
-                Log.i("Remmi", "[AlarmPlugin] - Source calendar event ${event.itemId} deleted. Cleaning up linked alarms...")
-                eventBus.publishCommand(
-                    FetchDataBySourceCommand(
-                        tableName = "alarms",
-                        sourcePlugin = "calendar",
-                        sourceItemId = event.itemId,
-                        serializer = AlarmItem.serializer(),
-                        correlationId = "alarm_plugin_cleanup_${event.itemId}",
-                        causationId = event.eventId,
-                        source = "alarm_plugin"
-                    )
-                )
-            }
-            is TaskDeletedEvent -> {
-                Log.i("Remmi", "[AlarmPlugin] - Source task ${event.taskId} deleted. Cleaning up linked alarms...")
-                eventBus.publishCommand(
-                    FetchDataBySourceCommand(
-                        tableName = "alarms",
-                        sourcePlugin = "tasks",
-                        sourceItemId = event.taskId,
-                        serializer = AlarmItem.serializer(),
-                        correlationId = "alarm_plugin_cleanup_${event.taskId}",
-                        causationId = event.eventId,
-                        source = "alarm_plugin"
-                    )
-                )
-            }
-            is DataFetchedEvent<*> -> {
-                handleDataFetched(event)
-            }
-        }
-    }
-
-    private suspend fun handleDataFetched(event: DataFetchedEvent<*>) {
-        // Handle Calendar item fetch for linked creation
-        if (event.source == "database" && event.items.isNotEmpty()) {
-            val item = event.items[0]
-            if (item is CalendarItem) {
-                Log.d("Remmi", "[AlarmPlugin] - Received calendar item for linked alarm creation")
-                if (item.startingTime != null) {
-                    val alarmTime = item.startingDate.atTime(item.startingTime).toInstant(TimeZone.currentSystemDefault())
-                    actions.eventBus?.publishCommand(
-                        CreateAlarmCommand(
-                            title = "Alarm: ${item.title}",
-                            description = item.description,
-                            time = alarmTime,
-                            isPriority = item.isPriority,
-                            sourcePlugin = "calendar",
-                            sourceItemId = item.id,
-                            correlationId = event.correlationId,
-                            causationId = event.eventId,
-                            creationContext = CreationContext.SECONDARY_LINKED,
-                            source = "alarm_plugin"
-                        )
-                    )
-                } else {
-                    // Missing info, trigger configuration popup
-                    GlobalUIState.pendingAlarmRequest.value = LinkedCreationData(
-                        title = "Alarm: ${item.title}",
-                        description = item.description,
-                        sourcePlugin = "calendar",
-                        sourceItemId = item.id,
-                        correlationId = event.correlationId,
-                        causationId = event.eventId
-                    )
-                }
-            }
-            // Handle cleanup deletions
-            else if (item is AlarmItem && event.correlationId?.startsWith("alarm_plugin_cleanup") == true) {
-                 event.items.forEach { alarm ->
-                     if (alarm is AlarmItem) {
-                        actions.eventBus?.publishCommand(
-                            DeleteAlarmCommand(
-                                alarmId = alarm.id,
-                                source = "alarm_cleanup",
-                                correlationId = event.correlationId,
-                                causationId = event.eventId,
-                                deletionContext = DeletionContext.LINKED_CLEANUP
-                            )
-                        )
-                     }
-                 }
-            }
-        }
+        // No longer listening to database events as alarms are local/system only
     }
 
     /**                                   On Load
@@ -258,27 +155,17 @@ class AlarmPlugin(
      */
     override fun onLoad() {
         Log.d("Remmi", "[AlarmPlugin] - [onLoad] executed")
-        Log.d("Remmi", "Loading Alarm Plugin...")
-        CoroutineScope(Dispatchers.IO).launch {
-            refresh()
-        }
-        Log.d("Remmi", "Alarm Plugin Loaded")
     }
 
     /**                                   Refresh
-     * Sync alarms with the database.
+     * No-op as we don't sync with database.
      */
     override suspend fun refresh() {
-        Log.d("Remmi", "[AlarmPlugin] - Refreshing data")
-        try {
-            actions.sync()
-        } catch (e: Exception) {
-            Log.e("Remmi", "Failed to sync alarms: ${e.message}")
-        }
+        Log.d("Remmi", "[AlarmPlugin] - Refreshing skipped (system only)")
     }
 
     /**                                   On Unload
-     * Called when the plugin is unloaded.
+     * Called when the plugin is being unloaded.
      */
     override fun onUnload() {
         Log.d("Remmi", "[AlarmPlugin] - [onUnload] executed")
@@ -289,6 +176,6 @@ class AlarmPlugin(
      */
     override suspend fun reformat() {
         Log.d("Remmi", "[AlarmPlugin] - [reformat] executed")
-        _repository.clear()
+        _dummyRepository.clear()
     }
 }

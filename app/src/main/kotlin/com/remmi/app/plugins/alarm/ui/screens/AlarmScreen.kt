@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PriorityHigh
+import androidx.compose.material.icons.filled.NotificationImportant
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -22,14 +24,15 @@ import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.ui.components.RemmiHomeScreen
 import com.remmi.app.ui.components.RemmiFAB
-import com.remmi.app.core.eventBus.commands.DeleteAlarmCommand
 import com.remmi.app.ui.components.RemmiCard
 import com.remmi.app.plugins.alarm.AlarmActions
 import com.remmi.app.plugins.alarm.AlarmUiModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.*
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -37,26 +40,32 @@ fun AlarmScreen(
     actions: AlarmActions,
     controller: RemmiController
 ) {
-    Log.d("Remmi", "[AlarmScreen] - [AlarmScreen] executed")
+    Log.d("Remmi", "[AlarmScreen] - System Integrated")
     val scope = rememberCoroutineScope()
     var alarms by remember { mutableStateOf(emptyList<AlarmUiModel>()) }
+    var nextSystemAlarm by remember { mutableStateOf<Long?>(null) }
     var editorMode by remember { mutableStateOf<AlarmEditorMode?>(null) }
     
     var isRefreshing by remember { mutableStateOf(false) }
+
+    val refreshData: suspend () -> Unit = {
+        alarms = actions.getAllAlarms()
+        nextSystemAlarm = actions.getNextSystemAlarm()
+    }
 
     val onRefresh: () -> Unit = remember {
         {
             scope.launch {
                 isRefreshing = true
-                alarms = actions.getAllAlarms()
-                delay(500) // Small delay for visual feedback
+                refreshData()
+                delay(500)
                 isRefreshing = false
             }
         }
     }
 
     LaunchedEffect(Unit) {
-        alarms = actions.getAllAlarms()
+        refreshData()
     }
 
     val backgroundBrush = Brush.verticalGradient(
@@ -74,7 +83,7 @@ fun AlarmScreen(
             onDismiss = { editorMode = null },
             onSave = {
                 scope.launch {
-                    alarms = actions.getAllAlarms()
+                    refreshData()
                     editorMode = null
                 }
             }
@@ -95,55 +104,104 @@ fun AlarmScreen(
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = onRefresh,
-                modifier = Modifier
-                    .fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             ) {
-                Column(
-                    modifier = Modifier.fillMaxSize()
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    if (alarms.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(
-                                "No alarms set.", 
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
+                    // Next System Alarm Card
+                    item {
+                        NextAlarmCard(nextSystemAlarm) {
+                            scope.launch { actions.openSystemAlarmApp() }
                         }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(alarms, key = { it.alarm.id }) { uiModel ->
-                                AlarmRow(
-                                    uiModel = uiModel,
-                                    onClick = { 
-                                        if (!uiModel.isLocal) {
-                                            editorMode = AlarmEditorMode.Edit(uiModel.alarm)
-                                        }
-                                    },
-                                    onDelete = {
-                                        scope.launch {
-                                            controller.eventBus.publishCommand(
-                                                DeleteAlarmCommand(alarmId = uiModel.alarm.id)
-                                            )
-                                            alarms = actions.getAllAlarms()
-                                        }
-                                    },
-                                    onLongClick = {
-                                        if (uiModel.isLocal) {
-                                            scope.launch {
-                                                actions.openSystemAlarmApp()
-                                            }
-                                        }
-                                    }
+                    }
+
+                    if (alarms.isEmpty()) {
+                        item {
+                            Box(modifier = Modifier.fillMaxWidth().padding(top = 64.dp), contentAlignment = Alignment.Center) {
+                                Text(
+                                    "No Remmi alarms set.", 
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
                             }
+                        }
+                    } else {
+                        items(alarms, key = { it.alarm.id }) { uiModel ->
+                            AlarmRow(
+                                uiModel = uiModel,
+                                onClick = { 
+                                    editorMode = AlarmEditorMode.Edit(uiModel.alarm)
+                                },
+                                onDelete = {
+                                    scope.launch {
+                                        actions.deleteAlarm(uiModel.alarm.id)
+                                        refreshData()
+                                    }
+                                }
+                            )
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun NextAlarmCard(triggerTime: Long?, onClick: () -> Unit) {
+    RemmiCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.primary,
+                shape = CircleShape,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.NotificationImportant,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            
+            Spacer(Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Next System Alarm",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                val timeStr = if (triggerTime != null) {
+                    val date = Date(triggerTime)
+                    val format = remember { SimpleDateFormat("EEE, HH:mm", Locale.getDefault()) }
+                    format.format(date)
+                } else "None scheduled"
+                
+                Text(
+                    timeStr,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            )
         }
     }
 }
@@ -153,27 +211,17 @@ fun AlarmScreen(
 fun AlarmRow(
     uiModel: AlarmUiModel,
     onClick: () -> Unit,
-    onDelete: () -> Unit,
-    onLongClick: () -> Unit
+    onDelete: () -> Unit
 ) {
-    Log.d("Remmi", "[AlarmScreen] - [AlarmRow] executed")
     val alarm = uiModel.alarm
     val timeZone = TimeZone.currentSystemDefault()
     val localDateTime = alarm.time.toLocalDateTime(timeZone)
     val timeStr = "${localDateTime.hour.toString().padStart(2, '0')}:${localDateTime.minute.toString().padStart(2, '0')}"
 
-    val cardColor = if (alarm.isPriority) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) 
-                    else if (uiModel.isLocal) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-                    else MaterialTheme.colorScheme.surface
-
     RemmiCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            ),
-        containerColor = cardColor
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        containerColor = if (alarm.isPriority) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier.padding(24.dp),
@@ -196,21 +244,6 @@ fun AlarmRow(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    if (uiModel.isLocal) {
-                        Spacer(Modifier.width(12.dp))
-                        Surface(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            shape = CircleShape
-                        ) {
-                            Text(
-                                "SYSTEM",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -218,25 +251,30 @@ fun AlarmRow(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                if (alarm.description.isNotEmpty()) {
-                    Text(
-                        text = alarm.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
+                
+                val repeatText = when {
+                    alarm.repeatable.contains("d") -> "Daily"
+                    alarm.repeatable.contains("w") -> "Weekly"
+                    alarm.repeatable.contains("c") -> "Custom: ${alarm.custom.joinToString(", ")}"
+                    else -> "Once"
                 }
+                
+                Text(
+                    text = repeatText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
             }
-            if (!uiModel.isLocal) {
-                IconButton(
-                    onClick = onDelete,
-                    colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+            
+            IconButton(
+                onClick = onDelete,
+                colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

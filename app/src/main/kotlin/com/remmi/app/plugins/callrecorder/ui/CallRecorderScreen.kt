@@ -370,6 +370,7 @@ fun ContactHeaderRow(title: String, count: Int, isContact: Boolean) {
 
 @Composable
 fun RecordingRow(recording: CallRecording, actions: CallRecorderActions) {
+    val scope = rememberCoroutineScope()
     val dateTime = recording.created.toLocalDateTime(TimeZone.currentSystemDefault())
     val dateStr = "${dateTime.day}/${dateTime.monthNumber}/${dateTime.year}"
     val timeStr = "${dateTime.hour}:${dateTime.minute.toString().padStart(2, '0')}"
@@ -471,8 +472,10 @@ fun RecordingRow(recording: CallRecording, actions: CallRecorderActions) {
                         DropdownMenuItem(
                             text = { Text(group) },
                             onClick = {
-                                actions.addToGroup(recording, group)
-                                showGroupMenu = false
+                                scope.launch {
+                                    actions.addToGroup(recording, group)
+                                    showGroupMenu = false
+                                }
                             }
                         )
                     }
@@ -481,15 +484,21 @@ fun RecordingRow(recording: CallRecording, actions: CallRecorderActions) {
                         DropdownMenuItem(
                             text = { Text("Remove Group") },
                             onClick = {
+                            scope.launch {
                                 actions.addToGroup(recording, null)
                                 showGroupMenu = false
                             }
+                        }
                         )
                     }
                 }
             }
 
-            IconButton(onClick = { actions.deleteRecording(recording) }) {
+            IconButton(onClick = {
+                scope.launch {
+                    actions.deleteRecording(recording)
+                }
+            }) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
             }
         }

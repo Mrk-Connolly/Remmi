@@ -31,6 +31,7 @@ data class CallRecording(
     val contactName: String? = null,
     val status: RecordingStatus = RecordingStatus.COMPLETED,
     val errorMessage: String? = null,
+    @SerialName("group_name")
     val group: String? = null,
     val appPackage: String? = null
 ) : RemmiModel

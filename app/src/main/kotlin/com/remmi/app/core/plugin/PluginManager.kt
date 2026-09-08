@@ -1,5 +1,6 @@
 package com.remmi.app.core.plugin
 
+import android.content.Context
 import android.util.Log
 import com.remmi.app.core.eventBus.*
 import com.remmi.app.core.eventBus.commands.CommandListener
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * Manages plugin lifecycle and discovery.
  */
 class PluginManager(
+    private val context: Context,
     private val eventBus: EventBus
 ) : CommandListener, EventListener {
 
@@ -51,7 +53,7 @@ class PluginManager(
     private val pluginRegistry = mapOf<String, (PluginMetadata) -> RemmiPlugin>(
         "calendar" to { CalendarPlugin(it, eventBus) },
         "tasks" to { TasksPlugin(it, eventBus) },
-        "alarm" to { AlarmPlugin(it, eventBus) },
+        "alarm" to { AlarmPlugin(it, eventBus, context) },
         "contacts" to { ContactPlugin(it, eventBus) },
         "gift" to { GiftPlugin(it, eventBus) },
         "recipe_book" to { RecipePlugin(it, eventBus) },

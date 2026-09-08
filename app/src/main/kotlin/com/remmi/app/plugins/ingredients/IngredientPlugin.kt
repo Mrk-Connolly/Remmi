@@ -94,6 +94,7 @@ class IngredientPlugin(
     override suspend fun onEvent(event: RemmiEvent) {
         when (event) {
             is DataFetchedEvent<*> -> {
+                Log.d("Remmi", "[IngredientPlugin] - Received DataFetchedEvent with ${event.items.size} items")
                 if (event.items.isNotEmpty()) {
                     val first = event.items[0]
                     when (first) {
@@ -101,27 +102,29 @@ class IngredientPlugin(
                             _metadataRepo.clear()
                             @Suppress("UNCHECKED_CAST")
                             (event.items as List<IngredientMetadata>).forEach { _metadataRepo.add(it) }
-                            Log.d("Remmi", "[IngredientPlugin] - Updated metadata repository")
+                            Log.d("Remmi", "[IngredientPlugin] - Updated metadata repository with ${event.items.size} items")
                         }
                         is UserStock -> {
                             _stockRepo.clear()
                             @Suppress("UNCHECKED_CAST")
                             (event.items as List<UserStock>).forEach { _stockRepo.add(it) }
-                            Log.d("Remmi", "[IngredientPlugin] - Updated stock repository")
+                            Log.d("Remmi", "[IngredientPlugin] - Updated stock repository with ${event.items.size} items")
                         }
                         is StockBatch -> {
                             _batchRepo.clear()
                             @Suppress("UNCHECKED_CAST")
                             (event.items as List<StockBatch>).forEach { _batchRepo.add(it) }
-                            Log.d("Remmi", "[IngredientPlugin] - Updated batch repository")
+                            Log.d("Remmi", "[IngredientPlugin] - Updated batch repository with ${event.items.size} items")
                         }
                         is Shop -> {
                             _shopRepo.clear()
                             @Suppress("UNCHECKED_CAST")
                             (event.items as List<Shop>).forEach { _shopRepo.add(it) }
-                            Log.d("Remmi", "[IngredientPlugin] - Updated shop repository")
+                            Log.d("Remmi", "[IngredientPlugin] - Updated shop repository with ${event.items.size} items")
                         }
                     }
+                } else {
+                    Log.w("Remmi", "[IngredientPlugin] - Received empty DataFetchedEvent. CorrelationId: ${event.correlationId}")
                 }
             }
         }
