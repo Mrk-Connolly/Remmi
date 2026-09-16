@@ -50,7 +50,7 @@ fun RemmiHomeScreen(
     ) {
         Scaffold(
             containerColor = Color.Transparent,
-            contentWindowInsets = WindowInsets(0.dp), // Let background bleed everywhere
+            contentWindowInsets = WindowInsets.statusBars, // Account for status bar in content padding
             topBar = {
                 if (title.isNotEmpty() || onBack != null) {
                     TopAppBar(
@@ -82,17 +82,10 @@ fun RemmiHomeScreen(
             },
             floatingActionButton = floatingActionButton,
             content = { paddingValues ->
-                // We manually handle top padding for the title/app bar area
-                // to allow the root background to bleed into the status bar.
-                val statusBarsPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-                val appBarHeight = if (title.isNotEmpty() || onBack != null) 64.dp else 0.dp
-                
-                Box(modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues) // Usually 0 due to contentWindowInsets
-                    .padding(top = statusBarsPadding + appBarHeight)
-                ) {
-                    content(PaddingValues(0.dp))
+                // The content now fills the screen. Individual screens handle their own
+                // top padding for the TopAppBar and bottom padding for the navigation dock.
+                Box(modifier = Modifier.fillMaxSize()) {
+                    content(paddingValues)
                 }
             }
         )
@@ -115,7 +108,7 @@ fun RemmiSecondaryScreen(
 ) {
     DisposableEffect(Unit) {
         val previous = GlobalUIState.isEditorActive.value
-        GlobalUIState.isEditorActive.value = true
+        GlobalUIState.isEditorActive.value = true // Hide bottom navigation on secondary screens
         onDispose { 
             GlobalUIState.isEditorActive.value = previous
         }
@@ -128,7 +121,7 @@ fun RemmiSecondaryScreen(
     ) {
         Scaffold(
             containerColor = Color.Transparent,
-            contentWindowInsets = WindowInsets(0.dp),
+            contentWindowInsets = WindowInsets.statusBars,
             topBar = {
                 TopAppBar(
                     title = { Text(title) },
@@ -147,14 +140,8 @@ fun RemmiSecondaryScreen(
             },
             floatingActionButton = floatingActionButton
         ) { paddingValues ->
-            val statusBarsPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-            val appBarHeight = 64.dp
-            Box(modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(top = statusBarsPadding + appBarHeight)
-            ) {
-                content(PaddingValues(0.dp))
+            Box(modifier = Modifier.fillMaxSize()) {
+                content(paddingValues)
             }
         }
     }
@@ -224,7 +211,7 @@ private fun RemmiEditorBaseScaffold(
 
     DisposableEffect(Unit) {
         val previous = GlobalUIState.isEditorActive.value
-        GlobalUIState.isEditorActive.value = true
+        GlobalUIState.isEditorActive.value = true // Hide bottom navigation on editor screens
         onDispose { 
             GlobalUIState.isEditorActive.value = previous
         }

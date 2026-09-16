@@ -1,6 +1,7 @@
 package com.remmi.app.core.eventBus.events
 
 import android.util.Log
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
@@ -11,10 +12,12 @@ import kotlinx.coroutines.flow.asSharedFlow
  */
 class EventOperations {
 
-    private val eventListeners = mutableSetOf<EventListener>()
+    private val eventListeners = java.util.concurrent.CopyOnWriteArraySet<EventListener>()
 
     private val _events = MutableSharedFlow<RemmiEvent>(extraBufferCapacity = 64)
     val events = _events.asSharedFlow()
+    
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     /**
      * Register a new listener to receive Fact notifications.
@@ -34,6 +37,7 @@ class EventOperations {
 
     /**
      * Distribute a Fact to all subscribed EventListeners.
+     * Listeners are invoked in parallel to prevent blocking.
      */
     suspend fun publish(event: RemmiEvent) {
         Log.i("Remmi", "[EventOperations] - EVENT PUBLISHED: [${event.type}] from [${event.source}] (ID: ${event.eventId})")
@@ -41,10 +45,12 @@ class EventOperations {
         _events.emit(event)
         
         eventListeners.forEach { listener ->
-            try {
-                listener.onEvent(event)
-            } catch (e: Exception) {
-                Log.e("Remmi", "[EventBus] - EventListener failure for [${event.type}]: ${e.message}")
+            scope.launch {
+                try {
+                    listener.onEvent(event)
+                } catch (e: Exception) {
+                    Log.e("Remmi", "[EventBus] - EventListener failure for [${event.type}]: ${e.message}")
+                }
             }
         }
     }

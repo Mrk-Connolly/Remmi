@@ -23,6 +23,7 @@ import com.remmi.app.ui.components.RemmiHomeScreen
 import com.remmi.app.ui.components.RemmiFAB
 import com.remmi.app.ui.popups.RecipeNutritionRadarGraph
 import com.remmi.app.ui.components.RemmiCard
+import com.remmi.app.plugins.ingredients.models.toCleanString
 import com.remmi.app.plugins.recipebook.RecipeActions
 import com.remmi.app.plugins.recipebook.models.MealType
 import com.remmi.app.plugins.recipebook.models.RecipeItem
@@ -154,6 +155,7 @@ fun RecipeScreen(
     selectedRecipeForDetail?.let { recipe ->
         RecipeDetailDialog(
             recipe = recipe,
+            actions = actions,
             onDismiss = { selectedRecipeForDetail = null }
         )
     }
@@ -162,8 +164,10 @@ fun RecipeScreen(
 @Composable
 fun RecipeDetailDialog(
     recipe: RecipeItem,
+    actions: RecipeActions,
     onDismiss: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(recipe.title) },
@@ -172,25 +176,67 @@ fun RecipeDetailDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Nutrition (Per Serving)",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Nutrition (Per Serving)",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    IconButton(
+                        onClick = { scope.launch { actions.recalculateRecipe(recipe.id) } },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Recalculate",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
                 Text(
                     text = "${recipe.nutritionPerServing.calories?.toInt() ?: "--"} kcal",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
-                
-                RecipeNutritionRadarGraph(nutrition = recipe.nutritionPerServing)
-                
+
+                RecipeNutritionRadarGraph(
+                    nutrition = recipe.nutritionPerServing,
+                    modifier = Modifier.size(220.dp)
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    NutritionSnippet("Prot", "${recipe.nutritionPerServing.proteins ?: "--"}g", Modifier.weight(1f))
-                    NutritionSnippet("Carbs", "${recipe.nutritionPerServing.carbohydrates ?: "--"}g", Modifier.weight(1f))
-                    NutritionSnippet("Fat", "${recipe.nutritionPerServing.fats ?: "--"}g", Modifier.weight(1f))
+                    NutritionSnippet("Prot", "${recipe.nutritionPerServing.proteins?.toCleanString() ?: "--"}g", Modifier.weight(1f))
+                    NutritionSnippet("Carbs", "${recipe.nutritionPerServing.carbohydrates?.toCleanString() ?: "--"}g", Modifier.weight(1f))
+                    NutritionSnippet("Fat", "${recipe.nutritionPerServing.fats?.toCleanString() ?: "--"}g", Modifier.weight(1f))
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Additional breakdown
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Fiber", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${recipe.nutritionPerServing.fiber?.toCleanString() ?: "0"}g", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Sugars", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${recipe.nutritionPerServing.sugars?.toCleanString() ?: "0"}g", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Sodium", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${recipe.nutritionPerServing.sodium?.toCleanString() ?: "0"}mg", style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
         },

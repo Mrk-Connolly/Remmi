@@ -24,10 +24,10 @@ class SupabaseService(
     companion object {
         private const val TAG = "SupabaseService"
         /** Database Location */
-        private const val SUPABASE_URL = "https://lmgexteedqzchmjdagxn.supabase.co"
+        private val SUPABASE_URL = com.remmi.app.BuildConfig.SUPABASE_URL
 
         /** Database Public Key */
-        private const val SUPABASE_ANON_KEY = "sb_publishable_NHFmOe4l9Yhz8nbfZay_pg_fi5j6boy"
+        private val SUPABASE_ANON_KEY = com.remmi.app.BuildConfig.SUPABASE_ANON_KEY
     }
 
     val client = createSupabaseClient(

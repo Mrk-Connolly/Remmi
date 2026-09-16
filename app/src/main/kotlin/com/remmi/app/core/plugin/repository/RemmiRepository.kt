@@ -1,6 +1,7 @@
 package com.remmi.app.core.plugin.repository
 
 import com.remmi.app.core.plugin.model.models.RemmiModel
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Generic interface for data persistence and retrieval.
@@ -40,6 +41,11 @@ interface RemmiRepository<T : RemmiModel> {
      * Retrieves all items currently managed by the repository.
      */
     fun getAll(): List<T>
+
+    /**                                   As Flow
+     * Returns a Flow that emits the list of items whenever the repository changes.
+     */
+    fun asFlow(): Flow<List<T>>
 
     /**                                   Clear
      * Clears all items from the repository.

@@ -1,6 +1,6 @@
 package com.remmi.app.core.controller
 
-import androidx.compose.runtime.mutableStateOf
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * GLOBAL UI STATE
@@ -10,29 +10,29 @@ import androidx.compose.runtime.mutableStateOf
 object GlobalUIState {
     
     /** Indicates if a full-screen editor or secondary screen is currently active (hides bottom menu) */
-    val isEditorActive = mutableStateOf(false)
+    val isEditorActive = MutableStateFlow(false)
     
     /** Visibility of the main island navigation menu */
-    val isMenuVisible = mutableStateOf(true)
+    val isMenuVisible = MutableStateFlow(true)
 
     /** Location Picker State */
-    val showLocationPicker = mutableStateOf(false)
-    val locationPickerData = mutableStateOf<LinkedCreationData?>(null)
+    val showLocationPicker = MutableStateFlow(false)
+    val locationPickerData = MutableStateFlow<LinkedCreationData?>(null)
 
     /** Linked Item Creation Popups */
-    val pendingAlarmRequest = mutableStateOf<LinkedCreationData?>(null)
-    val pendingTaskRequest = mutableStateOf<LinkedCreationData?>(null)
-    val pendingContactRequest = mutableStateOf<LinkedCreationData?>(null)
+    val pendingAlarmRequest = MutableStateFlow<LinkedCreationData?>(null)
+    val pendingTaskRequest = MutableStateFlow<LinkedCreationData?>(null)
+    val pendingContactRequest = MutableStateFlow<LinkedCreationData?>(null)
     
     /** Tracking for successful completion of linked requests */
-    val lastConfirmedCorrelationId = mutableStateOf<String?>(null)
+    val lastConfirmedCorrelationId = MutableStateFlow<String?>(null)
 
     /** Receipt Scan State */
-    val pendingReceiptImageRequest = mutableStateOf<ReceiptImageData?>(null)
+    val pendingReceiptImageRequest = MutableStateFlow<ReceiptImageData?>(null)
 
     /** Appearance State */
-    val themePreference = mutableStateOf(RemmiThemeMode.SYSTEM)
-    val primaryColorHex = mutableStateOf("#6200EE") // Default Purple
+    val themePreference = MutableStateFlow(RemmiThemeMode.SYSTEM)
+    val primaryColorHex = MutableStateFlow("#6200EE") // Default Purple
 }
 
 enum class RemmiThemeMode {

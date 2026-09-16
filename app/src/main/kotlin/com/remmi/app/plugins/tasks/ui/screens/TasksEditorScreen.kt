@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -22,6 +23,7 @@ import com.remmi.app.core.plugin.model.components.RepeatType
 import com.remmi.app.ui.components.RemmiAddScreen
 import com.remmi.app.ui.components.RemmiModifyScreen
 import com.remmi.app.plugins.tasks.TasksActions
+import com.remmi.app.plugins.tasks.models.SubTask
 import com.remmi.app.plugins.tasks.models.TaskItem
 import kotlinx.datetime.*
 import kotlinx.datetime.TimeZone
@@ -83,6 +85,8 @@ fun TasksEditorScreen(
     var showAddGroupDialog by remember { mutableStateOf(false) }
     var newGroupName by remember { mutableStateOf("") }
 
+    var subTasks by remember { mutableStateOf(initialTask?.subTasks ?: emptyList<SubTask>()) }
+
     LaunchedEffect(Unit) {
         existingGroups = actions.getAllGroups()
     }
@@ -119,6 +123,7 @@ fun TasksEditorScreen(
                             isPriority = isPriority,
                             group = group,
                             repeat = repeatRule,
+                            subTasks = subTasks,
                             createCalendar = addToCalendar,
                             createAlarm = addToAlarm
                         )
@@ -132,7 +137,8 @@ fun TasksEditorScreen(
                         dueDate = finalDueDate,
                         isPriority = isPriority,
                         group = group,
-                        repeat = repeatRule
+                        repeat = repeatRule,
+                        subTasks = subTasks
                     )
                 )
             }
@@ -161,6 +167,7 @@ fun TasksEditorScreen(
                 isTimeEnabled = isTimeEnabled, onIsTimeEnabledChange = { isTimeEnabled = it },
                 startDate = startDate, onShowStartDatePicker = { showStartDatePicker = true },
                 startTime = startTime, onShowStartTimePicker = { showStartTimePicker = true },
+                subTasks = subTasks, onSubTasksChange = { subTasks = it },
                 addToCalendar = addToCalendar, onAddToCalendarChange = { addToCalendar = it },
                 addToAlarm = addToAlarm, onAddToAlarmChange = { addToAlarm = it },
                 isEdit = false
@@ -193,6 +200,7 @@ fun TasksEditorScreen(
                 isTimeEnabled = isTimeEnabled, onIsTimeEnabledChange = { isTimeEnabled = it },
                 startDate = startDate, onShowStartDatePicker = { showStartDatePicker = true },
                 startTime = startTime, onShowStartTimePicker = { showStartTimePicker = true },
+                subTasks = subTasks, onSubTasksChange = { subTasks = it },
                 addToCalendar = addToCalendar, onAddToCalendarChange = { addToCalendar = it },
                 addToAlarm = addToAlarm, onAddToAlarmChange = { addToAlarm = it },
                 isEdit = true
@@ -270,6 +278,7 @@ private fun EditorContent(
     isTimeEnabled: Boolean, onIsTimeEnabledChange: (Boolean) -> Unit,
     startDate: LocalDate, onShowStartDatePicker: () -> Unit,
     startTime: LocalTime, onShowStartTimePicker: () -> Unit,
+    subTasks: List<SubTask>, onSubTasksChange: (List<SubTask>) -> Unit,
     addToCalendar: Boolean, onAddToCalendarChange: (Boolean) -> Unit,
     addToAlarm: Boolean, onAddToAlarmChange: (Boolean) -> Unit,
     isEdit: Boolean
@@ -284,6 +293,45 @@ private fun EditorContent(
             description = description,
             onDescriptionChange = onDescriptionChange
         )
+
+        // --- Sub-tasks Section ---
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Sub-tasks", style = MaterialTheme.typography.titleSmall)
+            
+            subTasks.forEachIndexed { index, subTask ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = subTask.title,
+                        onValueChange = { new ->
+                            val newList = subTasks.toMutableList()
+                            newList[index] = subTask.copy(title = new)
+                            onSubTasksChange(newList)
+                        },
+                        placeholder = { Text("Task title") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    IconButton(onClick = {
+                        val newList = subTasks.toMutableList()
+                        newList.removeAt(index)
+                        onSubTasksChange(newList)
+                    }) {
+                        Icon(Icons.Default.RemoveCircleOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+            
+            TextButton(
+                onClick = { 
+                    onSubTasksChange(subTasks + SubTask(java.util.UUID.randomUUID().toString(), "")) 
+                },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Add Sub-task")
+            }
+        }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,

@@ -6,6 +6,7 @@ import com.remmi.app.core.plugin.model.components.RepeatRule
 import com.remmi.app.core.plugin.model.models.RemmiModel
 import com.remmi.app.plugins.alarm.models.AlarmItem
 import com.remmi.app.plugins.calendar.models.CalendarItem
+import com.remmi.app.plugins.tasks.models.SubTask
 import com.remmi.app.plugins.tasks.models.TaskItem
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -328,6 +329,19 @@ data class PostLiveUpdateCommand(
     override val deletionContext: DeletionContext? = null
 ) : RemmiCommand
 
+/**
+ * CANCEL NOTIFICATION COMMAND
+ */
+data class CancelNotificationCommand(
+    val tag: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
 // ----------------------------------------------------------------------------
 //                               ALARM COMMANDS
 // ----------------------------------------------------------------------------
@@ -435,6 +449,7 @@ data class CreateTaskCommand(
     val isPriority: Boolean = false,
     val group: String? = null,
     val repeat: RepeatRule? = null,
+    val subTasks: List<SubTask> = emptyList(),
     val sourcePlugin: String? = null,
     val sourceItemId: String? = null,
     override val commandId: String = UUID.randomUUID().toString(),
@@ -467,6 +482,16 @@ data class DeleteTaskCommand(
 
 data class ToggleTaskCommand(
     val taskId: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+data class BulkDeleteTasksCommand(
+    val taskIds: List<String>,
     override val commandId: String = UUID.randomUUID().toString(),
     override val source: String = "system",
     override val correlationId: String? = null,

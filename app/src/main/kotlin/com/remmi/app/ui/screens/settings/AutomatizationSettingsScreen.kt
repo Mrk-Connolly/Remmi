@@ -6,7 +6,9 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -19,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.remmi.app.core.automation.AutomationSettingsRepository
 import com.remmi.app.core.automation.features.dailybriefing.DailyBriefingSettings
 import com.remmi.app.core.controller.RemmiController
+import com.remmi.app.ui.DesignTokens
 import com.remmi.app.ui.popups.RemmiTimePickerDialog
 import com.remmi.app.core.android.system.AndroidAutomationScheduler
 import com.remmi.app.ui.components.RemmiCard
@@ -59,7 +62,9 @@ fun AutomatizationSettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(24.dp),
+                .padding(horizontal = 24.dp)
+                .padding(top = 24.dp, bottom = DesignTokens.BottomNavigationHeight + 64.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Daily Briefing Section

@@ -1,8 +1,21 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
+    id("com.google.dagger.hilt.android")
     kotlin("plugin.serialization")
 }
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { load(it) }
+    }
+}
+val supabaseUrl = localProperties.getProperty("supabase.url") ?: ""
+val supabaseAnonKey = localProperties.getProperty("supabase.anon_key") ?: ""
 
 android {
     namespace = "com.remmi.app"
@@ -14,6 +27,9 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -37,6 +53,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
@@ -71,6 +88,17 @@ dependencies {
     implementation("org.maplibre.compose:maplibre-compose-android:0.14.0")
     implementation("com.google.android.gms:play-services-location:21.4.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
+
+    // Room
+    val roomVersion = "2.8.5"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
+
+    // Hilt
+    val hiltVersion = "2.60.1"
+    implementation("com.google.dagger:hilt-android:$hiltVersion")
+    ksp("com.google.dagger:hilt-compiler:$hiltVersion")
 
     // OCR
     implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")

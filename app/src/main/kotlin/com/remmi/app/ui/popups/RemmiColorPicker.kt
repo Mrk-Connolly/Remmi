@@ -108,7 +108,7 @@ fun RemmiColorPicker(
                                     color = MaterialTheme.colorScheme.onSurface,
                                     shape = CircleShape
                                 )
-                                .clickable { 
+                                .clickable {
                                     selectedColor = hex
                                     customHex = hex
                                 }

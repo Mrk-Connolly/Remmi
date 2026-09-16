@@ -38,7 +38,9 @@ CREATE TABLE calendar_groups (
     modified        TIMESTAMPTZ NOT NULL,
     user_id         UUID DEFAULT auth.uid(),
     name            TEXT NOT NULL UNIQUE,
-    color_hex       TEXT NOT NULL DEFAULT '#6200EE'
+    color_hex       TEXT NOT NULL DEFAULT '#6200EE',
+    source_plugin   TEXT,
+    source_item_id  TEXT
 );
 
 -- RLS
@@ -46,6 +48,14 @@ ALTER TABLE calendar ENABLE ROW LEVEL SECURITY;
 ALTER TABLE calendar_groups ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "calendar_all" ON calendar FOR ALL TO anon USING (true) WITH CHECK (true);
 CREATE POLICY "calendar_groups_all" ON calendar_groups FOR ALL TO anon USING (true) WITH CHECK (true);
+
+-- DEFAULT GROUPS
+INSERT INTO calendar_groups (id, created, modified, name, color_hex) VALUES
+('group_work', now(), now(), 'Work', '#4285F4'),
+('group_personal', now(), now(), 'Personal', '#34A853'),
+('group_birthdays', now(), now(), 'Birthdays', '#EA4335'),
+('group_health', now(), now(), 'Health', '#FBBC05')
+ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================
 -- CONTACTS PLUGIN SCHEMA
@@ -253,6 +263,7 @@ CREATE TABLE tasks (
     subgroup        TEXT,
     parent_task     TEXT,
     repeat          JSONB,
+    sub_tasks       JSONB DEFAULT '[]',
     reminders       TEXT[] NOT NULL DEFAULT '{}',
     relationships   TEXT[] NOT NULL DEFAULT '{}',
     create_calendar BOOLEAN NOT NULL DEFAULT FALSE,
@@ -298,3 +309,6 @@ CREATE POLICY "call_recordings_all" ON call_recordings FOR ALL TO anon USING (tr
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+
+-- Force PostgREST to reload the schema cache
+NOTIFY pgrst, 'reload schema';

@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.sp
 import com.remmi.app.plugins.ingredients.models.NutritionConstants
 import com.remmi.app.plugins.ingredients.models.NutritionProfile
 import com.remmi.app.plugins.recipebook.models.NutritionInfo
+import androidx.compose.ui.tooling.preview.Preview
+import com.remmi.app.plugins.ingredients.models.AdditionalNutrient
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -146,6 +148,30 @@ private fun RadarChart(
                     )
                 }
             }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RecipeNutritionRadarGraphPreview() {
+    MaterialTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            RecipeNutritionRadarGraph(
+                nutrition = NutritionInfo(
+                    calories = 450.0,
+                    proteins = 35.0,
+                    carbohydrates = 45.0,
+                    sugars = 10.0,
+                    fats = 15.0,
+                    fiber = 8.0,
+                    sodium = 400.0,
+                    additionalNutrients = listOf(
+                        AdditionalNutrient("Vitamin C", 20.0, "mg"),
+                        AdditionalNutrient("Iron", 5.0, "mg")
+                    )
+                )
+            )
         }
     }
 }

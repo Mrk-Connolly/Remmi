@@ -7,6 +7,7 @@ import com.remmi.app.core.eventBus.EventBus
 import com.remmi.app.core.plugin.PluginManager
 import com.remmi.app.core.database.DatabaseManager
 import com.remmi.app.core.android.services.AndroidServiceManager
+import kotlinx.coroutines.*
 
 /**
  * REMMI CONTROLLER
@@ -25,11 +26,14 @@ class RemmiController(
     /** Shared Communication Channel */
     val eventBus = EventBus()
 
-    /** Core System Managers */
-    val databaseManager = DatabaseManager(eventBus)
-    val androidManager = AndroidServiceManager(androidContext, eventBus)
-    val pluginManager = PluginManager(androidContext, eventBus)
-    val automationEngine = AutomationEngine(eventBus, androidManager)
+    /** Component Container */
+    val container = RemmiContainer()
+
+    /** Core System Managers (Aliases for backward compatibility) */
+    val databaseManager get() = container.get(DatabaseManager::class)
+    val androidManager get() = container.get(AndroidServiceManager::class)
+    val pluginManager get() = container.get(PluginManager::class)
+    val automationEngine get() = container.get(AutomationEngine::class)
 
     private var isStarted = false
 
@@ -39,6 +43,12 @@ class RemmiController(
 
     init {
         Log.d("Remmi", "[RemmiController] - Constructor initialized")
+        
+        // Register components in dependency order
+        container.register(DatabaseManager::class, DatabaseManager(eventBus))
+        container.register(AndroidServiceManager::class, AndroidServiceManager(androidContext, eventBus))
+        container.register(PluginManager::class, PluginManager(androidContext, eventBus))
+        container.register(AutomationEngine::class, AutomationEngine(eventBus, container.get(AndroidServiceManager::class)))
     }
 
 
@@ -47,12 +57,12 @@ class RemmiController(
     // ----------------------------------------------------------------------------
 
     /**                                 Start
-     * Orchestrate the startup sequence of all core systems.
+     * Orchestrate the startup sequence of all core systems in parallel where possible.
      */
-    suspend fun start() {
+    suspend fun start() = coroutineScope {
         if (isStarted) {
             Log.d("Remmi", "[RemmiController] - System already started, skipping")
-            return
+            return@coroutineScope
         }
         Log.d("Remmi", "[RemmiController] - Starting system")
         isStarted = true
@@ -60,32 +70,30 @@ class RemmiController(
         // 1. Start Messaging Bus
         eventBus.start()
 
-        // 2. Start Managers
-        databaseManager.start()
-        androidManager.start()
+        // 2. Start Managers in parallel where possible
+        // Database and Android managers can start in parallel
+        val dbJob = launch { databaseManager.start() }
+        val androidJob = launch { androidManager.start() }
+        
+        dbJob.join()
+        androidJob.join()
 
         // 3. Discover Plugins using FileService
         pluginManager.readPlugins(androidManager.fileService)
         
-        // 4. Load plugins (MUST BE BEFORE SUBSCRIPTION)
+        // 4. Load plugins (Parallel internally)
         pluginManager.loadPlugins()
 
         // 4.5 Initialize Appearance from settings
         initAppearance()
 
-        // 5. Start Plugin Manager (Handles subscriptions)
+        // 5. Start Plugin Manager (Handles subscriptions and initial load)
         pluginManager.start()
 
         // 6. Start Engines
         automationEngine.start()
-        
-        // 7. Initial sync/load for plugins
-        pluginManager.plugins.values.forEach { it.onLoad() }
     }
 
-    /**                                 Stop
-     * Orchestrate the teardown sequence of all core systems.
-     */
     fun stop() {
         if (!isStarted) {
             Log.d("Remmi", "[RemmiController] - System not started, skipping")
@@ -94,13 +102,8 @@ class RemmiController(
         Log.d("Remmi", "[RemmiController] - Stopping system")
         isStarted = false
 
-        // 1. Stop Engines
-        automationEngine.stop()
-
-        // 2. Stop Managers
-        pluginManager.stop()
-        androidManager.stop()
-        databaseManager.stop()
+        // Stop all registered components in reverse order
+        container.stopAll()
         
         // 3. Stop Core Services
         eventBus.stop()

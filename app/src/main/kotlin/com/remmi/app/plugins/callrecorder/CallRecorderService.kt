@@ -67,7 +67,7 @@ class CallRecorderService : Service() {
             startForeground(
                 NOTIFICATION_ID, 
                 createNotification(false),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
             )
         } else {
             startForeground(NOTIFICATION_ID, createNotification(false))
@@ -107,7 +107,7 @@ class CallRecorderService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
-            .setSmallIcon(android.R.drawable.presence_audio_busy)
+            .setSmallIcon(com.remmi.app.R.mipmap.ic_launcher)
             .setOngoing(true)
             .build()
     }

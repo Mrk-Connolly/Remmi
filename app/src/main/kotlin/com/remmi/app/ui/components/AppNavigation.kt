@@ -47,87 +47,84 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.collectAsState
+
 @Composable
 fun AppNavigation(
     runtime: RemmiController
 ) {
     val navController = rememberNavController()
-    val isEditorActive by GlobalUIState.isEditorActive
+    val isEditorActive by GlobalUIState.isEditorActive.collectAsState()
     var pluginsOpen by remember { mutableStateOf(false) }
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0.dp),
-        bottomBar = {
-            if (!isEditorActive) {
-                RemmiBottomNavigation(
-                    navController = navController,
-                    runtime = runtime,
-                    pluginsOpen = pluginsOpen,
-                    onPluginsOpenChange = { pluginsOpen = it }
-                )
-            }
-        }
-    ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = RemmiDestination.HOME.route,
-            modifier = Modifier.padding(padding)
-        ) {
-            composable(RemmiDestination.HOME.route) {
-                HomeScreen(
-                    pluginManager = runtime.pluginManager,
-                    onWidgetClick = { pluginId ->
-                        navController.navigate(
-                            RemmiDestination.pluginRoute(pluginId)
-                        )
-                    }
-                )
-            }
-
-            composable(RemmiDestination.SETTINGS.route) {
-                SettingsScreen(
-                    runtime = runtime,
-                    navController = navController,
-                    onBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-
-            composable(RemmiDestination.AUTOMATIZATION_ROUTE) {
-                AutomatizationSettingsScreen(
-                    controller = runtime,
-                    onBack = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-
-            composable(RemmiDestination.CALENDAR.route) {
-                val plugin = runtime.pluginManager.plugins["calendar"]
-                if (plugin != null) {
-                    plugin.screen.Content(controller = runtime)
-                } else {
-                    Text("Plugin not found: calendar")
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            bottomBar = {
+                if (!isEditorActive) {
+                    RemmiBottomNavigation(
+                        navController = navController,
+                        runtime = runtime,
+                        pluginsOpen = pluginsOpen,
+                        onPluginsOpenChange = { pluginsOpen = it }
+                    )
                 }
             }
-
-            composable(RemmiDestination.TASKS.route) {
-                val plugin = runtime.pluginManager.plugins["tasks"]
-                if (plugin != null) {
-                    plugin.screen.Content(controller = runtime)
-                } else {
-                    Text("Plugin not found: tasks")
+        ) { padding ->
+            NavHost(
+                navController = navController,
+                startDestination = RemmiDestination.HOME.route,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = padding.calculateBottomPadding())
+            ) {
+                composable(RemmiDestination.HOME.route) {
+                    HomeScreen(
+                        pluginManager = runtime.pluginManager,
+                        onWidgetClick = { pluginId ->
+                            navController.navigate(
+                                RemmiDestination.pluginRoute(pluginId)
+                            )
+                        }
+                    )
                 }
-            }
 
-            composable("plugin/{pluginId}") { backStackEntry ->
-                val pluginId = backStackEntry.arguments?.getString("pluginId")
-                val plugin = runtime.pluginManager.plugins[pluginId]
-                if (plugin != null) {
-                    plugin.screen.Content(controller = runtime)
-                } else {
-                    Text("Plugin not found: $pluginId")
+                composable(RemmiDestination.SETTINGS.route) {
+                    SettingsScreen(
+                        runtime = runtime,
+                        navController = navController,
+                        onBack = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable(RemmiDestination.AUTOMATIZATION_ROUTE) {
+                    AutomatizationSettingsScreen(
+                        controller = runtime,
+                        onBack = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                // Dynamic Plugin Routes
+                composable("plugin/{pluginId}") { backStackEntry ->
+                    val pluginId = backStackEntry.arguments?.getString("pluginId") ?: ""
+                    val screenContent = com.remmi.app.ui.navigation.RemmiScreenRegistry.getScreen(pluginId)
+                    
+                    if (screenContent != null) {
+                        screenContent(runtime)
+                    } else {
+                        // Fallback to manual lookup if not registered yet (backward compatibility)
+                        val plugin = runtime.pluginManager.plugins[pluginId]
+                        if (plugin != null) {
+                            plugin.screen.Content(controller = runtime)
+                        } else {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("Plugin not found: $pluginId")
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -190,22 +187,17 @@ fun RemmiBottomNavigation(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp) // Add padding for floating effect
     ) {
         Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(DesignTokens.BottomNavigationHeight),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-            shape = RoundedCornerShape(DesignTokens.CornerRadiusLarge),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp
         ) {
             NavigationBar(
-                modifier = Modifier.fillMaxSize(),
-                containerColor = Color.Transparent, // Managed by Surface
-                tonalElevation = 0.dp
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = Color.Transparent,
+                tonalElevation = 0.dp,
+                windowInsets = NavigationBarDefaults.windowInsets
             ) {
                 NavigationBarItem(
                     selected = currentRoute == RemmiDestination.HOME.route,
@@ -251,7 +243,7 @@ fun RemmiBottomNavigation(
             onClick = { onPluginsOpenChange(!pluginsOpen) },
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = (-DesignTokens.SpacingSmall))
+                .offset(y = (-32).dp)
                 .size(64.dp),
             shape = CircleShape,
             containerColor = MaterialTheme.colorScheme.primary,

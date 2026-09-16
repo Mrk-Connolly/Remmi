@@ -59,15 +59,18 @@ fun CalendarScreenEditor(
     
     // Group State
     var groupName by remember { mutableStateOf(initialEvent?.group ?: "") }
-    var groups by remember { mutableStateOf(emptyList<CalendarGroup>()) }
+    val groups by actions.groupsFlow.collectAsState()
     var showNewGroupDialog by remember { mutableStateOf(false) }
 
     // Date/Time State
     var startingDate by remember { mutableStateOf(initialEvent?.startingDate ?: initialDate ?: today) }
+    var useStartTime by remember { mutableStateOf(initialEvent?.startingTime != null || mode is CalendarEditorMode.CreateOnDate && mode.startTime != null) }
     var startingTime by remember { 
         mutableStateOf(initialEvent?.startingTime ?: (mode as? CalendarEditorMode.CreateOnDate)?.startTime ?: LocalTime(9, 0)) 
     }
+    
     var endingDate by remember { mutableStateOf(initialEvent?.endingDate ?: startingDate) }
+    var useEndTime by remember { mutableStateOf(initialEvent?.endingTime != null || mode is CalendarEditorMode.CreateOnDate && mode.endTime != null) }
     var endingTime by remember { 
         mutableStateOf(initialEvent?.endingTime ?: (mode as? CalendarEditorMode.CreateOnDate)?.endTime ?: LocalTime(10, 0)) 
     }
@@ -100,7 +103,7 @@ fun CalendarScreenEditor(
 
     LaunchedEffect(Unit) {
         scope.launch {
-            groups = actions.getCalendarGroups()
+            actions.sync()
         }
     }
 
@@ -147,9 +150,9 @@ fun CalendarScreenEditor(
                         title = title,
                         description = description,
                         startingDate = startingDate,
-                        startingTime = startingTime,
+                        startingTime = if (useStartTime) startingTime else null,
                         endingDate = endingDate,
-                        endingTime = endingTime,
+                        endingTime = if (useEndTime) endingTime else null,
                         isPriority = isPriority,
                         group = if (groupName == "None" || groupName.isEmpty()) null else groupName,
                         isRepeatable = isRepeatable,
@@ -171,8 +174,10 @@ fun CalendarScreenEditor(
                 groups = groups,
                 onAddNewGroup = { showNewGroupDialog = true },
                 startingDate = startingDate, onStartingDateChange = { startingDate = it },
+                useStartTime = useStartTime, onUseStartTimeChange = { useStartTime = it },
                 startingTime = startingTime, onStartingTimeChange = { startingTime = it },
                 endingDate = endingDate, onEndingDateChange = { endingDate = it },
+                useEndTime = useEndTime, onUseEndTimeChange = { useEndTime = it },
                 endingTime = endingTime, onEndingTimeChange = { endingTime = it },
                 isRepeatable = isRepeatable, onIsRepeatableChange = { isRepeatable = it },
                 repeatableType = repeatableType, onRepeatableTypeChange = { repeatableType = it },
@@ -209,9 +214,9 @@ fun CalendarScreenEditor(
                         title = title,
                         description = description,
                         startingDate = startingDate,
-                        startingTime = startingTime,
+                        startingTime = if (useStartTime) startingTime else null,
                         endingDate = endingDate,
-                        endingTime = endingTime,
+                        endingTime = if (useEndTime) endingTime else null,
                         isPriority = isPriority,
                         group = if (groupName == "None" || groupName.isEmpty()) null else groupName,
                         isRepeatable = isRepeatable,
@@ -235,8 +240,10 @@ fun CalendarScreenEditor(
                 groups = groups,
                 onAddNewGroup = { showNewGroupDialog = true },
                 startingDate = startingDate, onStartingDateChange = { startingDate = it },
+                useStartTime = useStartTime, onUseStartTimeChange = { useStartTime = it },
                 startingTime = startingTime, onStartingTimeChange = { startingTime = it },
                 endingDate = endingDate, onEndingDateChange = { endingDate = it },
+                useEndTime = useEndTime, onUseEndTimeChange = { useEndTime = it },
                 endingTime = endingTime, onEndingTimeChange = { endingTime = it },
                 isRepeatable = isRepeatable, onIsRepeatableChange = { isRepeatable = it },
                 repeatableType = repeatableType, onRepeatableTypeChange = { repeatableType = it },
@@ -273,7 +280,6 @@ fun CalendarScreenEditor(
             onSave = { name, color ->
                 scope.launch {
                     actions.addCalendarGroup(name, color)
-                    groups = actions.getCalendarGroups()
                     groupName = name
                     showNewGroupDialog = false
                 }
@@ -304,8 +310,10 @@ private fun EditorContent(
     groups: List<CalendarGroup>,
     onAddNewGroup: () -> Unit,
     startingDate: LocalDate, onStartingDateChange: (LocalDate) -> Unit,
+    useStartTime: Boolean, onUseStartTimeChange: (Boolean) -> Unit,
     startingTime: LocalTime, onStartingTimeChange: (LocalTime) -> Unit,
     endingDate: LocalDate, onEndingDateChange: (LocalDate) -> Unit,
+    useEndTime: Boolean, onUseEndTimeChange: (Boolean) -> Unit,
     endingTime: LocalTime, onEndingTimeChange: (LocalTime) -> Unit,
     isRepeatable: Boolean, onIsRepeatableChange: (Boolean) -> Unit,
     repeatableType: String, onRepeatableTypeChange: (String) -> Unit,
@@ -412,13 +420,13 @@ private fun EditorContent(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Start", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             DateFieldRow(date = startingDate, onDateChange = onStartingDateChange, onIconClick = onShowStartDatePicker)
-            TimeFieldRow(time = startingTime, onTimeChange = onStartingTimeChange, onIconClick = onShowStartTimePicker)
+            TimeFieldRow(useTime = useStartTime, onUseTimeChange = onUseStartTimeChange, time = startingTime, onTimeChange = onStartingTimeChange, onIconClick = onShowStartTimePicker)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("End", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             DateFieldRow(date = endingDate, onDateChange = onEndingDateChange, onIconClick = onShowEndDatePicker)
-            TimeFieldRow(time = endingTime, onTimeChange = onEndingTimeChange, onIconClick = onShowEndTimePicker)
+            TimeFieldRow(useTime = useEndTime, onUseTimeChange = onUseEndTimeChange, time = endingTime, onTimeChange = onEndingTimeChange, onIconClick = onShowEndTimePicker)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -575,11 +583,17 @@ fun DateFieldRow(
 
 @Composable
 fun TimeFieldRow(
+    useTime: Boolean,
+    onUseTimeChange: (Boolean) -> Unit,
     time: LocalTime,
     onTimeChange: (LocalTime) -> Unit,
     onIconClick: () -> Unit
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Checkbox(
+            checked = useTime,
+            onCheckedChange = onUseTimeChange
+        )
         OutlinedTextField(
             value = "${time.hour.toString().padStart(2, '0')}:${time.minute.toString().padStart(2, '0')}",
             onValueChange = { s ->
@@ -591,10 +605,11 @@ fun TimeFieldRow(
                 }
             },
             modifier = Modifier.weight(1f),
+            enabled = useTime,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             shape = RoundedCornerShape(8.dp)
         )
-        IconButton(onClick = onIconClick) {
+        IconButton(onClick = onIconClick, enabled = useTime) {
             Icon(Icons.Default.Schedule, contentDescription = "Select Time")
         }
     }

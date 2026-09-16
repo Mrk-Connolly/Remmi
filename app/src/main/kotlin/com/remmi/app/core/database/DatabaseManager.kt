@@ -1,6 +1,7 @@
 package com.remmi.app.core.database
 
 import android.util.Log
+import com.remmi.app.core.controller.RemmiComponent
 import com.remmi.app.core.eventBus.EventBus
 
 /**
@@ -11,7 +12,7 @@ import com.remmi.app.core.eventBus.EventBus
  */
 class DatabaseManager(
     private val eventBus: EventBus
-) {
+) : RemmiComponent {
 
     /** The dedicated database service */
     val service: DatabaseService = SupabaseService(eventBus)
@@ -23,7 +24,7 @@ class DatabaseManager(
     /**
      * Start the database service.
      */
-    fun start() {
+    override suspend fun start() {
         Log.d("Remmi", "[DatabaseManager] - Starting database service")
         eventBus.subscribeCommand(service)
     }
@@ -31,7 +32,7 @@ class DatabaseManager(
     /**
      * Stop the database service.
      */
-    fun stop() {
+    override fun stop() {
         Log.d("Remmi", "[DatabaseManager] - Stopping database service")
         eventBus.unsubscribeCommand(service)
     }

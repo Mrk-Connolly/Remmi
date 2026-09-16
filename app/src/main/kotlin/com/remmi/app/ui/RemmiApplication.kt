@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import com.remmi.app.core.host.RemmiHost
 import com.remmi.app.ui.components.AppNavigation
 
+import dagger.hilt.android.HiltAndroidApp
+
 /**
  * REMMI APPLICATION
  * 
@@ -17,6 +19,7 @@ import com.remmi.app.ui.components.AppNavigation
  * Manages the singleton instance of RemmiHost to ensure consistency
  * between UI and background components (like Widgets).
  */
+@HiltAndroidApp
 class RemmiApplication : Application() {
 
     lateinit var remmiHost: RemmiHost

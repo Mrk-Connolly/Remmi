@@ -44,8 +44,8 @@ fun WeeklyScheduleScreen(
     onEditEvent: (CalendarItem) -> Unit
 ) {
     Log.d("Remmi", "[WeeklyScheduleScreen] - Executed")
-    var events by remember { mutableStateOf(emptyList<CalendarItem>()) }
-    var groups by remember { mutableStateOf(emptyList<CalendarGroup>()) }
+    val events by actions.repository.asFlow().collectAsState(initial = emptyList())
+    val groups by actions.groupsFlow.collectAsState()
     
     val today = remember { 
         val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
@@ -65,8 +65,7 @@ fun WeeklyScheduleScreen(
     }
 
     LaunchedEffect(Unit) {
-        events = actions.getAllEvents()
-        groups = actions.getCalendarGroups()
+        actions.sync()
     }
 
     RemmiSecondaryScreen(

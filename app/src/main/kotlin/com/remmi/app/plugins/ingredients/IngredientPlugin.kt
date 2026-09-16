@@ -4,8 +4,10 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.FetchIngredientMetadataCommand
 import com.remmi.app.core.eventBus.commands.RemmiCommand
 import com.remmi.app.core.eventBus.events.DataFetchedEvent
+import com.remmi.app.core.eventBus.events.IngredientMetadataFetchedEvent
 import com.remmi.app.core.eventBus.events.RemmiEvent
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.core.plugin.RemmiPlugin
@@ -86,6 +88,19 @@ class IngredientPlugin(
      */
     override suspend fun onCommand(command: RemmiCommand) {
         Log.d("Remmi", "[IngredientPlugin] - Received command: ${command::class.simpleName}")
+        when (command) {
+            is FetchIngredientMetadataCommand -> {
+                Log.i("Remmi", "[IngredientPlugin] - Fetching metadata for external request")
+                val metadata = _metadataRepo.getAll()
+                eventBus.publishEvent(
+                    IngredientMetadataFetchedEvent(
+                        metadata = metadata,
+                        correlationId = command.correlationId ?: command.commandId,
+                        causationId = command.commandId
+                    )
+                )
+            }
+        }
     }
 
     /**                                   On Event

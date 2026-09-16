@@ -2,6 +2,7 @@ package com.remmi.app.core.android.services
 
 import android.content.Context
 import android.util.Log
+import com.remmi.app.core.controller.RemmiComponent
 import com.remmi.app.core.eventBus.EventBus
 import com.remmi.app.core.android.alarms.AlarmService
 import com.remmi.app.core.android.alarms.implementations.SystemAlarmService
@@ -25,7 +26,7 @@ import com.remmi.app.core.android.files.AndroidFileService
 class AndroidServiceManager(
     private val context: Context,
     private val eventBus: EventBus
-) {
+) : RemmiComponent {
 
     /** Specialized Android Services */
     val alarmService: AlarmService = SystemAlarmService(context)
@@ -44,7 +45,7 @@ class AndroidServiceManager(
     /**                                 Start
      * Start all system services and subscribe them to the EventBus.
      * */
-    fun start() {
+    override suspend fun start() {
         Log.d("Remmi", "[AndroidServiceManager] - Starting services")
         eventBus.subscribeCommand(weatherService)
         eventBus.subscribeCommand(locationService)
@@ -56,7 +57,7 @@ class AndroidServiceManager(
     /**                                 Stop
      * Stop all system services and unsubscribe them from the EventBus.
      * */
-    fun stop() {
+    override fun stop() {
         Log.d("Remmi", "[AndroidServiceManager] - Stopping services")
         eventBus.unsubscribeCommand(weatherService)
         eventBus.unsubscribeCommand(locationService)

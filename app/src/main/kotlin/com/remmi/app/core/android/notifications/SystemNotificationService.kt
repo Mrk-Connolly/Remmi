@@ -42,6 +42,11 @@ class SystemNotificationService(private val context: Context) : NotificationServ
                     tag = command.tag
                 )
             }
+            is com.remmi.app.core.eventBus.commands.CancelNotificationCommand -> {
+                Log.i("Remmi", "[SystemNotificationService] - Canceling notification with tag: ${command.tag}")
+                val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                notificationManager.cancel(command.tag, command.tag.hashCode())
+            }
         }
     }
 
@@ -72,7 +77,7 @@ class SystemNotificationService(private val context: Context) : NotificationServ
             }
 
             val builder = NotificationCompat.Builder(context, channelId)
-                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setContentText(content)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(content))
@@ -114,7 +119,7 @@ class SystemNotificationService(private val context: Context) : NotificationServ
 
             val notification = if (Build.VERSION.SDK_INT >= 36) { // Android 16
                 android.app.Notification.Builder(context, channelId)
-                    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                    .setSmallIcon(R.mipmap.ic_launcher)
                     .setContentTitle(title)
                     .setContentText(content)
                     .setOngoing(true)
@@ -129,7 +134,7 @@ class SystemNotificationService(private val context: Context) : NotificationServ
                     .build()
             } else {
                 NotificationCompat.Builder(context, channelId)
-                    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                    .setSmallIcon(R.mipmap.ic_launcher)
                     .setContentTitle(title)
                     .setContentText(content)
                     .setOngoing(true)

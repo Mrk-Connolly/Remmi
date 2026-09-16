@@ -7,8 +7,8 @@ import com.remmi.app.core.eventBus.CreationContext
 import com.remmi.app.core.eventBus.EventBus
 import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.*
+import com.remmi.app.core.plugin.BaseRemmiPlugin
 import com.remmi.app.core.plugin.PluginMetadata
-import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.plugin.ui.RemmiScreen
 import com.remmi.app.plugins.calendar.models.CalendarItem
 import com.remmi.app.plugins.calendar.models.CalendarGroup
@@ -22,9 +22,9 @@ import kotlinx.coroutines.launch
  * The main entry point for the Calendar plugin via EventBus.
  */
 class CalendarPlugin(
-    override val metadata: PluginMetadata,
-    private val eventBus: EventBus
-) : RemmiPlugin {
+    metadata: PluginMetadata,
+    eventBus: EventBus
+) : BaseRemmiPlugin<CalendarItem>(metadata, eventBus, CalendarItem::class.java) {
 
 
     // ----------------------------------------------------------------------------
@@ -69,10 +69,8 @@ class CalendarPlugin(
     //                                CORE FUNCTIONS
     // ----------------------------------------------------------------------------
 
-    /**                                   Initialize
-     * Configure the plugin with the shared system context.
-     */
     override suspend fun initialize() {
+        super.initialize()
         Log.d("Remmi", "[CalendarPlugin] - Initializing")
     }
 
@@ -80,6 +78,7 @@ class CalendarPlugin(
      * Handle commands specifically targeted at the Calendar plugin.
      */
     override suspend fun onCommand(command: RemmiCommand) {
+        super.onCommand(command)
         Log.d("Remmi", "[CalendarPlugin] - Received command: ${command::class.simpleName}")
         when (command) {
             is CreateCalendarEventCommand -> {
@@ -200,6 +199,7 @@ class CalendarPlugin(
      * Handle a system-wide or plugin-specific notification (Fact).
      * */
     override suspend fun onEvent(event: RemmiEvent) {
+        super.onEvent(event)
         Log.d("Remmi", "[CalendarPlugin] - Received event: ${event::class.simpleName}")
         when (event) {
             is TaskDeletedEvent -> {
@@ -216,13 +216,10 @@ class CalendarPlugin(
                     )
                 )
             }
-            is DataFetchedEvent<*> -> {
-                handleDataFetched(event)
-            }
         }
     }
 
-    private fun handleDataFetched(event: DataFetchedEvent<*>) {
+    override suspend fun handleDataFetched(event: DataFetchedEvent<*>) {
         if (event.items.isNotEmpty()) {
             val first = event.items[0]
             if (first is CalendarItem) {
@@ -244,11 +241,7 @@ class CalendarPlugin(
                         }
                     }
                 } else {
-                    // Global sync or fetch
-                    _repository.clear()
-                    @Suppress("UNCHECKED_CAST")
-                    (event.items as List<CalendarItem>).forEach { _repository.add(it) }
-                    Log.d("Remmi", "[CalendarPlugin] - Updated repository with ${event.items.size} events")
+                    super.handleDataFetched(event)
                 }
             } else if (first is CalendarGroup) {
                 @Suppress("UNCHECKED_CAST")
@@ -258,39 +251,11 @@ class CalendarPlugin(
         }
     }
 
-    /**                                   On Load
-     * Called when the plugin is loaded.
-     */
-    override fun onLoad() {
-        Log.d("Remmi", "[CalendarPlugin] - [onLoad] executed")
-        Log.d("Remmi", "Loading Calendar Plugin...")
-        CoroutineScope(Dispatchers.IO).launch {
-            refresh()
-        }
-        Log.d("Remmi", "Calendar Plugin Loaded")
-    }
-
-    /**                                   Refresh
-     * Sync calendar events with the database.
-     */
-    override suspend fun refresh() {
-        Log.d("Remmi", "[CalendarPlugin] - Refreshing data")
-        actions.sync()
-    }
-
-    /**                                   On Unload
-     * Called when the plugin is unloaded.
-     */
-    override fun onUnload() {
-        Log.d("Remmi", "[CalendarPlugin] - [onUnload] executed")
-    }
-
     /**                                   Reformat
      * Reformat plugin database (clear all data).
      */
     override suspend fun reformat() {
-        Log.d("Remmi", "[CalendarPlugin] - [reformat] executed")
-        _repository.clear()
+        super.reformat()
         eventBus.publishCommand(
             DeleteDataCommand(
                 tableName = "calendar",

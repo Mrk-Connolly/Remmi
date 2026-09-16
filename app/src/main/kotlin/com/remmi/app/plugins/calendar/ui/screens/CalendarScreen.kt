@@ -66,8 +66,14 @@ fun CalendarScreen(
 ) {
     Log.d("Remmi", "[CalendarScreen] - [CalendarScreen] executed")
     val scope = rememberCoroutineScope()
-    var events by remember { mutableStateOf(emptyList<CalendarItem>()) }
-    var groups by remember { mutableStateOf(emptyList<CalendarGroup>()) }
+    
+    // Reactive data from repository
+    val eventsFlow = remember { actions.repository.asFlow() }
+    val events by eventsFlow.collectAsState(initial = actions.repository.getAll())
+    
+    // Groups reactive flow
+    val groups by actions.groupsFlow.collectAsState()
+    
     var editorMode by remember { mutableStateOf<CalendarEditorMode?>(null) }
     
     var viewMode by rememberSaveable { mutableStateOf(CalendarViewMode.MONTH) }
@@ -81,8 +87,7 @@ fun CalendarScreen(
     var isRefreshing by remember { mutableStateOf(false) }
 
     val refreshData: suspend () -> Unit = {
-        events = actions.getAllEvents()
-        groups = actions.getCalendarGroups()
+        actions.sync()
     }
 
     val onRefresh: () -> Unit = remember {
@@ -96,8 +101,9 @@ fun CalendarScreen(
         }
     }
 
+    // Refresh groups on load
     LaunchedEffect(Unit) {
-        refreshData()
+        actions.sync()
     }
 
     // Ensure groups are updated if changed elsewhere
@@ -119,10 +125,7 @@ fun CalendarScreen(
             controller = controller,
             onDismiss = { editorMode = null },
             onSave = {
-                scope.launch {
-                    refreshData()
-                    editorMode = null
-                }
+                editorMode = null
             }
         )
     } else if (showWeeklyGrid) {
@@ -145,7 +148,7 @@ fun CalendarScreen(
                 RemmiFAB(
                     onClick = { editorMode = CalendarEditorMode.Create },
                     icon = Icons.Default.Add,
-                    modifier = Modifier.padding(bottom = 16.dp),
+                    modifier = Modifier.padding(bottom = DesignTokens.BottomNavigationHeight + 32.dp),
                     contentDescription = "Add Event"
                 )
             }
@@ -204,6 +207,7 @@ fun CalendarScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(padding)
             ) {
                 // Unified Header Section
                 CalendarHeader(
@@ -226,7 +230,7 @@ fun CalendarScreen(
                         // Calendar Section (Compact with active shading)
                         if (viewMode == CalendarViewMode.MONTH) {
                             Box(modifier = Modifier
-                                .padding(horizontal = 40.dp, vertical = 4.dp)
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
                                 .animateContentSize()
                             ) {
                                 SelectableCalendar(
@@ -273,7 +277,8 @@ fun CalendarScreen(
                             } else {
                                 LazyColumn(
                                     state = listState,
-                                    modifier = Modifier.fillMaxSize()
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(bottom = DesignTokens.BottomNavigationHeight + 64.dp)
                                 ) {
                                     groupedEventsList.forEachIndexed { _, (date, eventsOnDate) ->
                                         val isActive = date == activeDate
@@ -376,7 +381,7 @@ fun CalendarHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 60.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -520,7 +525,7 @@ fun DateHeader(date: LocalDate, isToday: Boolean, isActive: Boolean) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .scale(textScale),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
@@ -544,72 +549,77 @@ fun EventRow(event: CalendarItem, groupColor: Color, isHighlighted: Boolean, onC
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 6.dp)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
             .scale(scale),
         containerColor = if (isHighlighted) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        else MaterialTheme.colorScheme.surface
+        else MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium // Squarer cards
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = event.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f, fill = false),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = event.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f, fill = false),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
 
-                        // Priority Icon (Right of title)
-                        if (event.isPriority) {
-                            Surface(
-                                modifier = Modifier.padding(horizontal = 8.dp).size(20.dp),
-                                color = Color.Red.copy(alpha = 0.1f),
-                                shape = CircleShape,
-                                border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.3f))
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = "!",
-                                        color = Color.Red,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
-                        }
-
-                        if (event.group != null) {
-                            Surface(
-                                modifier = Modifier.padding(start = 4.dp),
-                                color = groupColor.copy(alpha = 0.15f),
-                                shape = MaterialTheme.shapes.small
-                            ) {
+                    // Priority Icon
+                    if (event.isPriority) {
+                        Surface(
+                            modifier = Modifier.padding(start = 8.dp).size(18.dp),
+                            color = Color.Red.copy(alpha = 0.1f),
+                            shape = CircleShape,
+                            border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.3f))
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = event.group,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = groupColor,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    text = "!",
+                                    color = Color.Red,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.sp
                                 )
                             }
                         }
                     }
-
-                    if (event.startingTime != null) {
-                        val start = event.startingTime.toString().substring(0, 5)
-                        val end = event.endingTime?.toString()?.substring(0, 5)
-                        val timeStr = if (end != null) "$start - $end" else start
-
-                        Text(
-                            text = timeStr,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
                 }
+
+                if (event.startingTime != null) {
+                    val start = event.startingTime.toString().substring(0, 5)
+                    val end = event.endingTime?.toString()?.substring(0, 5)
+                    val timeStr = if (end != null) "$start - $end" else start
+
+                    Text(
+                        text = timeStr,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                } else {
+                    Text(
+                        text = "All Day",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+
+            // Group Name on the Right
+            if (event.group != null) {
+                Text(
+                    text = event.group,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = groupColor,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.padding(start = 12.dp)
+                )
             }
         }
     }

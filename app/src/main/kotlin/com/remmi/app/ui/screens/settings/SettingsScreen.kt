@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.GlobalUIState
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.plugin.PluginMetadata
+import com.remmi.app.ui.DesignTokens
 import com.remmi.app.ui.components.RemmiSecondaryScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -111,7 +112,8 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = DesignTokens.BottomNavigationHeight + 64.dp)
             ) {
                 item {
                     Text(
@@ -162,7 +164,7 @@ fun SettingsScreen(
                                         modifier = Modifier
                                             .size(40.dp)
                                             .background(color, CircleShape)
-                                            .clickable { 
+                                            .clickable {
                                                 GlobalUIState.primaryColorHex.value = colorHex
                                                 runtime.androidManager.settingsService.setString("primary_color_hex", colorHex)
                                             }
@@ -170,8 +172,8 @@ fun SettingsScreen(
                                     ) {
                                         if (GlobalUIState.primaryColorHex.value == colorHex) {
                                             Icon(
-                                                Icons.Default.Check, 
-                                                contentDescription = null, 
+                                                Icons.Default.Check,
+                                                contentDescription = null,
                                                 tint = Color.White,
                                                 modifier = Modifier.fillMaxSize()
                                             )

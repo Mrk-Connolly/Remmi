@@ -1,6 +1,7 @@
 package com.remmi.app.core.eventBus.commands
 
 import android.util.Log
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
@@ -11,10 +12,12 @@ import kotlinx.coroutines.flow.asSharedFlow
  */
 class CommandOperations {
 
-    private val commandListeners = mutableSetOf<CommandListener>()
+    private val commandListeners = java.util.concurrent.CopyOnWriteArraySet<CommandListener>()
 
     private val _commands = MutableSharedFlow<RemmiCommand>(extraBufferCapacity = 64)
     val commands = _commands.asSharedFlow()
+    
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     /**
      * Register a new listener to receive action requests.
@@ -34,6 +37,7 @@ class CommandOperations {
 
     /**
      * Distribute an action request to all subscribed CommandListeners.
+     * Listeners are invoked in parallel to prevent blocking.
      */
     suspend fun publish(command: RemmiCommand) {
         Log.i("Remmi", "[CommandOperations] - COMMAND PUBLISHED: [${command::class.simpleName}] from [${command.source}] (ID: ${command.commandId})")
@@ -41,10 +45,12 @@ class CommandOperations {
         _commands.emit(command)
         
         commandListeners.forEach { listener ->
-            try {
-                listener.onCommand(command)
-            } catch (e: Exception) {
-                Log.e("Remmi", "[CommandOperations] - CommandListener failure for [${command::class.simpleName}]: ${e.message}")
+            scope.launch {
+                try {
+                    listener.onCommand(command)
+                } catch (e: Exception) {
+                    Log.e("Remmi", "[CommandOperations] - CommandListener failure for [${command::class.simpleName}]: ${e.message}")
+                }
             }
         }
     }

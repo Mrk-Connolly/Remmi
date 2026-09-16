@@ -12,6 +12,9 @@ import com.remmi.app.ui.RemmiApp
 import com.remmi.app.ui.RemmiApplication
 import kotlinx.coroutines.launch
 
+import dagger.hilt.android.AndroidEntryPoint
+
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     // Android launches this class when the user opens Remmi.
 

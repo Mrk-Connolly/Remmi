@@ -2,9 +2,10 @@ package com.remmi.app.core.automation.engine
 
 import android.util.Log
 import com.remmi.app.core.automation.AutomationSettingsRepository
-import com.remmi.app.core.automation.features.LockScreenManager
+import com.remmi.app.core.automation.features.lockscreenManager.LockScreenManager
 import com.remmi.app.core.automation.features.databasecleaner.DatabaseCleaner
 import com.remmi.app.plugins.dashboard.logic.RemmiWidgetUpdateManager
+import com.remmi.app.core.controller.RemmiComponent
 import com.remmi.app.core.eventBus.*
 import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.*
@@ -24,7 +25,7 @@ import kotlinx.datetime.Instant
 class AutomationEngine(
     private val eventBus: EventBus,
     private val androidManager: AndroidServiceManager
-) : EventListener, CommandListener {
+) : EventListener, CommandListener, RemmiComponent {
 
     // ----------------------------------------------------------------------------
     //                                  VARIABLES
@@ -65,7 +66,7 @@ class AutomationEngine(
     /**                                 Start
      * Subscribe to Fact events on the EventBus.
      * */
-    fun start() {
+    override suspend fun start() {
         if (running) return
         Log.d("Remmi", "[AutomationEngine] - Starting automation services")
         
@@ -83,6 +84,9 @@ class AutomationEngine(
 
     private fun startPeriodicSync() {
         periodicJob = scope.launch {
+            // Initial delay to avoid double sync at startup
+            delay(300000) // 5 minutes initial delay
+            
             while (isActive) {
                 Log.d("Remmi", "[AutomationEngine] - Executing hourly periodic sync")
                 // 1. Refresh Calendar
@@ -90,6 +94,12 @@ class AutomationEngine(
                 
                 // 2. Refresh Weather (Triggers weather plugin to fetch new data)
                 eventBus.publishCommand(FetchWeatherCommand())
+                
+                // 3. Refresh Lock Screen Summary explicitly
+                eventBus.publishCommand(UpdateLockScreenSummaryCommand(""))
+                
+                // 4. Maintenance: Cleanup old completed tasks
+                eventBus.publishCommand(RunDatabaseCleanupCommand())
                 
                 delay(3600000) // 1 hour
             }
@@ -99,7 +109,7 @@ class AutomationEngine(
     /**                                 Stop
      * Unsubscribe from the Fact channel.
      * */
-    fun stop() {
+    override fun stop() {
         if (!running) return
         Log.d("Remmi", "[AutomationEngine] - Stopping automation services")
         
@@ -129,6 +139,14 @@ class AutomationEngine(
         when (event) {
             is TaskCreatedEvent -> handleTaskCreated(event)
             is CalendarEventDeletedEvent -> handleCalendarDeleted(event)
+            
+            // Re-trigger briefing assembly on data changes to keep lock-screen/notifications fresh
+            is CalendarEventCreatedEvent, is CalendarEventUpdatedEvent,
+            is TaskUpdatedEvent, is TaskDeletedEvent -> {
+                Log.d("Remmi", "[AutomationEngine] - Data changed, re-assembling briefing")
+                startDailyBriefing()
+            }
+            
             is TodayTasksFetchedEvent -> handleTasksFetched(event)
             is TodayEventsFetchedEvent -> handleEventsFetched(event)
             is WeatherFetchedEvent -> handleWeatherFetched(event)
@@ -184,16 +202,6 @@ class AutomationEngine(
     private suspend fun handleTasksFetched(event: TodayTasksFetchedEvent) {
         pendingBriefingTasks = event.tasks
         checkBriefingReadiness()
-        
-        // Trigger database cleanup with ALL tasks
-        eventBus.publishCommand(
-            FetchAllDataCommand(
-                tableName = "tasks",
-                serializer = TaskItem.serializer(),
-                correlationId = "automation_engine_cleanup",
-                source = "automation_engine"
-            )
-        )
     }
 
     private suspend fun handleEventsFetched(event: TodayEventsFetchedEvent) {

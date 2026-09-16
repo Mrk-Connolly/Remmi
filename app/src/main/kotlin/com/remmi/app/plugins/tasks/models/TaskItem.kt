@@ -7,6 +7,15 @@ import com.remmi.app.core.plugin.model.components.RepeatRule
 import com.remmi.app.core.plugin.model.models.RemmiModel
 import kotlinx.datetime.Instant
 
+@Serializable
+data class SubTask(
+    val id: String,
+    val title: String,
+    val completed: Boolean = false,
+    @SerialName("completed_at")
+    val completedAt: Instant? = null
+)
+
 /**
  * Data model representing a single task or to-do item.
  *
@@ -42,6 +51,9 @@ data class TaskItem(
     val subgroup: String? = null,
 
     val repeat: RepeatRule? = null,
+
+    @SerialName("sub_tasks")
+    val subTasks: List<SubTask> = emptyList(),
 
     @SerialName("parent_task")
     val parentTask: String? = null,

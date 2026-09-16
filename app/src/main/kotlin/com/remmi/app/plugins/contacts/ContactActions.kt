@@ -6,7 +6,7 @@ import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.ContactCreatedEvent
 import com.remmi.app.core.eventBus.events.ContactDeletedEvent
 import com.remmi.app.core.eventBus.events.ContactUpdatedEvent
-import com.remmi.app.core.plugin.actions.RemmiAction
+import com.remmi.app.core.plugin.actions.BaseRemmiAction
 import com.remmi.app.plugins.contacts.models.ContactItem
 import kotlinx.datetime.Instant
 import java.util.UUID
@@ -15,10 +15,10 @@ import java.util.UUID
  * Action controller for the Contacts plugin via EventBus.
  */
 class ContactActions(
-    private val repository: ContactRepository,
+    val repository: ContactRepository,
     override val id: String = "contacts_actions",
     override val name: String = "Contacts Actions"
-) : RemmiAction {
+) : BaseRemmiAction {
 
 
     // ----------------------------------------------------------------------------
@@ -193,7 +193,7 @@ class ContactActions(
     /**                                 Sync
      * Synchronize contacts with the cloud via command
      * */
-    suspend fun sync() {
+    override suspend fun sync() {
         Log.d("Remmi", "[ContactActions] - [sync] executed")
         eventBus?.publishCommand(
             FetchAllDataCommand(

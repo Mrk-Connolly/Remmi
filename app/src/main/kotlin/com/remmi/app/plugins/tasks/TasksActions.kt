@@ -8,7 +8,7 @@ import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.eventBus.events.TaskCreatedEvent
 import com.remmi.app.core.eventBus.events.TaskDeletedEvent
 import com.remmi.app.core.eventBus.events.TaskUpdatedEvent
-import com.remmi.app.core.plugin.actions.RemmiAction
+import com.remmi.app.core.plugin.actions.BaseRemmiAction
 import com.remmi.app.core.plugin.model.components.RepeatRule
 import com.remmi.app.plugins.tasks.models.TaskItem
 import kotlinx.datetime.*
@@ -18,10 +18,10 @@ import java.util.UUID
  * Action controller for the Tasks plugin via EventBus.
  */
 class TasksActions(
-    private val repository: TasksRepository,
+    val repository: TasksRepository,
     override val id: String = "tasks_actions",
     override val name: String = "Tasks Actions"
-) : RemmiAction {
+) : BaseRemmiAction {
 
 
     // ----------------------------------------------------------------------------
@@ -64,6 +64,7 @@ class TasksActions(
         subgroup: String? = null,
         parentTask: String? = null,
         repeat: RepeatRule? = null,
+        subTasks: List<com.remmi.app.plugins.tasks.models.SubTask> = emptyList(),
         createAlarm: Boolean = false,
         createCalendar: Boolean = false,
         sourcePlugin: String? = null,
@@ -89,6 +90,7 @@ class TasksActions(
                 subgroup = subgroup,
                 completed = false,
                 repeat = repeat,
+                subTasks = subTasks,
                 parentTask = parentTask,
                 createAlarm = createAlarm,
                 createCalendar = createCalendar,
@@ -212,9 +214,41 @@ class TasksActions(
         Log.d("Remmi", "[TasksActions] - [toggleTask] executed")
         val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
         val isCompleting = !task.completed
+        
+        // When completing/uncompleting parent, update all subtasks to match
+        val updatedSubTasks = task.subTasks.map { 
+            it.copy(completed = isCompleting, completedAt = if (isCompleting) now else null) 
+        }
+
         val updatedTask = task.copy(
             completed = isCompleting,
-            completedAt = if (isCompleting) now else null
+            completedAt = if (isCompleting) now else null,
+            subTasks = updatedSubTasks
+        )
+        return updateTask(updatedTask)
+    }
+
+    /**                                 Toggle Sub-task
+     * Toggle completion status of a specific sub-task within a task
+     */
+    suspend fun toggleSubTask(task: TaskItem, subTaskId: String): Boolean {
+        Log.d("Remmi", "[TasksActions] - [toggleSubTask] executed for $subTaskId")
+        val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+        
+        val updatedSubTasks = task.subTasks.map { 
+            if (it.id == subTaskId) {
+                val newState = !it.completed
+                it.copy(completed = newState, completedAt = if (newState) now else null)
+            } else it
+        }
+
+        // Check if all subtasks are now completed
+        val allCompleted = updatedSubTasks.isNotEmpty() && updatedSubTasks.all { it.completed }
+        
+        val updatedTask = task.copy(
+            subTasks = updatedSubTasks,
+            completed = if (allCompleted) true else task.completed,
+            completedAt = if (allCompleted && !task.completed) now else task.completedAt
         )
         return updateTask(updatedTask)
     }
@@ -323,7 +357,7 @@ class TasksActions(
     /**                                 Sync
      * Synchronize tasks with the cloud via command.
      * */
-    suspend fun sync() {
+    override suspend fun sync() {
         Log.d("Remmi", "[TasksActions] - [sync] executed")
         eventBus?.publishCommand(
             FetchAllDataCommand(

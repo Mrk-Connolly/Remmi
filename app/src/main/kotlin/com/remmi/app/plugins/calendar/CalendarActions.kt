@@ -7,9 +7,12 @@ import com.remmi.app.core.eventBus.events.CalendarEventCreatedEvent
 import com.remmi.app.core.eventBus.events.CalendarEventDeletedEvent
 import com.remmi.app.core.eventBus.events.CalendarEventUpdatedEvent
 import com.remmi.app.core.eventBus.events.LinkedCreationRequest
-import com.remmi.app.core.plugin.actions.RemmiAction
+import com.remmi.app.core.plugin.actions.BaseRemmiAction
 import com.remmi.app.plugins.calendar.models.CalendarGroup
 import com.remmi.app.plugins.calendar.models.CalendarItem
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.datetime.*
 import java.util.UUID
 
@@ -17,10 +20,10 @@ import java.util.UUID
  * Action controller for the Calendar plugin via EventBus.
  */
 class CalendarActions(
-    private val repository: CalendarRepository,
+    val repository: CalendarRepository,
     override val id: String = "calendar_actions",
     override val name: String = "Calendar Actions"
-) : RemmiAction {
+) : BaseRemmiAction {
 
 
     // ----------------------------------------------------------------------------
@@ -29,6 +32,9 @@ class CalendarActions(
 
     /** Shared system event bus */
     override var eventBus: EventBus? = null
+
+    private val _groupsFlow = MutableStateFlow<List<CalendarGroup>>(emptyList())
+    val groupsFlow: StateFlow<List<CalendarGroup>> = _groupsFlow.asStateFlow()
 
     private var _cachedGroups = mutableListOf<CalendarGroup>()
 
@@ -253,9 +259,9 @@ class CalendarActions(
     /**                                 Sync
      * Synchronize events with the cloud via command
      * */
-    suspend fun sync(): Boolean {
+    override suspend fun sync() {
         Log.d("Remmi", "[CalendarActions] - [sync] executed")
-        return try {
+        try {
             eventBus?.publishCommand(
                 FetchAllDataCommand(
                     tableName = "calendar",
@@ -269,10 +275,8 @@ class CalendarActions(
                     serializer = CalendarGroup.serializer()
                 )
             )
-            true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to synchronize calendar", e)
-            false
         }
     }
 
@@ -344,6 +348,7 @@ class CalendarActions(
     fun updateGroups(groups: List<CalendarGroup>) {
         _cachedGroups.clear()
         _cachedGroups.addAll(groups)
+        _groupsFlow.value = _cachedGroups.toList()
     }
 
     /**                                 Add Calendar Group
@@ -369,6 +374,9 @@ class CalendarActions(
                     source = "calendar"
                 )
             )
+            // Immediately update local flow for snappy UI
+            _cachedGroups.add(group)
+            _groupsFlow.value = _cachedGroups.toList()
             group.id
         } catch (e: Exception) {
             Log.e(TAG, "Failed to add calendar group", e)

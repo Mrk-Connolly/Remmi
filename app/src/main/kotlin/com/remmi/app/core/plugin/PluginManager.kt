@@ -2,6 +2,7 @@ package com.remmi.app.core.plugin
 
 import android.content.Context
 import android.util.Log
+import com.remmi.app.core.controller.RemmiComponent
 import com.remmi.app.core.eventBus.*
 import com.remmi.app.core.eventBus.commands.CommandListener
 import com.remmi.app.core.eventBus.commands.RemmiCommand
@@ -9,17 +10,8 @@ import com.remmi.app.core.eventBus.commands.SyncPluginDataCommand
 import com.remmi.app.core.eventBus.events.EventListener
 import com.remmi.app.core.eventBus.events.RemmiEvent
 import com.remmi.app.core.android.files.FileService
-import com.remmi.app.plugins.alarm.AlarmPlugin
-import com.remmi.app.plugins.calendar.CalendarPlugin
-import com.remmi.app.plugins.contacts.ContactPlugin
-import com.remmi.app.plugins.gift.GiftPlugin
-import com.remmi.app.plugins.ingredients.IngredientPlugin
-import com.remmi.app.plugins.recipebook.RecipePlugin
-import com.remmi.app.plugins.tasks.TasksPlugin
-import com.remmi.app.plugins.weather.WeatherPlugin
-import com.remmi.app.plugins.maps.MapsPlugin
-import com.remmi.app.plugins.callrecorder.CallRecorderPlugin
 import kotlinx.serialization.json.Json
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -31,7 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class PluginManager(
     private val context: Context,
     private val eventBus: EventBus
-) : CommandListener, EventListener {
+) : CommandListener, EventListener, RemmiComponent {
 
     // ----------------------------------------------------------------------------
     //                                 VARIABLES
@@ -49,20 +41,6 @@ class PluginManager(
         ignoreUnknownKeys = true 
     }
 
-    /** Registry of available plugin factory functions */
-    private val pluginRegistry = mapOf<String, (PluginMetadata) -> RemmiPlugin>(
-        "calendar" to { CalendarPlugin(it, eventBus) },
-        "tasks" to { TasksPlugin(it, eventBus) },
-        "alarm" to { AlarmPlugin(it, eventBus, context) },
-        "contacts" to { ContactPlugin(it, eventBus) },
-        "gift" to { GiftPlugin(it, eventBus) },
-        "recipe_book" to { RecipePlugin(it, eventBus) },
-        "ingredient_stock" to { IngredientPlugin(it, eventBus) },
-        "weather" to { WeatherPlugin(it, eventBus) },
-        "maps" to { MapsPlugin(it, eventBus) },
-        "call_recorder" to { CallRecorderPlugin(it, eventBus) }
-    )
-
 
     // ----------------------------------------------------------------------------
     //                                 CONSTRUCTOR
@@ -77,14 +55,17 @@ class PluginManager(
     //                                CORE FUNCTIONS
     // ----------------------------------------------------------------------------
 
-    fun start() {
+    override suspend fun start() {
         Log.d("Remmi", "[PluginManager] - Starting services")
         eventBus.subscribeCommand(this)
         eventBus.subscribeEvent(this)
         subscribePlugins(eventBus)
+        
+        // Trigger initial load for all active plugins
+        plugins.values.forEach { it.onLoad() }
     }
 
-    fun stop() {
+    override fun stop() {
         Log.d("Remmi", "[PluginManager] - Stopping services")
         try {
             unsubscribePlugins(eventBus)
@@ -182,23 +163,27 @@ class PluginManager(
     }
 
     /**                               LOAD PLUGINS
-     * Instantiate discovered plugins using the registry.
+     * Instantiate discovered plugins in parallel using the registry.
      * */
-    suspend fun loadPlugins() {
-        Log.d("Remmi", "[PluginManager] - Loading plugins")
+    suspend fun loadPlugins() = coroutineScope {
+        Log.d("Remmi", "[PluginManager] - Loading plugins in parallel")
         plugins.values.forEach { it.onUnload() }
         plugins.clear()
 
         _pluginMetadata.value.forEach { metadata ->
-            val factory = pluginRegistry[metadata.id]
+            val factory = PluginRegistry.getFactory(metadata.id)
             if (factory != null) {
-                try {
-                    val plugin = factory(metadata)
-                    plugins[metadata.id] = plugin
-                    plugin.initialize()
-                    Log.d("Remmi", "[PluginManager] - Loaded ${metadata.name}")
-                } catch (e: Exception) {
-                    Log.e("Remmi", "[PluginManager] - Failed to load ${metadata.id}: ${e.message}")
+                launch(Dispatchers.Default) {
+                    try {
+                        val plugin = factory(metadata, eventBus, context)
+                        synchronized(plugins) {
+                            plugins[metadata.id] = plugin
+                        }
+                        plugin.initialize()
+                        Log.d("Remmi", "[PluginManager] - Loaded ${metadata.name}")
+                    } catch (e: Exception) {
+                        Log.e("Remmi", "[PluginManager] - Failed to load ${metadata.id}: ${e.message}")
+                    }
                 }
             }
         }

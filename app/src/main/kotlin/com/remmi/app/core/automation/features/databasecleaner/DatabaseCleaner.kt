@@ -27,17 +27,17 @@ class DatabaseCleaner(private val eventBus: EventBus) {
             it.completed && it.completedAt != null && it.completedAt < oneWeekAgo 
         }
 
-        Log.d("Remmi", "[DatabaseCleaner] - Found ${oldCompletedTasks.size} tasks to delete")
-
-        oldCompletedTasks.forEach { task ->
-            Log.d("Remmi", "[DatabaseCleaner] - Deleting old task: ${task.id} (Title: ${task.title})")
+        if (oldCompletedTasks.isNotEmpty()) {
+            Log.d("Remmi", "[DatabaseCleaner] - Deleting ${oldCompletedTasks.size} old tasks via bulk command")
             eventBus.publishCommand(
-                DeleteTaskCommand(
-                    taskId = task.id,
+                com.remmi.app.core.eventBus.commands.BulkDeleteTasksCommand(
+                    taskIds = oldCompletedTasks.map { it.id },
                     source = "database_cleaner",
                     deletionContext = DeletionContext.LINKED_CLEANUP
                 )
             )
+        } else {
+            Log.d("Remmi", "[DatabaseCleaner] - No old tasks found for cleanup")
         }
     }
 }

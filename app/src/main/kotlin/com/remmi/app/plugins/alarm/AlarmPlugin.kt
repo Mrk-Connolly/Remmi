@@ -103,6 +103,9 @@ class AlarmPlugin(
      */
     override suspend fun initialize() {
         Log.d("Remmi", "[AlarmPlugin] - Initializing")
+        com.remmi.app.ui.navigation.RemmiScreenRegistry.register(metadata.id) { controller ->
+            screen.Content(controller = controller)
+        }
     }
 
     /**                                   On Command

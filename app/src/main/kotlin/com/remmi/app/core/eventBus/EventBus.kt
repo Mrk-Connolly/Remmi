@@ -8,6 +8,9 @@ import com.remmi.app.core.eventBus.events.EventListener
 import com.remmi.app.core.eventBus.events.EventOperations
 import com.remmi.app.core.eventBus.events.RemmiEvent
 
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+
 /**
  * EVENT BUS
  *
@@ -26,6 +29,14 @@ class EventBus {
     /** Public flows for external observation */
     val events = eventOps.events
     val commands = commandOps.commands
+
+    private val _errors = MutableSharedFlow<Throwable>(extraBufferCapacity = 64)
+    val errors = _errors.asSharedFlow()
+
+    /** Distributes a system-wide exception or operation failure to interested subscribers. */
+    fun postError(throwable: Throwable) {
+        _errors.tryEmit(throwable)
+    }
 
 
     // ----------------------------------------------------------------------------

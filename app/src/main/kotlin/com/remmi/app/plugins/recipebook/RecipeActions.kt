@@ -103,6 +103,15 @@ class RecipeActions(
         requestNutritionRecalculation()
     }
 
+    suspend fun recalculateRecipe(recipeId: String) {
+        Log.d("Remmi", "[RecipeActions] - [recalculateRecipe] requested for $recipeId")
+        eventBus?.publishCommand(
+            FetchIngredientMetadataCommand(
+                correlationId = "recalculate_recipe_$recipeId"
+            )
+        )
+    }
+
     private suspend fun requestNutritionRecalculation() {
         Log.d("Remmi", "[RecipeActions] - Requesting global nutrition update via EventBus")
         eventBus?.publishCommand(FetchIngredientMetadataCommand())

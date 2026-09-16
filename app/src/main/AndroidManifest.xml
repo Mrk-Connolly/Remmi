@@ -4,6 +4,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
@@ -41,7 +42,7 @@
 
         <service
             android:name="com.remmi.app.plugins.callrecorder.CallRecorderService"
-            android:foregroundServiceType="microphone|phoneCall"
+            android:foregroundServiceType="microphone"
             android:exported="false" />
 
         <service
@@ -93,6 +94,7 @@
         <activity
             android:name="com.remmi.app.MainActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -103,6 +105,7 @@
         <activity
             android:name="com.remmi.app.ui.components.appNavigation.NavigationDemoActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:label="Navigation Demo"
             android:theme="@style/Theme.Remmi" />
 

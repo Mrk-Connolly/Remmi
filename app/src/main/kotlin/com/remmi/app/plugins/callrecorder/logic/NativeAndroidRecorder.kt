@@ -25,29 +25,55 @@ class NativeAndroidRecorder(private val context: Context) : CallRecordingBackend
             Log.d("Remmi", "[NativeAndroidRecorder] - Starting recording to ${outputFile.absolutePath}")
             currentFile = outputFile
             
-            val newRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            var success = false
+            var newRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 MediaRecorder(context)
             } else {
                 @Suppress("DEPRECATION")
                 MediaRecorder()
             }
 
-            newRecorder.apply {
-                // VOICE_COMMUNICATION is often the best bet for modern non-root recording
-                setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
-                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                setAudioSamplingRate(44100)
-                setAudioEncodingBitRate(128000)
-                setOutputFile(outputFile.absolutePath)
-                prepare()
-                start()
+            try {
+                newRecorder.apply {
+                    setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+                    setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                    setAudioSamplingRate(44100)
+                    setAudioEncodingBitRate(128000)
+                    setOutputFile(outputFile.absolutePath)
+                    prepare()
+                    start()
+                }
+                success = true
+            } catch (e: Exception) {
+                Log.w("Remmi", "[NativeAndroidRecorder] - VOICE_COMMUNICATION source failed, falling back to MIC: ${e.message}")
+                newRecorder.release()
+                
+                newRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    MediaRecorder(context)
+                } else {
+                    @Suppress("DEPRECATION")
+                    MediaRecorder()
+                }
+                
+                newRecorder.apply {
+                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                    setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                    setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                    setAudioSamplingRate(44100)
+                    setAudioEncodingBitRate(128000)
+                    setOutputFile(outputFile.absolutePath)
+                    prepare()
+                    start()
+                }
+                success = true
             }
+
             recorder = newRecorder
             startTime = System.currentTimeMillis()
-            true
+            success
         } catch (e: Exception) {
-            Log.e("Remmi", "[NativeAndroidRecorder] - Failed to start recording: ${e.message}")
+            Log.e("Remmi", "[NativeAndroidRecorder] - All recording sources failed: ${e.message}")
             recorder?.release()
             recorder = null
             false

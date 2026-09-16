@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.ui.components.RemmiHomeScreen
 import com.remmi.app.ui.components.RemmiFAB
@@ -33,6 +34,7 @@ import com.remmi.app.ui.components.RemmiCard
 import com.remmi.app.ui.components.RemmiSectionHeader
 import com.remmi.app.plugins.tasks.TasksActions
 import com.remmi.app.plugins.tasks.models.TaskItem
+import com.remmi.app.plugins.tasks.models.SubTask
 import com.remmi.app.ui.components.getIconForName
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -49,44 +51,42 @@ fun TasksScreen(
 ) {
     Log.d("Remmi", "[TasksScreen] - [TasksScreen] executed")
     val scope = rememberCoroutineScope()
-    var tasks by remember { mutableStateOf(emptyList<TaskItem>()) }
+    
+    // Reactive data from repository
+    val tasksFlow = remember { actions.repository.asFlow() }
+    val tasks by tasksFlow.collectAsState(initial = actions.repository.getAll())
+    
     var editorMode by remember { mutableStateOf<TaskEditorMode?>(null) }
     
     var taskToManage by remember { mutableStateOf<TaskItem?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
 
-    var selectedGroupFilter by remember { mutableStateOf("All") }
-    var onlyImportant by remember { mutableStateOf(false) }
-    var existingGroups by remember { mutableStateOf(emptyList<String>()) }
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var showAddGroupDialog by remember { mutableStateOf(false) }
+    var newGroupName by remember { mutableStateOf("") }
+    
+    // Compute groups reactively from tasks
+    val existingGroups = remember(tasks) {
+        tasks.mapNotNull { it.group }.distinct().sorted()
+    }
+    val tabs = remember(existingGroups) { listOf("Main") + existingGroups }
 
     val onRefresh: () -> Unit = remember {
         {
             scope.launch {
                 isRefreshing = true
-                tasks = actions.getAllTasks()
-                existingGroups = actions.getAllGroups()
+                actions.sync()
                 delay(500)
                 isRefreshing = false
             }
         }
     }
 
-    // Refresh tasks on load
-    LaunchedEffect(Unit) {
-        tasks = actions.getAllTasks()
-        existingGroups = actions.getAllGroups()
-    }
-
-    val filteredTasks = remember(tasks, selectedGroupFilter, onlyImportant) {
-        val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-        val baseFiltered = if (selectedGroupFilter == "All") tasks
-        else tasks.filter { it.group == selectedGroupFilter }
-        
-        if (onlyImportant) {
-            baseFiltered.filter { it.isPriority || (it.dueDate != null && !it.completed && it.dueDate < now) }
-        } else {
-            baseFiltered
-        }
+    val filteredTasks = remember(tasks, selectedTabIndex, tabs) {
+        val selectedGroup = tabs.getOrNull(selectedTabIndex) ?: "Main"
+        val sortedTasks = tasks.sortedByDescending { it.created }
+        if (selectedGroup == "Main") sortedTasks
+        else sortedTasks.filter { it.group == selectedGroup }
     }
 
     val backgroundBrush = Brush.verticalGradient(
@@ -97,95 +97,57 @@ fun TasksScreen(
     )
 
     if (editorMode != null) {
-        if (editorMode == TaskEditorMode.Multitask) {
-            MultitaskEditorScreen(
-                actions = actions,
-                controller = controller,
-                onDismiss = { editorMode = null },
-                onSave = {
-                    scope.launch {
-                        tasks = actions.getAllTasks()
-                        existingGroups = actions.getAllGroups()
-                        editorMode = null
-                    }
-                }
-            )
-        } else {
-            TasksEditorScreen(
-                mode = editorMode!!,
-                actions = actions,
-                controller = controller,
-                onDismiss = { editorMode = null },
-                onSave = {
-                    scope.launch {
-                        tasks = actions.getAllTasks()
-                        existingGroups = actions.getAllGroups()
-                        editorMode = null
-                    }
-                }
-            )
-        }
+        TasksEditorScreen(
+            mode = editorMode!!,
+            actions = actions,
+            controller = controller,
+            onDismiss = { editorMode = null },
+            onSave = {
+                editorMode = null
+            }
+        )
     } else {
         RemmiHomeScreen(
             title = "",
             backgroundBrush = backgroundBrush,
             floatingActionButton = {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    RemmiFAB(
-                        onClick = { editorMode = TaskEditorMode.Multitask },
-                        icon = Icons.AutoMirrored.Filled.PlaylistAdd,
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                        contentDescription = "Add Multitask"
-                    )
-                    RemmiFAB(
-                        onClick = { editorMode = TaskEditorMode.Create },
-                        icon = Icons.Default.Add,
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        contentDescription = "Add Task"
-                    )
-                }
+                RemmiFAB(
+                    onClick = { editorMode = TaskEditorMode.Create },
+                    icon = Icons.Default.Add,
+                    modifier = Modifier.padding(bottom = DesignTokens.BottomNavigationHeight + 32.dp),
+                    contentDescription = "Add Task"
+                )
             }
         ) { padding ->
             val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
             val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
             
             val taskSections = remember(filteredTasks) {
-                val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-                val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
-                val endOfWeek = today.plus(7, DateTimeUnit.DAY)
-                val currentMonth = today.month
-                val currentYear = today.year
+                val currentNow = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+                val currentToday = currentNow.toLocalDateTime(TimeZone.currentSystemDefault()).date
+                val endOfWeek = currentToday.plus(7, DateTimeUnit.DAY)
 
-                // Only show top-level tasks in sections
-                val topLevelTasks = filteredTasks.filter { it.parentTask == null }
-
-                val ongoing = topLevelTasks.filter { it.dueDate == null && !it.completed }.sortedByDescending { it.created }
-                val daily = topLevelTasks.filter { 
-                    it.dueDate != null && !it.completed &&
-                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date == today 
+                val daily = filteredTasks.filter { 
+                    !it.completed && it.dueDate != null &&
+                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date == currentToday 
                 }.sortedBy { it.dueDate }
-                val thisWeek = topLevelTasks.filter { 
-                    it.dueDate != null && !it.completed &&
-                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date > today &&
+                
+                val weekly = filteredTasks.filter { 
+                    !it.completed && it.dueDate != null &&
+                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date > currentToday &&
                     it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date <= endOfWeek
                 }.sortedBy { it.dueDate }
-                val thisMonth = topLevelTasks.filter {
-                    it.dueDate != null && !it.completed &&
-                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date > endOfWeek &&
-                    it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date.let { d -> d.month == currentMonth && d.year == currentYear }
-                }.sortedBy { it.dueDate }
-                val completed = topLevelTasks.filter { it.completed }.sortedByDescending { it.completedAt ?: it.modified }
+                
+                val later = filteredTasks.filter {
+                    !it.completed && (it.dueDate == null || it.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date > endOfWeek)
+                }.sortedByDescending { it.created }
+                
+                val completed = filteredTasks.filter { it.completed }.sortedByDescending { it.completedAt ?: it.modified }
                 
                 listOf(
-                    "Ongoing" to ongoing,
-                    "Today" to daily,
-                    "This Week" to thisWeek,
-                    "This Month" to thisMonth,
+                    "Daily" to daily,
+                    "Weekly" to weekly,
+                    "Later / No Date" to later,
                     "Finished" to completed
                 ).filter { it.second.isNotEmpty() }
             }
@@ -195,60 +157,37 @@ fun TasksScreen(
                 onRefresh = onRefresh,
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(padding) // Handles TopAppBar padding
             ) {
-                Column(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    // Group Filter Dropdown
-                    var isFilterExpanded by remember { mutableStateOf(false) }
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // --- Scrollable Tab Row ---
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(
-                            onClick = { onlyImportant = !onlyImportant }
+                        SecondaryScrollableTabRow(
+                            selectedTabIndex = selectedTabIndex,
+                            edgePadding = 8.dp,
+                            containerColor = Color.Transparent,
+                            divider = {},
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Icon(
-                                imageVector = if (onlyImportant) Icons.Default.PriorityHigh else Icons.Default.PriorityHigh,
-                                contentDescription = "Filter Important",
-                                tint = if (onlyImportant) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                            )
-                        }
-                        Box {
-                            TextButton(
-                                onClick = { isFilterExpanded = true },
-                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                            ) {
-                                Icon(Icons.Default.FilterList, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Filter: $selectedGroupFilter")
-                            }
-                            DropdownMenu(
-                                expanded = isFilterExpanded,
-                                onDismissRequest = { isFilterExpanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("All") },
-                                    leadingIcon = { Icon(Icons.Default.List, contentDescription = null) },
-                                    onClick = {
-                                        selectedGroupFilter = "All"
-                                        isFilterExpanded = false
+                            tabs.forEachIndexed { index, title ->
+                                Tab(
+                                    selected = selectedTabIndex == index,
+                                    onClick = { selectedTabIndex = index },
+                                    text = {
+                                        Text(
+                                            text = title,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = if (selectedTabIndex == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                 )
-                                existingGroups.forEach { g ->
-                                    DropdownMenuItem(
-                                        text = { Text(g) },
-                                        leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null) },
-                                        onClick = {
-                                            selectedGroupFilter = g
-                                            isFilterExpanded = false
-                                        }
-                                    )
-                                }
                             }
+                        }
+                        IconButton(onClick = { showAddGroupDialog = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add Group", tint = MaterialTheme.colorScheme.primary)
                         }
                     }
 
@@ -259,7 +198,12 @@ fun TasksScreen(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp)
+                            contentPadding = PaddingValues(
+                                start = 24.dp,
+                                end = 24.dp,
+                                top = 16.dp,
+                                bottom = DesignTokens.BottomNavigationHeight + 64.dp // Space for dock + center button
+                            )
                         ) {
                             taskSections.forEach { (sectionName, tasksInSection) ->
                                 item {
@@ -269,18 +213,11 @@ fun TasksScreen(
                                     )
                                 }
                                 items(tasksInSection, key = { it.id }) { task ->
-                                    val subtasks = tasks.filter { it.parentTask == task.id }
-                                    if (subtasks.isNotEmpty()) {
-                                        TaskGroupRow(
-                                            parentTask = task,
-                                            subtasks = subtasks,
-                                            actions = actions,
-                                            onUpdate = { tasks = it },
-                                            onLongClick = { taskToManage = task }
-                                        )
-                                    } else {
-                                        TaskRow(task, actions, onUpdate = { tasks = it }, onLongClick = { taskToManage = task })
-                                    }
+                                    TaskRow(
+                                        task = task,
+                                        actions = actions,
+                                        onLongClick = { taskToManage = task }
+                                    )
                                     Spacer(Modifier.height(DesignTokens.SpacingMedium))
                                 }
                             }
@@ -289,6 +226,38 @@ fun TasksScreen(
                 }
             }
         }
+    }
+
+    if (showAddGroupDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddGroupDialog = false },
+            title = { Text("New Group") },
+            text = {
+                OutlinedTextField(
+                    value = newGroupName,
+                    onValueChange = { newGroupName = it },
+                    label = { Text("Group Name") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newGroupName.isNotBlank()) {
+                            // In a reactive system, we'd ideally create a task with this group
+                            // to make it appear, or maintain a separate 'empty groups' state.
+                            // For now, let's just close the dialog.
+                            showAddGroupDialog = false
+                            newGroupName = ""
+                        }
+                    }
+                ) { Text("Add") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddGroupDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 
     // Management Popup (Edit/Delete)
@@ -314,8 +283,7 @@ fun TasksScreen(
                             controller.eventBus.publishCommand(
                                 DeleteTaskCommand(taskId = taskToManage!!.id)
                             )
-                            tasks = actions.getAllTasks()
-                            taskToManage = null
+                             taskToManage = null
                         }
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
@@ -332,169 +300,19 @@ fun TasksScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TaskGroupRow(
-    parentTask: TaskItem,
-    subtasks: List<TaskItem>,
-    actions: TasksActions,
-    onUpdate: (List<TaskItem>) -> Unit,
-    onLongClick: () -> Unit
-) {
-    Log.d("Remmi", "[TasksScreen] - [TaskGroupRow] executed")
-    var showFinished by remember { mutableStateOf(false) }
-
-    val ongoingSubtasks = subtasks.filter { !it.completed }
-    val finishedSubtasks = subtasks.filter { it.completed }
-
-    RemmiCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = { /* Could toggle expansion of the group if we wanted */ },
-                onLongClick = onLongClick
-            ),
-        shape = RoundedCornerShape(32.dp),
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            // Header: Project/Group Name
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Folder,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    text = parentTask.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Ongoing Sub-tasks
-            ongoingSubtasks.forEach { subtask ->
-                SubtaskRow(subtask, actions, onUpdate)
-                Spacer(Modifier.height(8.dp))
-            }
-
-            // Finished Sub-tasks Section
-            if (finishedSubtasks.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                TextButton(
-                    onClick = { showFinished = !showFinished },
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "Finished Tasks (${finishedSubtasks.size})",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                        Icon(
-                            imageVector = if (showFinished) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-
-                AnimatedVisibility(visible = showFinished) {
-                    Column {
-                        finishedSubtasks.forEach { subtask ->
-                            SubtaskRow(subtask, actions, onUpdate)
-                            Spacer(Modifier.height(8.dp))
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SubtaskRow(
-    task: TaskItem,
-    actions: TasksActions,
-    onUpdate: (List<TaskItem>) -> Unit
-) {
-    val scope = rememberCoroutineScope()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Dot or Circle on the left
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .padding(2.dp)
-                .background(
-                    color = if (task.completed) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f) else MaterialTheme.colorScheme.primary,
-                    shape = CircleShape
-                )
-        )
-        
-        Spacer(Modifier.width(12.dp))
-
-        Text(
-            text = task.title,
-            style = MaterialTheme.typography.bodyLarge,
-            textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None,
-            color = if (task.completed) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
-
-        // Small Square Checkbox
-        Surface(
-            onClick = {
-                scope.launch {
-                    actions.toggleTask(task)
-                    onUpdate(actions.getAllTasks())
-                }
-            },
-            shape = RoundedCornerShape(4.dp),
-            color = if (task.completed) MaterialTheme.colorScheme.primary else Color.Transparent,
-            border = BorderStroke(
-                1.dp,
-                if (task.completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-            ),
-            modifier = Modifier.size(24.dp)
-        ) {
-            if (task.completed) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Completed",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.padding(4.dp)
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
 fun TaskRow(
     task: TaskItem,
     actions: TasksActions,
-    onUpdate: (List<TaskItem>) -> Unit,
     onLongClick: () -> Unit
 ) {
     Log.d("Remmi", "[TasksScreen] - [TaskRow] executed")
     val scope = rememberCoroutineScope()
-    var isCompleted by remember(task.id, task.completed) { mutableStateOf(task.completed) }
     var isExpanded by remember { mutableStateOf(false) }
+    var showFinishedSubtasks by remember { mutableStateOf(false) }
     
+    val ongoingSubtasks = task.subTasks.filter { !it.completed }
+    val finishedSubtasks = task.subTasks.filter { it.completed }
+
     val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
     val isOverdue = !task.completed && task.dueDate != null && task.dueDate < now
     
@@ -511,83 +329,157 @@ fun TaskRow(
             ),
         containerColor = cardColor
     ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None,
-                    color = if (task.completed) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface,
-                    fontWeight = if (task.isPriority) FontWeight.Bold else FontWeight.Medium
-                )
-
-                // Show Group and Subgroup
-                if (task.group != null || task.subgroup != null) {
-                    val groupText = listOfNotNull(task.group, task.subgroup).joinToString(" • ")
+        Column(modifier = Modifier.padding(20.dp)) {
+            // --- Parent Task Header ---
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = groupText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        text = task.title,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 2.dp)
+                        textDecoration = if (task.completed) TextDecoration.LineThrough else TextDecoration.None,
+                        color = if (task.completed) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface
                     )
+
+                    if (task.dueDate != null) {
+                        val dueDateStr = task.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+                        Text(
+                            text = if (isOverdue) "Overdue: $dueDateStr" else "Due: $dueDateStr",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
-                if (task.dueDate != null) {
-                    val dueDateStr =
-                        task.dueDate.toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
-                    Text(
-                        text = if (isOverdue) "Overdue: $dueDateStr" else "Due: $dueDateStr",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(
-                            alpha = 0.5f
-                        ),
-                        fontWeight = if (isOverdue) FontWeight.Bold else FontWeight.Normal,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-                }
-
-                AnimatedVisibility(visible = isExpanded && task.description.isNotEmpty()) {
-                    Text(
-                        text = task.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
+                // Main Completion Checkbox
+                Surface(
+                    onClick = {
+                        scope.launch {
+                            actions.toggleTask(task)
+                        }
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (task.completed) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    border = BorderStroke(
+                        2.dp,
+                        if (task.completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    ),
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    if (task.completed) {
+                        Icon(Icons.Default.Check, "Completed", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(6.dp))
+                    }
                 }
             }
 
-            // Square Checkbox on the Right
-            Surface(
-                onClick = {
-                    isCompleted = !isCompleted
-                    scope.launch {
-                        actions.toggleTask(task)
-                        onUpdate(actions.getAllTasks())
+            // Description (only if expanded)
+            AnimatedVisibility(visible = isExpanded && task.description.isNotEmpty()) {
+                Text(
+                    text = task.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+
+            // --- Sub-tasks Section ---
+            if (task.subTasks.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+
+                // Ongoing Sub-tasks
+                ongoingSubtasks.forEach { subTask ->
+                    SubTaskItem(subTask, task, actions)
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                // Finished Sub-tasks Toggle
+                if (finishedSubtasks.isNotEmpty()) {
+                    TextButton(
+                        onClick = { showFinishedSubtasks = !showFinishedSubtasks },
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Finished Tasks (${finishedSubtasks.size})",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                            Icon(
+                                imageVector = if (showFinishedSubtasks) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
                     }
-                },
-                shape = RoundedCornerShape(8.dp),
-                color = if (isCompleted) MaterialTheme.colorScheme.primary else Color.Transparent,
-                border = BorderStroke(
-                    2.dp,
-                    if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(
-                        alpha = 0.2f
-                    )
-                ),
-                modifier = Modifier.size(32.dp)
-            ) {
-                if (isCompleted) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Completed",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.padding(6.dp)
-                    )
+
+                    AnimatedVisibility(visible = showFinishedSubtasks) {
+                        Column {
+                            finishedSubtasks.forEach { subTask ->
+                                SubTaskItem(subTask, task, actions)
+                                Spacer(Modifier.height(8.dp))
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 }
+
+@Composable
+fun SubTaskItem(
+    subTask: SubTask,
+    parentTask: TaskItem,
+    actions: TasksActions
+) {
+    val scope = rememberCoroutineScope()
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(
+                    color = if (subTask.completed) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f) else MaterialTheme.colorScheme.primary,
+                    shape = CircleShape
+                )
+        )
+        
+        Spacer(Modifier.width(12.dp))
+
+        Text(
+            text = subTask.title,
+            style = MaterialTheme.typography.bodyMedium,
+            textDecoration = if (subTask.completed) TextDecoration.LineThrough else TextDecoration.None,
+            color = if (subTask.completed) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+
+        // Subtask Checkbox
+        Surface(
+            onClick = {
+                scope.launch {
+                    actions.toggleSubTask(parentTask, subTask.id)
+                }
+            },
+            shape = RoundedCornerShape(4.dp),
+            color = if (subTask.completed) MaterialTheme.colorScheme.primary else Color.Transparent,
+            border = BorderStroke(
+                1.dp,
+                if (subTask.completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+            ),
+            modifier = Modifier.size(24.dp)
+        ) {
+            if (subTask.completed) {
+                Icon(Icons.Default.Check, "Completed", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(4.dp))
+            }
+        }
+    }
+}
+
