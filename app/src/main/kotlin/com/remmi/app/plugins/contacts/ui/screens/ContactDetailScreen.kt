@@ -26,7 +26,7 @@ fun ContactDetailScreen(
     Log.d("Remmi", "[ContactDetailScreen] - [ContactDetailScreen] executed")
     
     RemmiSecondaryScreen(
-        title = "Contact Details",
+        title = "${contact.name} ${contact.surname}",
         onBack = onDismiss,
         topBarActions = {
             IconButton(onClick = onToggleGiftList) {
@@ -46,19 +46,12 @@ fun ContactDetailScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Column {
+            if (!contact.nickname.isNullOrEmpty()) {
                 Text(
-                    text = "${contact.name} ${contact.surname}",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold
+                    text = "(\"${contact.nickname}\")",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.secondary
                 )
-                if (!contact.nickname.isNullOrEmpty()) {
-                    Text(
-                        text = "(\"${contact.nickname}\")",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
             }
 
             HorizontalDivider()

@@ -105,7 +105,7 @@ fun ContactEditorScreen(
 
     if (initialContact == null) {
         RemmiAddScreen(
-            title = "Add Contact",
+            title = "New Contact",
             onBack = onDismiss,
             onSave = { onSaveAction() },
             saveEnabled = name.isNotBlank()

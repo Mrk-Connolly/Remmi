@@ -1,7 +1,7 @@
 Read and follow:
 
 documents/AI_ARCHITECTURE_CONTRACT.md
-documents/REMMI_ARCHITECTURE_MAP.md
+documents/AI_UX_UI_DESIGN_SKILL.md
 
 These rules are mandatory.
 
@@ -14,10 +14,6 @@ SCOPE:
 Only inspect files directly related to this task.
 
 Do not modify unrelated files.
-
-TASK-SPECIFIC RULES:
-
-[OPTIONAL RULES]
 
 Before modifying code:
 

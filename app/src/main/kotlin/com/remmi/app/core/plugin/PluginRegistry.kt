@@ -11,6 +11,15 @@ import com.remmi.app.plugins.tasks.TasksPlugin
 import com.remmi.app.plugins.weather.WeatherPlugin
 import com.remmi.app.plugins.maps.MapsPlugin
 import com.remmi.app.plugins.callrecorder.CallRecorderPlugin
+import com.remmi.app.plugins.shopping_list.ShoppingListPlugin
+import com.remmi.app.plugins.voice_recorder.VoiceRecorderPlugin
+import com.remmi.app.plugins.health.HealthPlugin
+import com.remmi.app.plugins.voice_transcriber.VoiceTranscriberPlugin
+import com.remmi.app.plugins.books.BooksPlugin
+import com.remmi.app.plugins.stocks.StocksPlugin
+import com.remmi.app.plugins.job_search.JobSearchPlugin
+import com.remmi.app.plugins.cv.CVPlugin
+import com.remmi.app.plugins.transcriptions.TranscriptionsPlugin
 import android.content.Context
 
 /**
@@ -33,6 +42,15 @@ object PluginRegistry {
         "ingredient_stock" to { metadata, eventBus, _ -> IngredientPlugin(metadata, eventBus) },
         "weather" to { metadata, eventBus, _ -> WeatherPlugin(metadata, eventBus) },
         "maps" to { metadata, eventBus, _ -> MapsPlugin(metadata, eventBus) },
-        "call_recorder" to { metadata, eventBus, _ -> CallRecorderPlugin(metadata, eventBus) }
+        "call_recorder" to { metadata, eventBus, _ -> CallRecorderPlugin(metadata, eventBus) },
+        "shopping_list" to { metadata, eventBus, _ -> ShoppingListPlugin(metadata, eventBus) },
+        "voice_recorder" to { metadata, eventBus, _ -> VoiceRecorderPlugin(metadata, eventBus) },
+        "health" to { metadata, eventBus, _ -> HealthPlugin(metadata, eventBus) },
+        "voice_transcriber" to { metadata, eventBus, _ -> VoiceTranscriberPlugin(metadata, eventBus) },
+        "books" to { metadata, eventBus, _ -> BooksPlugin(metadata, eventBus) },
+        "stocks" to { metadata, eventBus, _ -> StocksPlugin(metadata, eventBus) },
+        "job_search" to { metadata, eventBus, _ -> JobSearchPlugin(metadata, eventBus) },
+        "cv" to { metadata, eventBus, _ -> CVPlugin(metadata, eventBus) },
+        "transcriptions" to { metadata, eventBus, _ -> TranscriptionsPlugin(metadata, eventBus) }
     )
 }

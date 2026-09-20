@@ -58,7 +58,7 @@ fun AddIngredientScreen(
     }
 
     RemmiAddScreen(
-        title = "Add to Stock",
+        title = "Add Ingredient",
         onBack = onBack,
         onSave = {
             scope.launch {

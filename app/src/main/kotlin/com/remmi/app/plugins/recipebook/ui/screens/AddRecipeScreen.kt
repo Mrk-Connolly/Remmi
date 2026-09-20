@@ -119,7 +119,7 @@ fun AddRecipeScreen(
     }
 
     RemmiAddScreen(
-        title = "New Recipe",
+        title = "Add Recipe",
         onBack = onBack,
         onSave = { onSave() },
         saveEnabled = title.isNotBlank()

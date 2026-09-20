@@ -62,8 +62,8 @@ fun AutomatizationSettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 24.dp)
-                .padding(top = 24.dp, bottom = DesignTokens.BottomNavigationHeight + 64.dp)
+                .padding(horizontal = DesignTokens.SpacingLarge)
+                .padding(top = DesignTokens.SpacingLarge, bottom = 100.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {

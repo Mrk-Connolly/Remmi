@@ -20,7 +20,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.ui.components.RemmiHomeScreen
+import com.remmi.app.ui.components.RemmiFAB
 import com.remmi.app.ui.components.RemmiCard
+import com.remmi.app.ui.DesignTokens
 import com.remmi.app.plugins.ingredients.IngredientActions
 import com.remmi.app.plugins.ingredients.models.*
 import com.remmi.app.plugins.ingredients.ui.popups.*
@@ -207,66 +209,44 @@ fun StockListScreen(
         }
     }
 
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-            MaterialTheme.colorScheme.background
-        )
-    )
-
     RemmiHomeScreen(
-        title = "",
-        backgroundBrush = backgroundBrush,
+        title = "Ingredients",
         floatingActionButton = {
-            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    var showScanOptions by remember { mutableStateOf(false) }
-                    
-                    if (showScanOptions) {
-                        SmallFloatingActionButton(
-                            onClick = { 
-                                onScanReceipt(true)
-                                showScanOptions = false
-                            },
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            shape = CircleShape,
-                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                        ) {
-                            Icon(Icons.Default.PhotoCamera, contentDescription = "Camera")
-                        }
-                        SmallFloatingActionButton(
-                            onClick = { 
-                                onScanReceipt(false)
-                                showScanOptions = false
-                            },
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            shape = CircleShape,
-                            elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                        ) {
-                            Icon(Icons.Default.Image, contentDescription = "Gallery")
-                        }
-                    }
+            RemmiFAB(
+                onClick = onAdd,
+                icon = Icons.Default.Add,
+                contentDescription = "Add Ingredient"
+            )
+        },
+        topBarActions = {
+            var showScanOptions by remember { mutableStateOf(false) }
 
-                    FloatingActionButton(
-                        onClick = { showScanOptions = !showScanOptions },
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        shape = CircleShape,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                    ) {
-                        Icon(if (showScanOptions) Icons.Default.Close else Icons.Default.Receipt, contentDescription = "Scan Receipt")
-                    }
-                    
-                    FloatingActionButton(
-                        onClick = onAdd,
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        shape = CircleShape,
-                        elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Ingredient")
-                    }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { showScanOptions = !showScanOptions }) {
+                    Icon(
+                        imageVector = Icons.Default.Receipt,
+                        contentDescription = "Scan Receipt",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
+                DropdownMenu(expanded = showScanOptions, onDismissRequest = { showScanOptions = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Camera") },
+                        leadingIcon = { Icon(Icons.Default.PhotoCamera, null) },
+                        onClick = { 
+                            onScanReceipt(true)
+                            showScanOptions = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Gallery") },
+                        leadingIcon = { Icon(Icons.Default.Image, null) },
+                        onClick = { 
+                            onScanReceipt(false)
+                            showScanOptions = false
+                        }
+                    )
                 }
             }
         }

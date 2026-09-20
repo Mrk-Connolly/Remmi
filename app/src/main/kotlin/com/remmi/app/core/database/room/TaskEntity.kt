@@ -1,4 +1,4 @@
-package com.remmi.app.plugins.tasks.data.local.entities
+package com.remmi.app.core.database.room
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

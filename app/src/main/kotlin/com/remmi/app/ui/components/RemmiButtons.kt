@@ -1,13 +1,11 @@
 package com.remmi.app.ui.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -15,7 +13,6 @@ import com.remmi.app.ui.DesignTokens
 
 /**
  * Standardized Primary Button for Remmi
- * Semi-translucent, no gradients, customized by user color.
  */
 @Composable
 fun RemmiButton(
@@ -25,29 +22,26 @@ fun RemmiButton(
     enabled: Boolean = true,
     icon: ImageVector? = null
 ) {
-    val containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-
     Button(
         onClick = onClick,
-        modifier = modifier
-            .height(56.dp),
+        modifier = modifier.height(DesignTokens.ButtonHeight),
         enabled = enabled,
-        shape = CircleShape,
+        shape = MaterialTheme.shapes.extraLarge,
         colors = ButtonDefaults.buttonColors(
-            containerColor = containerColor,
-            contentColor = MaterialTheme.colorScheme.onSurface
+            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+            contentColor = MaterialTheme.colorScheme.onPrimary
         ),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 0.dp,
-            focusedElevation = 0.dp
-        )
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
     ) {
         if (icon != null) {
-            Icon(icon, contentDescription = null, modifier = Modifier.height(DesignTokens.IconSizeMedium))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(DesignTokens.IconSizeMedium)
+            )
             Spacer(Modifier.width(DesignTokens.SpacingSmall))
         }
-        Text(text = text, style = MaterialTheme.typography.titleMedium)
+        Text(text = text, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -61,20 +55,20 @@ fun RemmiSecondaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-    val containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-
-    Button(
+    OutlinedButton(
         onClick = onClick,
-        modifier = modifier.height(56.dp),
+        modifier = modifier.height(DesignTokens.ButtonHeight),
         enabled = enabled,
-        shape = CircleShape,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = containerColor,
-            contentColor = MaterialTheme.colorScheme.onSurface
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = MaterialTheme.colorScheme.primary
         ),
-        elevation = ButtonDefaults.buttonElevation(0.dp)
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+        )
     ) {
-        Text(text = text, style = MaterialTheme.typography.titleMedium)
+        Text(text = text, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -86,23 +80,22 @@ fun RemmiFAB(
     onClick: () -> Unit,
     icon: ImageVector,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-    contentColor: Color = MaterialTheme.colorScheme.onSurface,
+    containerColor: Color = MaterialTheme.colorScheme.primary,
+    contentColor: Color = MaterialTheme.colorScheme.onPrimary,
     contentDescription: String? = null
 ) {
     FloatingActionButton(
         onClick = onClick,
-        modifier = modifier
-            .size(64.dp),
+        modifier = modifier.size(DesignTokens.FABSize),
         shape = CircleShape,
-        containerColor = containerColor,
+        containerColor = containerColor.copy(alpha = 0.9f),
         contentColor = contentColor,
-        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp)
+        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp, pressedElevation = 0.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            modifier = Modifier.size(DesignTokens.IconSizeLarge)
+            modifier = Modifier.size(DesignTokens.IconSizeMedium)
         )
     }
 }
@@ -119,12 +112,12 @@ fun RemmiDeleteButton(
 ) {
     TextButton(
         onClick = onClick,
-        modifier = modifier.height(56.dp),
+        modifier = modifier.height(DesignTokens.ButtonHeight),
         enabled = enabled,
         colors = ButtonDefaults.textButtonColors(
-            contentColor = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+            contentColor = MaterialTheme.colorScheme.error
         )
     ) {
-        Text(text = text, style = MaterialTheme.typography.titleMedium)
+        Text(text = text, style = MaterialTheme.typography.labelLarge)
     }
 }

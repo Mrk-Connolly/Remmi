@@ -592,3 +592,49 @@ data class FetchIngredientMetadataCommand(
     override val creationContext: CreationContext? = null,
     override val deletionContext: DeletionContext? = null
 ) : RemmiCommand
+
+// ----------------------------------------------------------------------------
+//                               RECORDING COMMANDS
+// ----------------------------------------------------------------------------
+
+data class StartRecordingCommand(
+    val transcriptionId: String,
+    val title: String,
+    val language: String = "auto",
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+data class PauseRecordingCommand(
+    val transcriptionId: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+data class ResumeRecordingCommand(
+    val transcriptionId: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+data class FinishRecordingCommand(
+    val transcriptionId: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand

@@ -21,6 +21,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.ui.components.RemmiHomeScreen
+import com.remmi.app.ui.components.RemmiCard
+import com.remmi.app.ui.DesignTokens
 import com.remmi.app.core.android.system.WeatherInfo
 import com.remmi.app.plugins.weather.WeatherActions
 import com.remmi.app.plugins.weather.WeatherContext
@@ -48,16 +50,8 @@ fun WeatherScreen(
     var searchQuery by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-            MaterialTheme.colorScheme.background
-        )
-    )
-
     RemmiHomeScreen(
         title = "Weather",
-        backgroundBrush = backgroundBrush,
         topBarActions = {
             IconButton(onClick = { showSettings = !showSettings }) {
                 Icon(if (showSettings) Icons.Default.Close else Icons.Default.Settings, contentDescription = "Settings")
@@ -104,8 +98,8 @@ fun WeatherContent(data: WeatherInfo, padding: PaddingValues, cityName: String?)
         modifier = Modifier
             .fillMaxSize()
             .padding(padding),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(DesignTokens.SpacingMedium),
+        verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium)
     ) {
         // 1. Current Weather Header
         item {
@@ -118,7 +112,7 @@ fun WeatherContent(data: WeatherInfo, padding: PaddingValues, cityName: String?)
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(DesignTokens.SpacingSmall))
                 Icon(
                     imageVector = getWeatherIcon(data.icon),
                     contentDescription = data.summary,
@@ -144,20 +138,16 @@ fun WeatherContent(data: WeatherInfo, padding: PaddingValues, cityName: String?)
 
         // 2. Hourly Forecast
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            RemmiCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(DesignTokens.SpacingMedium)) {
                     Text(
                         text = "Hourly Forecast",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(DesignTokens.SpacingMedium))
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium)
                     ) {
                         items(data.hourlyForecast) { hourly ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -177,8 +167,8 @@ fun WeatherContent(data: WeatherInfo, padding: PaddingValues, cityName: String?)
 
         // 3. Details Grid
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium)) {
                     WeatherDetailCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.WaterDrop,
@@ -192,7 +182,7 @@ fun WeatherContent(data: WeatherInfo, padding: PaddingValues, cityName: String?)
                         value = "${data.windSpeed} km/h"
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium)) {
                     WeatherDetailCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.WbSunny,
@@ -206,7 +196,7 @@ fun WeatherContent(data: WeatherInfo, padding: PaddingValues, cityName: String?)
                         value = "${data.visibility} km"
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium)) {
                     WeatherDetailCard(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.Thermostat,
@@ -225,23 +215,19 @@ fun WeatherContent(data: WeatherInfo, padding: PaddingValues, cityName: String?)
 
         // 4. Daily Forecast
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            RemmiCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(DesignTokens.SpacingMedium)) {
                     Text(
                         text = "7-Day Forecast",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(DesignTokens.SpacingMedium))
                     data.dailyForecast.forEach { daily ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = DesignTokens.SpacingSmall),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -249,7 +235,7 @@ fun WeatherContent(data: WeatherInfo, padding: PaddingValues, cityName: String?)
                             Icon(
                                 imageVector = getWeatherIcon(daily.icon),
                                 contentDescription = null,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(DesignTokens.IconSizeMedium)
                             )
                             Text(
                                 text = "${daily.minTemp.toInt()}° / ${daily.maxTemp.toInt()}°",
@@ -264,13 +250,9 @@ fun WeatherContent(data: WeatherInfo, padding: PaddingValues, cityName: String?)
 
         // 5. Sun/Moon
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
+            RemmiCard(modifier = Modifier.fillMaxWidth()) {
                 Row(
-                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    modifier = Modifier.padding(DesignTokens.SpacingMedium).fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -412,15 +394,16 @@ fun WeatherSettingsView(
 
 @Composable
 fun WeatherDetailCard(modifier: Modifier, icon: ImageVector, label: String, value: String) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+    RemmiCard(modifier = modifier) {
+        Column(modifier = Modifier.padding(DesignTokens.SpacingMedium)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(DesignTokens.IconSizeSmall),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(DesignTokens.SpacingSmall))
                 Text(text = label, style = MaterialTheme.typography.labelSmall)
             }
             Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)

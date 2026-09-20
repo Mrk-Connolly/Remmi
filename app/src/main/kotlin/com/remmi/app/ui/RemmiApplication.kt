@@ -7,10 +7,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import com.remmi.app.core.host.RemmiHost
 import com.remmi.app.ui.components.AppNavigation
-
-import dagger.hilt.android.HiltAndroidApp
 
 /**
  * REMMI APPLICATION
@@ -19,7 +18,6 @@ import dagger.hilt.android.HiltAndroidApp
  * Manages the singleton instance of RemmiHost to ensure consistency
  * between UI and background components (like Widgets).
  */
-@HiltAndroidApp
 class RemmiApplication : Application() {
 
     lateinit var remmiHost: RemmiHost
@@ -40,12 +38,14 @@ fun RemmiApp(host: RemmiHost) {
     Log.d("Remmi", "[RemmiApp] - UI started")
 
     RemmiTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
-        ) {
-            // Start navigation, providing the runtime for plugin management
-            AppNavigation(runtime = host.runtime)
+        RemmiBackground {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = Color.Transparent,
+            ) {
+                // Start navigation, providing the runtime for plugin management
+                AppNavigation(runtime = host.runtime)
+            }
         }
     }
 }

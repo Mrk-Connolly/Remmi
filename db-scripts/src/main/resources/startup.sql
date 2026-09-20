@@ -304,6 +304,71 @@ ALTER TABLE call_recordings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "call_recordings_all" ON call_recordings FOR ALL TO anon USING (true) WITH CHECK (true);
 
 -- ============================================================
+-- TRANSCRIPTIONS PLUGIN SCHEMA
+-- ============================================================
+
+DROP TABLE IF EXISTS transcriptions CASCADE;
+CREATE TABLE transcriptions (
+    id              TEXT PRIMARY KEY,
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+    user_id         UUID DEFAULT auth.uid(),
+    title           TEXT NOT NULL,
+    description     TEXT,
+    group_id        TEXT,
+    language        TEXT NOT NULL DEFAULT 'auto',
+    status          TEXT NOT NULL DEFAULT 'CREATED',
+    started_at      TIMESTAMPTZ,
+    finished_at     TIMESTAMPTZ,
+    duration_millis BIGINT NOT NULL DEFAULT 0,
+    audio_file_path TEXT,
+    text_file_path  TEXT,
+    transcript      TEXT,
+    source_plugin   TEXT DEFAULT 'transcriptions',
+    source_item_id  TEXT
+);
+
+DROP TABLE IF EXISTS transcription_groups CASCADE;
+CREATE TABLE transcription_groups (
+    id              TEXT PRIMARY KEY,
+    created         TIMESTAMPTZ NOT NULL,
+    modified        TIMESTAMPTZ NOT NULL,
+    user_id         UUID DEFAULT auth.uid(),
+    name            TEXT NOT NULL UNIQUE,
+    color_hex       TEXT NOT NULL DEFAULT '#6200EE',
+    source_plugin   TEXT,
+    source_item_id  TEXT
+);
+
+DROP TABLE IF EXISTS transcript_segments CASCADE;
+CREATE TABLE transcript_segments (
+    id                  TEXT PRIMARY KEY,
+    created             TIMESTAMPTZ NOT NULL,
+    modified            TIMESTAMPTZ NOT NULL,
+    user_id             UUID DEFAULT auth.uid(),
+    transcription_id    TEXT NOT NULL REFERENCES transcriptions(id) ON DELETE CASCADE,
+    start_time_millis   BIGINT NOT NULL,
+    end_time_millis     BIGINT NOT NULL,
+    text                TEXT NOT NULL,
+    speaker_id          TEXT
+);
+
+-- RLS
+ALTER TABLE transcriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transcription_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transcript_segments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "transcriptions_all" ON transcriptions FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "transcription_groups_all" ON transcription_groups FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "transcript_segments_all" ON transcript_segments FOR ALL TO anon USING (true) WITH CHECK (true);
+
+-- DEFAULT GROUPS
+INSERT INTO transcription_groups (id, created, modified, name, color_hex) VALUES
+('trans_work', now(), now(), 'Work', '#4285F4'),
+('trans_uni', now(), now(), 'University', '#EA4335'),
+('trans_personal', now(), now(), 'Personal', '#34A853')
+ON CONFLICT (name) DO NOTHING;
+
+-- ============================================================
 -- PERMISSIONS
 -- ============================================================
 

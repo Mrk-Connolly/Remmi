@@ -108,5 +108,104 @@
     "showWidget": true,
     "group": "productivity",
     "icon": "mic"
+  },
+  {
+    "id": "shopping_list",
+    "name": "Shopping List",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "group": "kitchen",
+    "icon": "shopping_cart"
+  },
+  {
+    "id": "voice_recorder",
+    "name": "Voice Recorder",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "group": "productivity",
+    "icon": "mic"
+  },
+  {
+    "id": "health",
+    "name": "Health",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "group": "personal",
+    "icon": "favorite"
+  },
+  {
+    "id": "voice_transcriber",
+    "name": "Text Transcriber",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "group": "productivity",
+    "icon": "description"
+  },
+  {
+    "id": "books",
+    "name": "Books",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "group": "personal",
+    "icon": "menu_book"
+  },
+  {
+    "id": "stocks",
+    "name": "Stocks",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "group": "news",
+    "icon": "trending_up"
+  },
+  {
+    "id": "job_search",
+    "name": "Job Search",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "group": "productivity",
+    "icon": "work"
+  },
+  {
+    "id": "cv",
+    "name": "CV",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "group": "productivity",
+    "icon": "description"
+  },
+  {
+    "id": "transcriptions",
+    "name": "Transcriptions",
+    "version": "1.0",
+    "author": "mark.c.software",
+    "enabled": true,
+    "showInNavigation": true,
+    "showWidget": true,
+    "group": "productivity",
+    "icon": "description"
   }
 ]

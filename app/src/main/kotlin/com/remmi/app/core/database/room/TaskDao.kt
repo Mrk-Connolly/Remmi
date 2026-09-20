@@ -1,11 +1,11 @@
-package com.remmi.app.plugins.tasks.data.local.dao
+package com.remmi.app.core.database.room
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.remmi.app.plugins.tasks.data.local.entities.TaskEntity
+import com.remmi.app.core.database.room.TaskEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

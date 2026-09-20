@@ -16,6 +16,10 @@ import com.remmi.app.core.android.system.implementations.AndroidLocationService
 import com.remmi.app.core.android.system.implementations.AndroidOCRService
 import com.remmi.app.core.android.files.FileService
 import com.remmi.app.core.android.files.AndroidFileService
+import com.remmi.app.core.android.speech.RecordingService
+import com.remmi.app.core.android.speech.SpeechService
+import com.remmi.app.core.android.speech.implementations.AndroidRecordingService
+import com.remmi.app.core.android.speech.implementations.SystemSpeechService
 
 /**
  * ANDROID SERVICE MANAGER
@@ -38,6 +42,10 @@ class AndroidServiceManager(
     val widgetService: AndroidWidgetService = AndroidWidgetService(context)
     val fileService: FileService = AndroidFileService(context)
 
+    /** Speech and Recording Services */
+    val recordingService: AndroidRecordingService = AndroidRecordingService(context, eventBus)
+    val speechService: SystemSpeechService = SystemSpeechService(context, eventBus, fileService, recordingService)
+
     init {
         Log.d("Remmi", "[AndroidServiceManager] - Constructor initialized")
     }
@@ -52,6 +60,8 @@ class AndroidServiceManager(
         eventBus.subscribeCommand(notificationService)
         eventBus.subscribeCommand(ocrService)
         eventBus.subscribeCommand(alarmService)
+        eventBus.subscribeCommand(recordingService)
+        eventBus.subscribeCommand(speechService)
     }
 
     /**                                 Stop
@@ -64,5 +74,7 @@ class AndroidServiceManager(
         eventBus.unsubscribeCommand(notificationService)
         eventBus.unsubscribeCommand(ocrService)
         eventBus.unsubscribeCommand(alarmService)
+        eventBus.unsubscribeCommand(recordingService)
+        eventBus.unsubscribeCommand(speechService)
     }
 }

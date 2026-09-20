@@ -106,7 +106,7 @@ fun LocationPickerPopup(
                             val pos = cameraState.position.target
                             scope.launch {
                                 val name = searchQuery.ifBlank { "Picked Location" }
-                                com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId.value = correlationId
+                                com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId = correlationId
                                 actions.notifyLocationPicked(requestId, name, null, pos.latitude, pos.longitude)
                                 onDismiss()
                             }

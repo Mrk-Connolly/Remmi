@@ -6,10 +6,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.remmi.app.ui.DesignTokens
@@ -18,29 +25,47 @@ import com.remmi.app.ui.DesignTokens
 fun RemmiCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    containerColor: Color = MaterialTheme.colorScheme.surface,
+    containerColor: Color? = null,
     elevation: Dp = 0.dp,
     shape: androidx.compose.ui.graphics.Shape = MaterialTheme.shapes.large,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    if (onClick != null) {
-        Card(
-            modifier = modifier,
-            onClick = onClick,
-            shape = shape,
-            colors = CardDefaults.cardColors(containerColor = containerColor),
-            elevation = CardDefaults.cardElevation(defaultElevation = elevation),
-            content = content
+    val actualContainerColor = containerColor ?: MaterialTheme.colorScheme.surface
+    val isDark = MaterialTheme.colorScheme.background == Color.Black
+    val border = androidx.compose.foundation.BorderStroke(
+        width = 1.dp,
+        brush = Brush.linearGradient(
+            colors = listOf(
+                if (isDark) Color.Black else Color.White.copy(alpha = 0.2f),
+                if (isDark) Color.Black else Color.White.copy(alpha = 0.05f)
+            )
         )
+    )
+    
+    val shadowColor = if (MaterialTheme.colorScheme.surface.alpha < 1f) {
+        Color.Black.copy(alpha = 0.1f)
     } else {
-        Card(
-            modifier = modifier,
-            shape = shape,
-            colors = CardDefaults.cardColors(containerColor = containerColor),
-            elevation = CardDefaults.cardElevation(defaultElevation = elevation),
-            content = content
-        )
+        Color.Black.copy(alpha = 0.05f)
     }
+
+    Surface(
+        modifier = modifier
+            .shadow(
+                elevation = elevation,
+                shape = shape,
+                clip = false,
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            ),
+        onClick = onClick ?: {},
+        enabled = onClick != null,
+        shape = shape,
+        color = actualContainerColor,
+        border = border,
+        content = {
+            Column(content = content)
+        }
+    )
 }
 
 @Composable

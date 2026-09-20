@@ -13,7 +13,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,13 +75,6 @@ fun RecipeScreen(
         }
     }
 
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-            MaterialTheme.colorScheme.background
-        )
-    )
-
     if (isAddingRecipe) {
         AddRecipeScreen(
             actions = actions,
@@ -94,13 +86,11 @@ fun RecipeScreen(
         )
     } else {
         RemmiHomeScreen(
-            title = "",
-            backgroundBrush = backgroundBrush,
+            title = "Recipes",
             floatingActionButton = {
                 RemmiFAB(
                     onClick = { isAddingRecipe = true },
                     icon = Icons.Default.Add,
-                    modifier = Modifier.padding(bottom = 16.dp),
                     contentDescription = "Add Recipe"
                 )
             }
@@ -108,6 +98,7 @@ fun RecipeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(padding)
             ) {
                 // Header with Search and Filters
                 HeaderSection(

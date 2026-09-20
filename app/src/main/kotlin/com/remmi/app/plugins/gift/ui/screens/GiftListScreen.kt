@@ -62,13 +62,6 @@ fun GiftListScreen(
         contactsInGiftList = contactActions.getAllContacts().filter { it.inGiftList }
     }
 
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-            MaterialTheme.colorScheme.background
-        )
-    )
-
     if (selectedContactForGifts != null) {
         UserGiftListScreen(
             contact = selectedContactForGifts!!,
@@ -85,12 +78,10 @@ fun GiftListScreen(
 
         RemmiHomeScreen(
             title = "Gift List",
-            backgroundBrush = backgroundBrush,
             floatingActionButton = {
                 RemmiFAB(
                     onClick = { showContactPicker = true },
                     icon = Icons.Default.Add,
-                    modifier = Modifier.padding(bottom = 16.dp),
                     contentDescription = "Add Contact"
                 )
             }
@@ -100,6 +91,7 @@ fun GiftListScreen(
                 onRefresh = onRefresh,
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(padding)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     if (filteredContacts.isEmpty()) {

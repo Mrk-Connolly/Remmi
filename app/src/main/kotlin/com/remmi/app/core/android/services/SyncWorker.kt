@@ -1,4 +1,4 @@
-package com.remmi.app.core.sync
+package com.remmi.app.core.android.services
 
 import android.content.Context
 import android.util.Log

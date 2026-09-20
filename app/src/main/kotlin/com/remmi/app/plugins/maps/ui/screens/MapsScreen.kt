@@ -43,19 +43,11 @@ fun MapsScreen(
             }
     }
 
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-            MaterialTheme.colorScheme.background
-        )
-    )
-
     RemmiHomeScreen(
-        title = "",
-        backgroundBrush = backgroundBrush
+        title = ""
     ) { padding ->
         MaplibreMap(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().padding(padding),
             cameraState = cameraState,
             baseStyle = BaseStyle.Demo
         )

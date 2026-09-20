@@ -459,3 +459,47 @@ data class DailyBriefingGeneratedEvent(
     override val creationContext: CreationContext? = null,
     override val deletionContext: DeletionContext? = null
 ) : RemmiEvent
+
+// ----------------------------------------------------------------------------
+//                               TRANSCRIPTION EVENTS
+// ----------------------------------------------------------------------------
+
+data class RecordingStateChangedEvent(
+    val transcriptionId: String,
+    val state: String, // RECORDING, PAUSED, FINISHING, FINISHED
+    override val source: String = "android",
+    override val eventId: String = UUID.randomUUID().toString(),
+    override val type: EventType = EventType.UPDATED,
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiEvent
+
+data class TranscriptionUpdatedEvent(
+    val transcriptionId: String,
+    val partialText: String,
+    val isFinal: Boolean,
+    override val source: String = "android",
+    override val eventId: String = UUID.randomUUID().toString(),
+    override val type: EventType = EventType.UPDATED,
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiEvent
+
+data class TranscriptionFinishedEvent(
+    val transcriptionId: String,
+    val fullText: String,
+    val audioFilePath: String,
+    val textFilePath: String,
+    val durationMillis: Long,
+    override val source: String = "android",
+    override val eventId: String = UUID.randomUUID().toString(),
+    override val type: EventType = EventType.LOADED,
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiEvent

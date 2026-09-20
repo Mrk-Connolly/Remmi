@@ -89,13 +89,6 @@ fun TasksScreen(
         else sortedTasks.filter { it.group == selectedGroup }
     }
 
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-            MaterialTheme.colorScheme.background
-        )
-    )
-
     if (editorMode != null) {
         TasksEditorScreen(
             mode = editorMode!!,
@@ -108,13 +101,11 @@ fun TasksScreen(
         )
     } else {
         RemmiHomeScreen(
-            title = "",
-            backgroundBrush = backgroundBrush,
+            title = "Tasks",
             floatingActionButton = {
                 RemmiFAB(
                     onClick = { editorMode = TaskEditorMode.Create },
                     icon = Icons.Default.Add,
-                    modifier = Modifier.padding(bottom = DesignTokens.BottomNavigationHeight + 32.dp),
                     contentDescription = "Add Task"
                 )
             }
@@ -199,10 +190,10 @@ fun TasksScreen(
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(
-                                start = 24.dp,
-                                end = 24.dp,
-                                top = 16.dp,
-                                bottom = DesignTokens.BottomNavigationHeight + 64.dp // Space for dock + center button
+                                start = DesignTokens.SpacingLarge,
+                                end = DesignTokens.SpacingLarge,
+                                top = DesignTokens.SpacingMedium,
+                                bottom = 100.dp
                             )
                         ) {
                             taskSections.forEach { (sectionName, tasksInSection) ->

@@ -1,311 +1,249 @@
 package com.remmi.app.ui.screens.homescreen
 
-import android.util.Log
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Task
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.remmi.app.core.plugin.PluginManager
+import androidx.compose.ui.unit.sp
+import com.remmi.app.R
+import com.remmi.app.core.controller.GlobalUIState
+import com.remmi.app.core.models.Categories
+import com.remmi.app.core.models.Category
 import com.remmi.app.ui.DesignTokens
 import com.remmi.app.ui.components.RemmiCard
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
+import kotlin.math.cos
+import kotlin.math.sin
 
-/**
- * HOME SCREEN
- * Main landing page of the application, displaying active widgets in a premium dashboard layout
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    pluginManager: PluginManager,
-    onWidgetClick: (String) -> Unit
+    onCategoryClick: (Category) -> Unit,
+    onProfileClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
-    Log.d("Remmi", "[HomeScreen] - Executing premium dashboard rendering")
-    val scope = rememberCoroutineScope()
-    var isRefreshing by remember { mutableStateOf(false) }
-
-    val metadata by pluginManager.pluginMetadata.collectAsState()
-
-    val visiblePlugins = remember(metadata, pluginManager.plugins) {
-        pluginManager.plugins.values.filter { it.widget.isEnabled() }
-    }
-
-    val onRefresh: () -> Unit = remember {
-        {
-            scope.launch {
-                isRefreshing = true
-                pluginManager.refreshAllPlugins()
-                isRefreshing = false
-            }
-        }
-    }
-
-    // Dynamic background gradient based on the active theme primary color selection
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val backgroundGradient = Brush.verticalGradient(
-        colors = listOf(
-            primaryColor.copy(alpha = 0.12f),
-            MaterialTheme.colorScheme.background,
-            MaterialTheme.colorScheme.background
-        )
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundGradient)
-    ) {
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = onRefresh,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Column(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HomeTopBar(onProfileClick, onSettingsClick)
+            AssistantInputField(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 20.dp)
-                    .padding(bottom = DesignTokens.BottomNavigationHeight + 24.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.Top
-            ) {
-                // Premium Greeting Header Block
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = getGreetingMessage(),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "Mark",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 24.dp)
+            )
+        }
 
-                    // Elegant Circular Profile Initials Badge
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "M",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                // Date Chip Indicator
-                Surface(
-                    modifier = Modifier.padding(top = 10.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ) {
-                    Text(
-                        text = getCurrentFormattedDate(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(28.dp))
-
-                // Feature Section Title
-                Text(
-                    text = "Quick Access",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-
-                // Quick Navigation Capsules Horizontal Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ShortcutCapsule(icon = Icons.Default.CalendarMonth, label = "Calendar", modifier = Modifier.weight(1f))
-                    ShortcutCapsule(icon = Icons.Default.Task, label = "Tasks", modifier = Modifier.weight(1f))
-                    ShortcutCapsule(icon = Icons.Default.Settings, label = "Settings", modifier = Modifier.weight(1f))
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Dashboard Widgets Section Title
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Your Intelligence Workspace",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    
-                    if (visiblePlugins.isNotEmpty()) {
-                        Text(
-                            text = "${visiblePlugins.size} Active",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Empty State Handler if no widgets are pinned
-                if (visiblePlugins.isEmpty()) {
-                    RemmiCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Extension,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                modifier = Modifier.size(44.dp)
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = "No active dashboard widgets pinned",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                } else {
-                    // Render beautifully packaged interactive widget containers
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(20.dp),
-                        modifier = Modifier.animateContentSize()
-                    ) {
-                        visiblePlugins.forEach { plugin ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onWidgetClick(plugin.metadata.id) },
-                                shape = MaterialTheme.shapes.large,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                            ) {
-                                Box(modifier = Modifier.padding(4.dp)) {
-                                    plugin.widget.Content()
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularMenu(
+                categories = Categories,
+                onCategoryClick = onCategoryClick
+            )
         }
     }
 }
 
-/**
- * Capsule Shortcut button container helper
- */
 @Composable
-private fun ShortcutCapsule(
-    icon: ImageVector,
-    label: String,
+fun AssistantInputField(
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp
+    var text by remember { mutableStateOf("") }
+    
+    RemmiCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = CircleShape,
+        elevation = 2.dp
     ) {
-        Row(
+        TextField(
+            value = text,
+            onValueChange = { text = it },
+            placeholder = { 
+                Text(
+                    "Ask Remmi... (e.g. 'Add task')",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                ) 
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+            ),
+            trailingIcon = {
+                IconButton(onClick = { /* Future Microphone Action */ }) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "Voice Input",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            },
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+@Composable
+fun HomeTopBar(
+    onProfileClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = onSettingsClick,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp, horizontal = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+                .size(DesignTokens.IconButtonSize)
+                .background(MaterialTheme.colorScheme.surface, CircleShape)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurface)
+        }
+
+        Text(
+            text = "REMMI",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 4.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        IconButton(
+            onClick = onProfileClick,
+            modifier = Modifier
+                .size(DesignTokens.IconButtonSize)
+                .background(MaterialTheme.colorScheme.surface, CircleShape)
+        ) {
+            Icon(Icons.Default.Person, contentDescription = "Profile", tint = MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}
+
+@Composable
+fun CircularMenu(
+    categories: List<Category>,
+    onCategoryClick: (Category) -> Unit
+) {
+    val radius = 150.dp
+    val buttonSize = 96.dp
+    val isDark = isSystemInDarkTheme() || GlobalUIState.themePreference == com.remmi.app.core.controller.RemmiThemeMode.DARK
+
+    Box(
+        modifier = Modifier.size(radius * 2 + buttonSize),
+        contentAlignment = Alignment.Center
+    ) {
+        // CENTRAL ICON (Glassmorphic Orb)
+        RemmiCard(
+            modifier = Modifier.size(110.dp),
+            shape = CircleShape,
+            elevation = 8.dp,
+            containerColor = if (isDark) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+            } else {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+            }
+        ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Image(
+                    painter = painterResource(id = R.drawable.icon),
+                    contentDescription = "Remmi Center",
+                    modifier = Modifier.padding(20.dp),
+                    contentScale = ContentScale.Fit,
+                    colorFilter = if (!isDark) androidx.compose.ui.graphics.ColorFilter.tint(Color.White) else null
+                )
+            }
+        }
+
+        // CATEGORY BUTTONS
+        categories.forEachIndexed { index, category ->
+            val angle = (index * (360f / categories.size) - 90f) * (Math.PI / 180f)
+            val xOffset = radius * cos(angle).toFloat()
+            val yOffset = radius * sin(angle).toFloat()
+
+            val entryDelay = index * 50
+            val scale = remember { Animatable(0f) }
+            
+            LaunchedEffect(Unit) {
+                kotlinx.coroutines.delay(entryDelay.toLong())
+                scale.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                )
+            }
+
+            CategoryMenuButton(
+                category = category,
+                modifier = Modifier
+                    .offset(x = xOffset, y = yOffset)
+                    .size(buttonSize)
+                    .scale(scale.value),
+                onClick = { onCategoryClick(category) }
             )
         }
     }
 }
 
-/**
- * Generates appropriate message based on system hour
- */
-private fun getGreetingMessage(): String {
-    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-    return when (hour) {
-        in 0..11 -> "Good morning,"
-        in 12..16 -> "Good afternoon,"
-        else -> "Good evening,"
+@Composable
+fun CategoryMenuButton(
+    category: Category,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        RemmiCard(
+            onClick = onClick,
+            modifier = Modifier.size(60.dp),
+            shape = CircleShape,
+            elevation = 4.dp
+        ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = category.icon,
+                    fontSize = 28.sp
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = category.name.split(" ").first(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            maxLines = 1
+        )
     }
-}
-
-/**
- * Returns clean readable current calendar timestamp string
- */
-private fun getCurrentFormattedDate(): String {
-    val sdf = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
-    return sdf.format(Date())
 }

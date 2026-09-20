@@ -108,32 +108,32 @@ fun CalendarScreenEditor(
     }
 
     // Rollback logic for linked actions if canceled
-    LaunchedEffect(com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId.value) {
-        val confirmedId = com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId.value
+    LaunchedEffect(com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId) {
+        val confirmedId = com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId
         if (confirmedId != null) { }
     }
 
-    LaunchedEffect(com.remmi.app.core.controller.GlobalUIState.pendingAlarmRequest.value) {
-        if (com.remmi.app.core.controller.GlobalUIState.pendingAlarmRequest.value == null && alarmCorrelationId != null) {
-            if (com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId.value != alarmCorrelationId) {
+    LaunchedEffect(com.remmi.app.core.controller.GlobalUIState.pendingAlarmRequest) {
+        if (com.remmi.app.core.controller.GlobalUIState.pendingAlarmRequest == null && alarmCorrelationId != null) {
+            if (com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId != alarmCorrelationId) {
                 createAlarm = false
                 alarmCorrelationId = null
             }
         }
     }
 
-    LaunchedEffect(com.remmi.app.core.controller.GlobalUIState.pendingTaskRequest.value) {
-        if (com.remmi.app.core.controller.GlobalUIState.pendingTaskRequest.value == null && taskCorrelationId != null) {
-            if (com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId.value != taskCorrelationId) {
+    LaunchedEffect(com.remmi.app.core.controller.GlobalUIState.pendingTaskRequest) {
+        if (com.remmi.app.core.controller.GlobalUIState.pendingTaskRequest == null && taskCorrelationId != null) {
+            if (com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId != taskCorrelationId) {
                 createTask = false
                 taskCorrelationId = null
             }
         }
     }
 
-    LaunchedEffect(com.remmi.app.core.controller.GlobalUIState.showLocationPicker.value) {
-        if (!com.remmi.app.core.controller.GlobalUIState.showLocationPicker.value && locationCorrelationId != null) {
-            if (com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId.value != locationCorrelationId) {
+    LaunchedEffect(com.remmi.app.core.controller.GlobalUIState.showLocationPicker) {
+        if (!com.remmi.app.core.controller.GlobalUIState.showLocationPicker && locationCorrelationId != null) {
+            if (com.remmi.app.core.controller.GlobalUIState.lastConfirmedCorrelationId != locationCorrelationId) {
                 createLocation = false
                 locationCorrelationId = null
             }
@@ -465,7 +465,7 @@ private fun EditorContent(
                     if (!createAlarm) {
                         val cid = UUID.randomUUID().toString()
                         onAlarmCorrelationIdChange(cid)
-                        GlobalUIState.pendingAlarmRequest.value = LinkedCreationData(
+                        GlobalUIState.pendingAlarmRequest = LinkedCreationData(
                             title = title, description = description, sourcePlugin = "calendar",
                             sourceItemId = initialEventId ?: "draft", correlationId = cid, causationId = null
                         )
@@ -485,7 +485,7 @@ private fun EditorContent(
                     if (!createTask) {
                         val cid = UUID.randomUUID().toString()
                         onTaskCorrelationIdChange(cid)
-                        GlobalUIState.pendingTaskRequest.value = LinkedCreationData(
+                        GlobalUIState.pendingTaskRequest = LinkedCreationData(
                             title = title, description = description, sourcePlugin = "calendar",
                             sourceItemId = initialEventId ?: "draft", correlationId = cid, causationId = null
                         )
@@ -505,8 +505,8 @@ private fun EditorContent(
                     if (!createLocation) {
                         val cid = UUID.randomUUID().toString()
                         onLocationCorrelationIdChange(cid)
-                        GlobalUIState.showLocationPicker.value = true
-                        GlobalUIState.locationPickerData.value = LinkedCreationData(
+                        GlobalUIState.showLocationPicker = true
+                        GlobalUIState.locationPickerData = LinkedCreationData(
                             title = title, description = description, sourcePlugin = "calendar",
                             sourceItemId = initialEventId ?: "draft", correlationId = cid, causationId = null
                         )

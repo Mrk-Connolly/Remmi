@@ -17,12 +17,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.remmi.app.core.controller.GlobalUIState
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.plugin.PluginMetadata
 import com.remmi.app.ui.DesignTokens
+import com.remmi.app.ui.components.RemmiCard
+import com.remmi.app.ui.components.RemmiSectionHeader
 import com.remmi.app.ui.components.RemmiSecondaryScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -30,7 +34,7 @@ import androidx.navigation.NavHostController
 import com.remmi.app.core.controller.RemmiThemeMode
 import com.remmi.app.ui.components.RemmiDestination
 import com.remmi.app.ui.components.getIconForName
-import com.remmi.app.ui.components.RemmiHomeScreen
+import com.remmi.app.ui.components.HueRingPicker
 import com.remmi.app.ui.PrimaryPalette
 
 /**
@@ -82,22 +86,23 @@ fun SettingsScreen(
     RemmiSecondaryScreen(
         title = "Settings",
         onBack = onBack,
-        floatingActionButton = {
+        topBarActions = {
             if (hasChanges) {
-                ExtendedFloatingActionButton(
+                IconButton(
                     onClick = {
                         scope.launch {
                             pluginManager.updateAllPluginSettings(runtime.androidManager.fileService, pendingMetadata)
                             pluginManager.loadPlugins()
                             onBack()
                         }
-                    },
-                    icon = { Icon(Icons.Default.Save, contentDescription = null) },
-                    text = { Text("Apply Changes") },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    elevation = FloatingActionButtonDefaults.elevation(0.dp)
-                )
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Apply Changes",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     ) { padding ->
@@ -110,115 +115,125 @@ fun SettingsScreen(
         ) {
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = DesignTokens.BottomNavigationHeight + 64.dp)
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium),
+                contentPadding = PaddingValues(
+                    start = DesignTokens.SpacingLarge,
+                    end = DesignTokens.SpacingLarge,
+                    top = DesignTokens.SpacingMedium,
+                    bottom = 100.dp
+                )
             ) {
                 item {
-                    Text(
-                        text = "Appearance",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    RemmiSectionHeader(title = "Appearance")
                 }
 
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.large,
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Theme", style = MaterialTheme.typography.titleSmall)
+                    RemmiCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(DesignTokens.SpacingLarge)) {
+                            Text(
+                                "Theme",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(Modifier.height(DesignTokens.SpacingSmall))
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSmall)
                             ) {
                                 listOf(
                                     RemmiThemeMode.LIGHT to "Light",
                                     RemmiThemeMode.DARK to "Dark",
                                     RemmiThemeMode.SYSTEM to "System"
                                 ).forEach { (mode, label) ->
-                                    FilterChip(
-                                        selected = GlobalUIState.themePreference.value == mode,
-                                        onClick = { 
-                                            GlobalUIState.themePreference.value = mode
-                                            runtime.androidManager.settingsService.setString("theme_pref", mode.name)
-                                        },
-                                        label = { Text(label) },
-                                        shape = CircleShape
-                                    )
-                                }
-                            }
-
-                            Spacer(Modifier.height(16.dp))
-                            Text("Primary Color", style = MaterialTheme.typography.titleSmall)
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                PrimaryPalette.forEach { colorHex ->
-                                    val color = Color(android.graphics.Color.parseColor(colorHex))
+                                    val isSelected = GlobalUIState.themePreference == mode
                                     Box(
                                         modifier = Modifier
-                                            .size(40.dp)
-                                            .background(color, CircleShape)
-                                            .clickable {
-                                                GlobalUIState.primaryColorHex.value = colorHex
-                                                runtime.androidManager.settingsService.setString("primary_color_hex", colorHex)
-                                            }
-                                            .padding(4.dp)
-                                    ) {
-                                        if (GlobalUIState.primaryColorHex.value == colorHex) {
-                                            Icon(
-                                                Icons.Default.Check,
-                                                contentDescription = null,
-                                                tint = Color.White,
-                                                modifier = Modifier.fillMaxSize()
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (isSelected) MaterialTheme.colorScheme.primary 
+                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                             )
-                                        }
+                                            .clickable {
+                                                GlobalUIState.themePreference = mode
+                                                runtime.androidManager.settingsService.setString("theme_pref", mode.name)
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            label,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary 
+                                                    else MaterialTheme.colorScheme.onSurface
+                                        )
                                     }
                                 }
                             }
+
+                            var showColorPicker by remember { mutableStateOf(false) }
+
+                            Spacer(Modifier.height(DesignTokens.SpacingLarge))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Theme Colour",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .background(
+                                            Color(android.graphics.Color.parseColor(GlobalUIState.primaryColorHex)),
+                                            CircleShape
+                                        )
+                                        .clickable { showColorPicker = true }
+                                )
+                            }
+                            
+                            if (showColorPicker) {
+                                HueRingPicker(
+                                    initialColorHex = GlobalUIState.primaryColorHex,
+                                    onDismiss = { showColorPicker = false },
+                                    onApply = { newColor ->
+                                        GlobalUIState.primaryColorHex = newColor
+                                        runtime.androidManager.settingsService.setString("primary_color_hex", newColor)
+                                        showColorPicker = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
 
                 item {
-                    Text(
-                        text = "System Features",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
+                    RemmiSectionHeader(title = "System Features")
                 }
 
                 item {
-                    Card(
+                    RemmiCard(
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = { navController.navigate(RemmiDestination.AUTOMATIZATION_ROUTE) },
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        onClick = { navController.navigate(RemmiDestination.AUTOMATIZATION_ROUTE) }
                     ) {
                         Row(
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier.padding(DesignTokens.SpacingMedium),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Schedule, contentDescription = null)
-                            Spacer(Modifier.width(12.dp))
+                            Icon(Icons.Default.Schedule, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(DesignTokens.SpacingMedium))
                             Text(text = "Daily Briefing & Automations", modifier = Modifier.weight(1f))
-                            Icon(Icons.Default.ChevronRight, contentDescription = null)
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
                         }
                     }
                 }
 
                 item {
-                    Text(
-                        text = "Plugin Management",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
+                    RemmiSectionHeader(title = "Plugin Management")
                 }
 
                 items(pendingMetadata) { plugin ->
@@ -303,27 +318,26 @@ fun PluginSettingItem(
     //                                CORE FUNCTIONS
     // ----------------------------------------------------------------------------
 
-    Card(
+    RemmiCard(
         modifier = Modifier
             .fillMaxWidth()
             .alpha(if (plugin.enabled) 1f else 0.5f)
             .combinedClickable(
                 onClick = { /* Do nothing on click */ },
                 onLongClick = onLongClick
-            ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(DesignTokens.SpacingMedium)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = getIconForName(
                         plugin.icon
                     ),
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(DesignTokens.IconSizeMedium),
                     tint = if (plugin.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(DesignTokens.SpacingMedium))
                 Text(
                     text = plugin.name,
                     style = MaterialTheme.typography.titleMedium,
@@ -336,7 +350,7 @@ fun PluginSettingItem(
             }
             
             if (plugin.enabled) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = DesignTokens.SpacingSmall))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,

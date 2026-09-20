@@ -111,13 +111,6 @@ fun CalendarScreen(
         Log.d("Remmi", "[CalendarScreen] - Groups updated: ${groups.size}")
     }
 
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-            MaterialTheme.colorScheme.background
-        )
-    )
-
     if (editorMode != null) {
         CalendarScreenEditor(
             mode = editorMode!!,
@@ -142,13 +135,11 @@ fun CalendarScreen(
         )
     } else {
         RemmiHomeScreen(
-            title = "",
-            backgroundBrush = backgroundBrush,
+            title = "Calendar",
             floatingActionButton = {
                 RemmiFAB(
                     onClick = { editorMode = CalendarEditorMode.Create },
                     icon = Icons.Default.Add,
-                    modifier = Modifier.padding(bottom = DesignTokens.BottomNavigationHeight + 32.dp),
                     contentDescription = "Add Event"
                 )
             }
@@ -278,7 +269,7 @@ fun CalendarScreen(
                                 LazyColumn(
                                     state = listState,
                                     modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(bottom = DesignTokens.BottomNavigationHeight + 64.dp)
+                                    contentPadding = PaddingValues(bottom = 100.dp)
                                 ) {
                                     groupedEventsList.forEachIndexed { _, (date, eventsOnDate) ->
                                         val isActive = date == activeDate

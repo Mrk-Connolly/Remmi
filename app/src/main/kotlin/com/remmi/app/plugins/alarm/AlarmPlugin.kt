@@ -72,7 +72,7 @@ class AlarmPlugin(
             override val title = "Create Alarm"
             override val icon = Icons.Default.Alarm
             override fun launch() {
-                GlobalUIState.pendingAlarmRequest.value = LinkedCreationData(
+                GlobalUIState.pendingAlarmRequest = LinkedCreationData(
                     title = "New Alarm",
                     description = "",
                     sourcePlugin = metadata.id,

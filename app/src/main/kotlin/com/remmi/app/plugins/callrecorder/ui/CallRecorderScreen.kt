@@ -29,6 +29,7 @@ import com.remmi.app.plugins.callrecorder.*
 import com.remmi.app.plugins.callrecorder.models.CallDirection
 import com.remmi.app.plugins.callrecorder.models.CallRecording
 import com.remmi.app.plugins.callrecorder.models.RecordingStatus
+import com.remmi.app.ui.DesignTokens
 import com.remmi.app.ui.components.RemmiCard
 import com.remmi.app.ui.components.RemmiHomeScreen
 import kotlinx.coroutines.launch
@@ -59,16 +60,8 @@ fun CallRecorderScreen(
         }
     }
 
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-            MaterialTheme.colorScheme.background
-        )
-    )
-
     RemmiHomeScreen(
-        title = "Call Recorder",
-        backgroundBrush = backgroundBrush
+        title = "Call Recorder"
     ) { padding ->
         val isRecordingActive by actions.isRecordingActive.collectAsState()
         val currentRecordingData by actions.currentRecording.collectAsState()
@@ -309,8 +302,8 @@ fun CallRecorderScreen(
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 80.dp)
+                    verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium),
+                    contentPadding = PaddingValues(bottom = 100.dp)
                 ) {
                     groupedRecordings.forEach { (header, items) ->
                         item {

@@ -1,6 +1,5 @@
 package com.remmi.app.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,87 +8,90 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.remmi.app.core.controller.GlobalUIState
 import com.remmi.app.ui.DesignTokens
+
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+
+/**
+ * Configuration for Remmi Scaffolds to handle overlay and inset behavior.
+ */
+data class RemmiScaffoldConfig(
+    val useTopOverlay: Boolean = false,
+    val topContentPadding: androidx.compose.ui.unit.Dp = 0.dp
+)
+
+val LocalRemmiScaffoldConfig = staticCompositionLocalOf { RemmiScaffoldConfig() }
 
 /**
  * REMMI HOME SCREEN SCAFFOLD
  * The primary entry point for a plugin.
- * Features a visible bottom navigation menu and optional top bar actions.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RemmiHomeScreen(
     title: String,
     onBack: (() -> Unit)? = null,
-    topBarActions: @Composable RowScope.() -> Unit = {},
+    topBarActions: (@Composable RowScope.() -> Unit)? = null,
     floatingActionButton: @Composable () -> Unit = {},
-    backgroundBrush: Brush? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
+    val config = LocalRemmiScaffoldConfig.current
+
     // Ensure bottom menu is visible
     DisposableEffect(Unit) {
-        val previous = GlobalUIState.isEditorActive.value
-        GlobalUIState.isEditorActive.value = false
+        val previous = GlobalUIState.isEditorActive
+        GlobalUIState.isEditorActive = false
         onDispose { 
-            GlobalUIState.isEditorActive.value = previous
+            GlobalUIState.isEditorActive = previous
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .then(if (backgroundBrush != null) Modifier.background(backgroundBrush) else Modifier)
-    ) {
-        Scaffold(
-            containerColor = Color.Transparent,
-            contentWindowInsets = WindowInsets.statusBars, // Account for status bar in content padding
-            topBar = {
-                if (title.isNotEmpty() || onBack != null) {
-                    TopAppBar(
-                        title = {
-                            if (title.isNotEmpty()) {
-                                Text(
-                                    text = title,
-                                    style = MaterialTheme.typography.headlineLarge,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+    Scaffold(
+        containerColor = Color.Transparent,
+        contentWindowInsets = if (config.useTopOverlay) WindowInsets(0, 0, 0, 0) else WindowInsets.statusBars,
+        floatingActionButton = floatingActionButton,
+        topBar = {
+            if (onBack != null || topBarActions != null) {
+                CenterAlignedTopAppBar(
+                    title = { /* Title removed as per user request */ },
+                    navigationIcon = {
+                        if (onBack != null) {
+                            IconButton(onClick = onBack) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
-                        },
-                        navigationIcon = {
-                            if (onBack != null) {
-                                IconButton(onClick = onBack) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                                }
-                            }
-                        },
-                        actions = topBarActions,
-                        windowInsets = TopAppBarDefaults.windowInsets, // Keeps text below status bar
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent,
-                            scrolledContainerColor = Color.Transparent
-                        )
+                        }
+                    },
+                    actions = topBarActions ?: {},
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
                     )
-                }
-            },
-            floatingActionButton = floatingActionButton,
-            content = { paddingValues ->
-                // The content now fills the screen. Individual screens handle their own
-                // top padding for the TopAppBar and bottom padding for the navigation dock.
-                Box(modifier = Modifier.fillMaxSize()) {
-                    content(paddingValues)
-                }
+                )
             }
-        )
-    }
+        },
+        content = { paddingValues ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Apply extra padding if we are under a top overlay
+                val finalPadding = if (config.useTopOverlay) {
+                    PaddingValues(
+                        top = config.topContentPadding,
+                        bottom = paddingValues.calculateBottomPadding()
+                    )
+                } else {
+                    paddingValues
+                }
+                content(finalPadding)
+            }
+        }
+    )
 }
 
 /**
@@ -102,54 +104,51 @@ fun RemmiSecondaryScreen(
     title: String,
     onBack: () -> Unit,
     topBarActions: @Composable RowScope.() -> Unit = {},
-    floatingActionButton: @Composable () -> Unit = {},
-    backgroundBrush: Brush? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     DisposableEffect(Unit) {
-        val previous = GlobalUIState.isEditorActive.value
-        GlobalUIState.isEditorActive.value = true // Hide bottom navigation on secondary screens
+        val previous = GlobalUIState.isEditorActive
+        GlobalUIState.isEditorActive = true // Hide bottom navigation on secondary screens
         onDispose { 
-            GlobalUIState.isEditorActive.value = previous
+            GlobalUIState.isEditorActive = previous
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .then(if (backgroundBrush != null) Modifier.background(backgroundBrush) else Modifier)
-    ) {
-        Scaffold(
-            containerColor = Color.Transparent,
-            contentWindowInsets = WindowInsets.statusBars,
-            topBar = {
-                TopAppBar(
-                    title = { Text(title) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    actions = topBarActions,
-                    windowInsets = TopAppBarDefaults.windowInsets,
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = Color.Transparent
-                    )
+    Scaffold(
+        containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets.statusBars,
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ) 
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = topBarActions,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
                 )
-            },
-            floatingActionButton = floatingActionButton
-        ) { paddingValues ->
+            )
+        },
+        content = { paddingValues ->
             Box(modifier = Modifier.fillMaxSize()) {
                 content(paddingValues)
             }
         }
-    }
+    )
 }
 
 /**
  * REMMI ADD SCREEN SCAFFOLD
- * Standardized layout for creating new items.
  */
 @Composable
 fun RemmiAddScreen(
@@ -172,7 +171,6 @@ fun RemmiAddScreen(
 
 /**
  * REMMI MODIFY SCREEN SCAFFOLD
- * Standardized layout for editing existing items.
  */
 @Composable
 fun RemmiModifyScreen(
@@ -197,6 +195,7 @@ fun RemmiModifyScreen(
 /**
  * Internal Base Scaffold for Editor screens (Add/Modify)
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RemmiEditorBaseScaffold(
     title: String,
@@ -210,30 +209,45 @@ private fun RemmiEditorBaseScaffold(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     DisposableEffect(Unit) {
-        val previous = GlobalUIState.isEditorActive.value
-        GlobalUIState.isEditorActive.value = true // Hide bottom navigation on editor screens
+        val previous = GlobalUIState.isEditorActive
+        GlobalUIState.isEditorActive = true // Hide bottom navigation on editor screens
         onDispose { 
-            GlobalUIState.isEditorActive.value = previous
+            GlobalUIState.isEditorActive = previous
         }
     }
 
     Scaffold(
-        contentWindowInsets = WindowInsets(0.dp),
+        containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets.statusBars,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { /* Title removed as per user request */ },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                )
+            )
+        },
         bottomBar = {
             Surface(
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                 tonalElevation = 0.dp
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(DesignTokens.SpacingLarge),
+                    verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium)
                     ) {
                         RemmiSecondaryButton(
                             text = "Back",
@@ -268,21 +282,16 @@ private fun RemmiEditorBaseScaffold(
             }
         }
     ) { paddingValues ->
-        val statusBarsPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .imePadding()
-                .padding(horizontal = 24.dp)
-                .padding(top = statusBarsPadding + 24.dp)
+                .padding(horizontal = DesignTokens.SpacingLarge)
+                .padding(top = DesignTokens.SpacingMedium)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingLarge)
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineLarge
-            )
             content()
         }
     }
