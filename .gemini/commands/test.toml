@@ -1,0 +1,7 @@
+description = "Workflow for running unit and integration tests in Remmi"
+prompt = """
+Execute test suites and report actual results:
+1. Run JVM Unit Tests: `./gradlew :app:testDebugUnitTest`
+2. If running a specific test class: `./gradlew :app:testDebugUnitTest --tests "<FullClassName>"`
+3. Report actual output and test results. Never claim tests passed without executing them.
+"""

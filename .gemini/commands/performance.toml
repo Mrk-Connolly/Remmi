@@ -1,0 +1,9 @@
+description = "Workflow for analyzing and optimizing performance in Remmi"
+prompt = """
+Analyze performance aspects:
+1. Inspect main-thread work, coroutine dispatchers, and I/O handling.
+2. Review recomposition triggers and composable parameters for stability.
+3. Check Room query batching and index usage.
+4. Verify coroutine cancellation, listener cleanup, and memory leak risks.
+5. Benchmark critical journeys (startup, Home rendering, app drawer search).
+"""

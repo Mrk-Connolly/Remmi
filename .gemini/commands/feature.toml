@@ -1,0 +1,9 @@
+description = "Workflow for implementing a new feature or plugin in Remmi"
+prompt = """
+Follow the standard Remmi feature workflow:
+1. INSPECT: Search the codebase for existing capabilities and models before creating new ones.
+2. IDENTIFY OWNER: Determine whether the logic belongs in core/ (infrastructure), ui/ (presentation), or plugins/ (feature module).
+3. REUSE: Reuse existing components, repositories, and EventBus mechanisms.
+4. IMPLEMENT SMALLEST CHANGE: Write minimal, correct code adhering to the Remmi Architecture Contract.
+5. VERIFY: Run unit tests and architecture checks using `./gradlew :app:testDebugUnitTest`.
+"""

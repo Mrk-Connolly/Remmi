@@ -1,0 +1,9 @@
+description = "Workflow for reviewing code changes against Remmi's architecture contract"
+prompt = """
+Review code changes for:
+1. Layer boundaries: Ensure plugins do not import Room/DAOs directly, core does not import plugins, and UI does not implement raw Android capabilities.
+2. Main-thread discipline: Check for blocking I/O or database operations on Dispatchers.Main.
+3. Performance: Ensure composables do not cause unnecessary recompositions or heavy allocations.
+4. Security: Check for hardcoded secrets, excessive permissions, or unvalidated intent handling.
+5. Correctness: Confirm tests pass using `./gradlew :app:testDebugUnitTest`.
+"""

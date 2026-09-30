@@ -1,23 +1,57 @@
-Read and follow:
+# REMMI TASK
 
-documents/AI_ARCHITECTURE_CONTRACT.md
-documents/AI_UX_UI_DESIGN_SKILL.md
+## Task
 
-These rules are mandatory.
+[Describe exactly what you want implemented, changed, fixed, or investigated.]
 
-CURRENT TASK:
+## Requirements
 
-[DESCRIBE TASK HERE]
+* [Specific requirement]
+* [Specific requirement]
+* [Specific requirement]
 
-SCOPE:
+## Constraints
 
-Only inspect files directly related to this task.
+* Follow the existing Remmi architecture and relevant Skills.
+* Inspect the existing implementation before making changes.
+* Reuse existing systems before creating new ones.
+* Make the smallest correct change.
+* Do not perform unrelated refactoring or cleanup.
+* Do not introduce new architecture, frameworks, managers, services, or dependencies unless genuinely required.
+* Preserve existing working behavior.
+* Consider lifecycle, failure isolation, performance, and security where relevant.
 
-Do not modify unrelated files.
+## Verification
 
-Before modifying code:
+After implementation:
 
-1. List relevant files.
-2. Briefly explain the minimal changes.
-3. Implement.
-4. Build and verify.do it
+1. Compile/build the affected code.
+2. Run the relevant tests.
+3. Run relevant architecture/static checks.
+4. Review the final diff for unrelated changes.
+5. Verify the requested behavior.
+6. Report exactly what was verified.
+
+Do not claim anything passed unless you actually ran it.
+
+## Report
+
+At the end, report:
+
+### Changed
+
+Files and functionality changed.
+
+### Architecture
+
+Any architectural impact or new dependency.
+
+### Verification
+
+Exact commands run and their results.
+
+### Remaining
+
+Any unresolved issues, limitations, or unverified behavior.
+
+If the request conflicts with the Remmi architecture or requires an architectural decision, stop and explain the conflict before making that change.

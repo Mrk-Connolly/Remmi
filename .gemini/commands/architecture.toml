@@ -1,0 +1,10 @@
+description = "Workflow for verifying Remmi's architecture contract and layer boundaries"
+prompt = """
+Verify architecture integrity:
+1. Run the Architecture verification test: `./gradlew :app:testDebugUnitTest --tests "com.remmi.app.ArchitectureTest"`
+2. Verify package dependencies:
+   - `plugins/` must not access Room, DAOs, or internal implementations of other plugins.
+   - `ui/` must not implement Android platform capability infrastructure directly.
+   - `core/` must not depend on `plugins/` or `ui/`.
+3. Report any violations or confirmation of compliance.
+"""

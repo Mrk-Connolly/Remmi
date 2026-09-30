@@ -1,58 +1,71 @@
-# Remmi Architecture Contract
+# REMMI — MASTER ARCHITECTURE CONTRACT
 
-## 1. Core Principle
+## 1. Purpose
 
-Remmi must remain **small, efficient, strong, predictable, and easy to understand**.
+Remmi is a long-running Android application evolving into a launcher/home experience with integrated plugins and Android system capabilities.
 
-The architecture should prefer:
+The architecture must prioritize:
 
-* Few strong systems
-* Clear ownership
-* Minimal dependencies
-* Minimal communication hops
-* Minimal duplicated state
-* Minimal unnecessary work
-* Measurable performance
-* Graceful failure
-* Reuse of existing infrastructure
+1. Reliability
+2. Responsiveness
+3. Simplicity
+4. Clear ownership
+5. Failure isolation
+6. Maintainability
+7. Measurable performance
 
-Do not add architecture merely because the application is becoming larger.
-
-**A larger application should not require a more complicated core.**
+The architecture must become more capable without becoming proportionally more complicated.
 
 ---
 
-# 2. Primary Architecture
+# 2. Governing Principle
 
-```text
-Remmi
-│
+> Prefer the smallest correct change that preserves the existing architecture, performance, reliability, ownership boundaries, and working behavior.
+
+A feature request does not authorize an architectural redesign.
+
+Do not introduce abstractions, frameworks, layers, managers, services, repositories, modules, or state-management systems unless the existing architecture cannot correctly support the requirement.
+
+---
+
+# 3. Instruction Priority
+
+When instructions conflict, use this order:
+
+1. Android platform requirements
+2. This Remmi Architecture Contract
+3. Existing working Remmi implementation
+4. Explicit feature request
+5. Remmi UI Design rules
+6. Remmi Testing rules
+7. Developer convenience or refactoring ideas
+
+Never sacrifice an established architectural boundary merely because another implementation is easier.
+
+---
+
+# 4. Primary Structure
+
+Remmi consists of three primary areas:
+
+```
+Remmi/
 ├── core/
 ├── ui/
 └── plugins/
 ```
 
-### Core
-
-Provides fundamental Remmi infrastructure and Android integration.
-
-### UI
-
-Provides the Remmi user experience.
-
-### Plugins
-
-Provide Remmi functionality and feature-specific behavior.
-
-The three areas must have clearly separated responsibilities.
+Their responsibilities are distinct.
 
 ---
 
-# 3. Core
+# 5. Core
 
-Core contains only systems fundamental to Remmi itself.
+Core contains fundamental infrastructure required by Remmi itself.
 
-```text
+Current core structure:
+
+```
 core/
 ├── automation/
 ├── database/
@@ -65,716 +78,514 @@ core/
 
 ## Core responsibilities
 
-### `core/automation/`
+Core may provide:
 
-Shared automation infrastructure.
+* EventBus
+* Controller
+* Host
+* Database infrastructure
+* Automation infrastructure
+* Generic Android capability infrastructure
+* Shared models/interfaces genuinely required across boundaries
 
-Automation must not contain plugin-specific business logic.
+Core must not contain:
 
-### `core/database/`
+* Plugin business logic
+* Plugin-specific repositories
+* Plugin-specific models
+* Plugin UI
+* Feature-specific workflows
+* Duplicate infrastructure
+* Generic "manager" layers
+* Convenience abstractions without a demonstrated need
 
-Generic persistence infrastructure.
-
-Core owns:
-
-* Room
-* database connection
-* DAOs
-* database entities
-* queries
-* persistence implementation
-* generic database commands
-
-Plugins own:
-
-* plugin models
-* plugin repositories
-* plugin understanding of their data
-* construction of appropriate database commands
-
-Plugins must **not** directly access:
-
-* Room
-* DAOs
-* database instances
-* SQL
-* database entities
-* database implementation details
-
-### `core/eventBus/`
-
-There is exactly **one EventBus**.
-
-It provides communication between independent Remmi systems.
-
-EventBus must remain simple.
-
-It must not become:
-
-* a business-logic engine
-* a database layer
-* an Android abstraction layer
-* a plugin manager
-* a state-management framework
-
-### `core/host/`
-
-Contains the Remmi runtime/application host.
-
-### `core/controller/`
-
-Coordinates Core systems.
-
-The Controller must not contain:
-
-* plugin business logic
-* database operations
-* Android implementation
-* UI logic
-* automation implementation
-
-### `core/models/`
-
-Contains only shared models/interfaces required across architectural boundaries.
-
-Plugin-specific models remain inside their plugins.
+Core should provide a small number of strong primitives.
 
 ---
 
-# 4. Android Systems
+# 6. UI
 
-Android functionality belongs inside:
+UI contains Remmi presentation.
 
-```text
-core/android/
 ```
-
-Android integrations are **capability systems**, not new architectural layers.
-
-Possible capabilities include:
-
-```text
-core/android/
-├── apps/
-├── launcher/
-├── notifications/
-├── widgets/
-├── permissions/
-├── intents/
-├── share/
-├── quickSettings/
-├── roles/
-└── ...
-```
-
-These are examples of organization, not permission to create unnecessary systems.
-
-Each Android capability should be independently responsible for:
-
-* Android APIs
-* Android lifecycle
-* Android-specific state
-* Android-specific implementation
-* Android callbacks
-* conversion between Android information and Remmi information
-
-An Android capability must not contain plugin business logic.
-
----
-
-# 5. Android Services Are Capability Systems
-
-Android services are no longer treated as generic "read/write" services.
-
-They are independent systems that understand and manage their specific Android capability.
-
-For example:
-
-```text
-Notification System
-    ↓
-Android Notification APIs
-    ↓
-Android
-
-Android Apps System
-    ↓
-PackageManager
-    ↓
-Android
-```
-
-The Android system converts Android-specific information into appropriate Remmi-facing state/events.
-
-It may maintain its own internal state when necessary.
-
-Avoid creating one giant:
-
-```text
-AndroidService
-```
-
-that knows everything about Android.
-
-Prefer focused capability systems.
-
----
-
-# 6. EventBus Communication
-
-EventBus is the communication backbone between **independent Remmi systems**.
-
-For example:
-
-```text
-Android
-   ↓
-Android Capability
-   ↓
-EventBus
-   ↓
-Plugin / UI / Automation
-```
-
-or:
-
-```text
-Plugin
-   ↓
-EventBus
-   ↓
-Android Capability
-   ↓
-Android
-```
-
-However:
-
-**EventBus is not required for every function call.**
-
-Do not turn simple synchronous/local operations into unnecessary:
-
-```text
-request → EventBus → handler → EventBus → response
-```
-
-Use direct calls when systems are appropriately coupled and the operation is simple.
-
-Use EventBus when independent systems need to communicate or when an event/command should cross an architectural boundary.
-
----
-
-# 7. Home / Launcher
-
-Home is primarily a **Remmi UI system**, not an Android infrastructure system.
-
-Conceptually:
-
-```text
 ui/
+├── screens/
+├── popups/
+├── components/
 └── home/
 ```
 
-Home owns:
+Home is part of Remmi UI.
 
-* Home layout
-* Home UI state
-* gestures
-* user interaction
-* plugin presentation
-* app presentation
-* launcher experience
+Home may coordinate presentation and user interaction, but must not directly implement Android infrastructure.
 
-Home must not contain Android implementation details such as:
+Home must not directly depend on:
 
 * PackageManager
-* NotificationListenerService implementation
-* AppWidgetHost implementation
-* Android permission internals
-* Android launcher lifecycle implementation
+* NotificationListenerService internals
+* AppWidgetHost internals
+* Android service implementation details
+* Room/DAO implementation
+* Plugin internal implementation
 
-Those belong in `core/android`.
-
-The distinction is:
-
-```text
-Home
-= What the user sees and interacts with
-
-Android Launcher Capability
-= How Remmi participates in Android's HOME system
-```
+Home communicates with the owning system through appropriate interfaces/state/events.
 
 ---
 
-# 8. Plugins
+# 7. Plugins
 
-Plugins are Remmi's feature systems.
+Plugins are Remmi's feature applications.
 
-Examples:
+A plugin owns:
 
-```text
-plugins/
-├── Tasks/
-├── Calendar/
-├── Notes/
-├── Shopping/
-├── Contacts/
-└── ...
-```
+* Plugin-specific behavior
+* Plugin-specific models
+* Plugin-specific repositories
+* Plugin-specific actions
+* Plugin-specific UI/widgets where appropriate
+* Plugin-specific interpretation of its data
 
-A plugin owns its:
+A plugin must not:
 
-* feature logic
-* plugin models
-* repository
-* actions
-* widgets
-* plugin-specific state
-* plugin-specific behavior
+* Access Room directly
+* Access DAOs directly
+* Access database instances directly
+* Access another plugin's internal implementation
+* Implement Android system infrastructure that belongs in core/android
+* Duplicate core infrastructure
 
-Plugins must not duplicate Core infrastructure.
-
-Plugins must not directly implement Android platform infrastructure that belongs in `core/android`.
-
-Plugins should use the existing Core systems and Android capabilities.
+Plugins communicate with other independent systems through the existing EventBus or appropriate shared interfaces.
 
 ---
 
-# 9. Ownership Rule
+# 8. Database Ownership
 
-Every responsibility must have **one clear owner**.
+Database infrastructure belongs to:
 
-Examples:
-
-```text
-Database        → Database Core
-Communication   → EventBus
-Coordination    → Controller
-Automation      → Automation Core
-Android APIs    → Android Capability
-Home UI         → UI/Home
-Tasks logic     → Tasks Plugin
-Calendar logic  → Calendar Plugin
+```
+core/database/
 ```
 
-Do not create duplicate ownership.
+Core owns:
 
-If two systems appear to own the same responsibility, the architecture should be reconsidered.
+* Room configuration
+* Database instance
+* DAO infrastructure
+* Database entities
+* Queries
+* Connections
+* Persistence implementation
+* Schema/migration infrastructure
+
+Plugins own:
+
+* Their domain models
+* Their repositories
+* Their understanding of their data
+* Construction of generic database commands
+
+Plugins must never directly access Room, DAOs, database instances, SQL, or database entities.
+
+Whenever persisted schema changes, the database bootstrap/load mechanism must also be updated.
 
 ---
 
-# 10. State
+# 9. Android Capability Infrastructure
 
-Use `StateFlow` / `Flow` for observable state where appropriate.
+Android-specific infrastructure belongs under:
 
-The distinction is:
-
-```text
-StateFlow
-    = What is the current state?
+```
+core/android/
 ```
 
-and:
+Examples include:
 
-```text
-EventBus
-    = Something happened / something is requested.
-```
+* Launcher integration
+* Installed application discovery
+* Notifications
+* Widgets
+* Permissions
+* Intents
+* Sharing
+* Quick Settings
+* Android roles
+* Other Android capability bridges
 
-State should have a clear owner.
+Each capability should be as self-contained as practical.
 
-Avoid creating a giant global application state.
+An Android capability owns interaction with the Android platform.
 
-Existing global UI state may remain where it is already part of the working architecture, but it must not become a dumping ground for plugin, database, Android, or automation state.
+The rest of Remmi should consume the capability rather than reproducing Android implementation details.
 
 ---
 
-# 11. Main Thread
+# 10. Home / Launcher
 
-The main thread is reserved for UI work.
+Home is primarily a Remmi UI system.
 
-Do not block it with:
+Conceptually:
 
-* database operations
-* filesystem operations
-* network operations
-* expensive Android queries
-* parsing
-* CPU-heavy computation
-* synchronization
-* large data transformations
-
-Use Kotlin Coroutines and appropriate dispatchers for background work.
-
-The Home experience must remain responsive.
-
----
-
-# 12. Startup
-
-Remmi is intended to be a major Android entry point and potentially the user's launcher.
-
-Startup is therefore a critical path.
-
-The startup sequence should conceptually be:
-
-```text
-Launch
- ↓
-Show Home
- ↓
-Make Home interactive
- ↓
-Load essential Home information
- ↓
-Initialize secondary systems
- ↓
-Initialize non-critical functionality
+```
+Android
+   ↓
+core/android/launcher
+   ↓
+Remmi systems
+   ↓
+ui/home
 ```
 
-Do not require every plugin and every Android capability to fully initialize before Home becomes usable.
+The Android launcher integration handles Android's HOME role and platform interaction.
 
-Use lazy/deferred initialization where appropriate.
+The Home UI handles:
+
+* Home presentation
+* User interaction
+* Launcher content presentation
+* App launching through the appropriate capability
+* Plugin presentation
+* Assistant presentation
+* Gestures
+* Home customization
+
+Home must remain independent from plugin failures.
 
 ---
 
-# 13. Failure Isolation
+# 11. EventBus
 
-Failure in one subsystem must not unnecessarily bring down Remmi.
+Remmi has one EventBus.
+
+The EventBus exists for communication between independent systems.
+
+Use EventBus for:
+
+* Cross-system commands
+* Cross-system events
+* Asynchronous communication
+* Notifications between independently owned systems
+
+Do not use EventBus for every function call.
+
+For local, synchronous, tightly coupled operations, a direct call/interface is preferable.
+
+The EventBus must remain simple and predictable.
+
+---
+
+# 12. State
+
+Use StateFlow/Flow for observable state.
+
+Use StateFlow when a system owns current state that other components need to observe.
+
+Do not turn EventBus into a state-management framework.
+
+Do not introduce another state-management library.
+
+State belongs to the system that owns it.
+
+---
+
+# 13. Controller
+
+RemmiController coordinates core systems.
+
+It must not become a god object.
+
+The Controller must not contain:
+
+* Plugin business logic
+* Database operations
+* Android implementation logic
+* UI logic
+* Automation implementation logic
+
+It coordinates; it does not own unrelated behavior.
+
+---
+
+# 14. Main Thread
+
+The main thread is reserved for UI responsiveness and short Android framework interactions.
+
+Never perform avoidable:
+
+* Database work
+* File I/O
+* Network work
+* Expensive computation
+* Large collection processing
+* Blocking calls
+
+on the main thread.
+
+Use Kotlin coroutines and appropriate dispatchers.
+
+---
+
+# 15. Startup
+
+Startup must be optimized for perceived responsiveness.
+
+Priority:
+
+```
+Process starts
+    ↓
+Home becomes usable
+    ↓
+Secondary systems initialize
+    ↓
+Non-critical data/features load
+```
+
+Do not block Home startup on non-critical plugins or services.
+
+Prefer lazy initialization where appropriate.
+
+---
+
+# 16. Failure Isolation
+
+A failure in one subsystem must not unnecessarily bring down unrelated systems.
 
 For example:
 
-```text
-Calendar fails
+```
+Calendar failure
      ↓
-Home continues
-
-Shopping fails
-     ↓
-Home continues
-
-Notification capability fails
-     ↓
-Home continues
-
-Automation fails
-     ↓
-Home continues
-
-One plugin fails
-     ↓
-Other plugins continue
+Calendar unavailable
 ```
 
-The primary Home/launcher experience has priority.
+must not become:
 
-Secondary functionality should fail and recover independently whenever practical.
-
----
-
-# 14. Graceful Degradation
-
-Remmi should remain useful even when optional functionality is unavailable.
-
-The architecture should allow:
-
-```text
-Home
- ↓
-App launching
- ↓
-Core functionality
- ↓
-Plugins
- ↓
-Android integrations
- ↓
-Automation / secondary systems
+```
+Calendar failure
+     ↓
+Remmi Home crashes
 ```
 
-A failure at a lower level should not automatically destroy higher-level functionality.
+Important boundaries must fail gracefully.
+
+The application should degrade rather than collapse.
 
 ---
 
-# 15. Performance
+# 17. Performance
 
-Performance is an architectural requirement, not a final optimization phase.
+Performance is an architectural constraint.
 
-Remmi should minimize:
+Avoid unnecessary:
 
-* unnecessary work
-* unnecessary allocations
-* unnecessary database queries
-* unnecessary Android queries
-* unnecessary EventBus hops
-* duplicated state
-* duplicated processing
-* unnecessary initialization
+* allocations
+* database queries
+* Android system queries
+* EventBus hops
+* recompositions
+* repeated initialization
+* background work
+* retained objects
+* cache growth
 
-Performance should be **measured**, not assumed.
+Measure before optimizing when practical.
 
----
+Critical user journeys include:
 
-# 16. Technology Stack
+* Startup
+* Home rendering
+* App drawer
+* App search
+* App launching
+* Returning to Home
+* Plugin switching
+* Scrolling
+* Widget interaction
 
-Remmi should use a small, cohesive technology stack.
-
-### Primary
+Use the existing technology stack:
 
 * Kotlin
 * Jetpack Compose
-* Kotlin Coroutines
-* Kotlin Flow / StateFlow
+* Coroutines
+* Flow / StateFlow
 * Room
-* Existing EventBus
+* EventBus
 * WorkManager where appropriate
-
-### Android
-
-Normal Android APIs and platform components are used inside `core/android`.
-
-### Performance
-
 * R8
 * Baseline Profiles
 * Macrobenchmark
 * Perfetto / Android tracing
 
-These technologies complement the architecture rather than creating another architectural layer.
+Do not add another framework for performance work unless a demonstrated requirement demands it.
 
 ---
 
-# 17. WorkManager
+# 18. Reliability
 
-WorkManager is for reliable, deferrable background work.
+Remmi is a continuously available launcher-like application.
 
-Appropriate examples include:
+Therefore reliability requirements are stronger than for a conventional feature application.
 
-* periodic synchronization
-* maintenance
-* cleanup
-* retryable background operations
+Pay particular attention to:
 
-Do not use WorkManager merely to perform an operation that needs an immediate response.
-
-Immediate operations should normally use direct APIs/coroutines.
-
----
-
-# 18. Baseline Profiles
-
-Remmi should maintain Baseline Profiles for critical user journeys.
-
-Important journeys include:
-
-```text
-Cold launch
- ↓
-Home display
- ↓
-Home becomes interactive
- ↓
-App drawer
- ↓
-App search
- ↓
-Application launch
- ↓
-Return to Home
- ↓
-Plugin interaction
-```
-
-Baseline Profiles should focus on the actual Remmi experience.
+* lifecycle handling
+* process recreation
+* service registration/unregistration
+* coroutine cancellation
+* listener cleanup
+* receiver cleanup
+* memory leaks
+* unbounded collections
+* repeated initialization
+* Android permission changes
+* default launcher state
+* low-memory conditions
 
 ---
 
-# 19. Macrobenchmark
+# 19. Security and Privacy
 
-Macrobenchmark should measure important user journeys.
+Use least privilege.
 
-At minimum, benchmark:
+Do not request unnecessary Android permissions.
 
-* startup
-* Home
-* app drawer
-* application search
-* application launching
-* returning to Home
-* plugin switching
-* scrolling
-* other performance-critical interactions
+Never:
 
-Performance changes should be measured against previous behavior.
+* hardcode secrets
+* log sensitive user information
+* expose sensitive information through debug logging
+* add exported components without justification
+* bypass Android permission boundaries
+* store sensitive information unnecessarily
 
-Do not rely solely on subjective "feels faster" judgments.
+Validate external intents and Android inputs where applicable.
 
 ---
 
-# 20. Perfetto
+# 20. Technology Restrictions
 
-Perfetto / Android system tracing is the diagnostic tool for investigating real performance problems.
-
-The process should be:
-
-```text
-Benchmark
- ↓
-Identify regression
- ↓
-Trace
- ↓
-Find bottleneck
- ↓
-Fix
- ↓
-Benchmark again
-```
-
-Do not add complexity merely because a performance problem is suspected.
-
-Measure first.
-
----
-
-# 21. R8 / Release Optimization
-
-Production performance must be evaluated using release-like builds.
-
-Performance testing should account for:
-
-* R8
-* shrinking
-* optimization
-* Baseline Profiles
-* production configuration
-
-Debug performance must not be treated as representative of the final application.
-
----
-
-# 22. Performance Regression Protection
-
-Performance should be part of development, not something checked only before release.
-
-When a significant feature is added or changed, consider whether it affects:
-
-* startup
-* Home rendering
-* scrolling
-* memory
-* database performance
-* plugin switching
-* Android integration performance
-* app launching
-
-Macrobenchmark should be used where the affected behavior can be measured.
-
-The goal is to prevent Remmi from becoming progressively slower as functionality grows.
-
----
-
-# 23. Technologies Not Automatically Allowed
-
-Do not introduce the following merely because the project is growing:
+Do not introduce by default:
 
 * Hilt
 * Dagger
 * Koin
-* additional EventBus systems
-* additional state-management frameworks
+* another EventBus
+* another state-management framework
+* another database technology
 * unnecessary navigation frameworks
-* additional database technologies
-* generic Manager layers
-* generic Service layers
-* duplicate infrastructure
+* generic manager/service layers
 * new Gradle modules
-* new architecture layers
+* duplicate infrastructure
 
-A new technology must solve a demonstrated problem that the existing architecture cannot reasonably solve.
-
----
-
-# 24. Core Simplicity Rule
-
-Before adding anything to Core, ask:
-
-1. Is this fundamental to Remmi?
-2. Does more than one system genuinely require it?
-3. Does it belong in Core?
-4. Does an existing Core system already solve the problem?
-5. Is the abstraction actually necessary?
-6. Will it improve the architecture rather than merely increase its size?
-
-If not, do not add it.
-
-**Core should provide a small number of strong primitives rather than a large collection of services.**
+A new dependency requires a demonstrated problem that the existing stack cannot reasonably solve.
 
 ---
 
-# 25. Architectural Direction
+# 21. Existing Working Code
 
-The intended relationship is:
+Do not rewrite working systems merely because another implementation appears cleaner.
 
-```text
-                         REMMI
-                           │
-             ┌─────────────┼─────────────┐
-             │             │             │
-             UI          PLUGINS        CORE
-             │             │             │
-          Home/etc.   Tasks/Calendar/    │
-                       Notes/etc.        │
-                                         │
-                         ┌───────────────┤
-                         │       │       │
-                     Database EventBus Android
-                                         │
-                              Android Capabilities
-```
+Before changing code:
 
-The responsibilities are:
+1. Search the repository.
+2. Locate existing functionality.
+3. Identify its owner.
+4. Understand its lifecycle.
+5. Determine whether it can be extended.
+6. Reuse it when possible.
 
-```text
-Plugins
-    → What Remmi does
-
-UI
-    → How the user interacts with Remmi
-
-Core
-    → What Remmi fundamentally needs
-
-Android Systems
-    → How Remmi interacts with Android
-
-EventBus
-    → How independent Remmi systems communicate
-```
+Preserve working behavior.
 
 ---
 
-# 26. Fundamental Rule
+# 22. Architecture Decision Process
 
-The architecture should become **more capable without becoming proportionally more complicated**.
+For every new piece of code:
 
-When Remmi gains a new capability:
+```
+Is it UI?
+    → ui/
 
-```text
-New capability
-      ↓
-Find its existing owner
-      ↓
-Reuse existing infrastructure
-      ↓
-Add the smallest required implementation
-      ↓
-Keep ownership clear
-      ↓
-Measure performance if the critical path is affected
+Is it plugin-specific?
+    → plugins/<Plugin>/
+
+Is it Android-specific infrastructure?
+    → core/android/
+
+Is it fundamental shared infrastructure?
+    → core/
+
+Is it communication between independent systems?
+    → existing EventBus
+
+Is it observable owned state?
+    → owning system's Flow/StateFlow
+
+Does it fit nowhere?
+    → STOP and reassess
 ```
 
-Do not solve growth by continuously adding layers.
+Never create a new architectural location simply because the existing locations are inconvenient.
 
-**The strength of Remmi comes from clear boundaries, single ownership, isolated failures, minimal communication, fast startup, and a small Core.**
+---
+
+# 23. STOP Conditions
+
+Stop implementation and reassess when:
+
+* ownership is ambiguous
+* a new architectural layer appears necessary
+* a new manager/service is being proposed
+* database migration safety is unclear
+* Android lifecycle behavior is uncertain
+* a change crosses an established boundary
+* a feature requires breaking an existing contract
+* a working implementation would need to be replaced without necessity
+
+Do not silently make the architectural decision.
+
+---
+
+# 24. Verification
+
+A change is not complete because the code was written.
+
+Verify:
+
+* compilation
+* relevant tests
+* architecture boundaries
+* lifecycle behavior
+* failure behavior
+* performance impact
+* database migration/bootstrap requirements
+* security/privacy impact
+
+Never claim a test passed unless it was actually run.
+
+---
+
+# 25. Definition of Done
+
+A change is complete when:
+
+* correct owner was used
+* existing infrastructure was reused
+* no unnecessary dependencies were introduced
+* architecture boundaries remain intact
+* code compiles
+* relevant tests pass
+* failure behavior was considered
+* lifecycle behavior was considered
+* performance impact was considered
+* persistence changes were handled safely
+* required documentation was updated
+* no unrelated changes were introduced
+
+---
+
+# 26. Final Rule
+
+Remmi should remain understandable from its folder structure.
+
+If an experienced developer cannot reasonably determine where a feature belongs by looking at the architecture, the architecture is becoming too complicated.
