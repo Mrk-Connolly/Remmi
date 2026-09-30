@@ -1,0 +1,65 @@
+package com.remmi.app.testing.plugins.exhaustive
+
+import com.google.common.truth.Truth.assertThat
+import com.remmi.app.plugins.alarm.AlarmPlugin
+import com.remmi.app.testing.base.BasePluginActionTest
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Instant
+import org.junit.Test
+import kotlin.time.Duration.Companion.hours
+
+/**
+ * ALARM EXHAUSTIVE TEST
+ */
+open class AlarmExhaustiveTest : BasePluginActionTest() {
+
+    @Test
+    fun addAlarm_validDetails_savesAlarmAndReturnsTrue() = runTest {
+        // Arrange
+        val plugin = controller.pluginManager.plugins["alarm"] as AlarmPlugin
+        val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+        
+        // Act
+        val result = plugin.actions.addAlarm(
+            title = "Exhaustive Test Alarm",
+            description = "Description",
+            time = now.plus(1.hours)
+        )
+        
+        // Assert
+        assertThat(result).isTrue()
+        val alarms = plugin.actions.getAllAlarms()
+        assertThat(alarms.any { it.alarm.title == "Exhaustive Test Alarm" }).isTrue()
+    }
+
+    @Test
+    fun updateAlarm_modifiedAlarm_updatesSuccessfullyAndReturnsTrue() = runTest {
+        // Arrange
+        val plugin = controller.pluginManager.plugins["alarm"] as AlarmPlugin
+        val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+        plugin.actions.addAlarm(title = "Original", description = "", time = now.plus(1.hours))
+        val original = plugin.actions.getAllAlarms().first().alarm
+        val updated = original.copy(title = "Modified")
+
+        // Act
+        val result = plugin.actions.updateAlarm(updated)
+        
+        // Assert
+        assertThat(result).isTrue()
+        assertThat(plugin.actions.getAllAlarms().first().alarm.title).isEqualTo("Modified")
+    }
+
+    @Test
+    fun getTodayAlarms_alarmsExist_returnsNonEmptyList() = runTest {
+        // Arrange
+        val plugin = controller.pluginManager.plugins["alarm"] as AlarmPlugin
+        val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+        plugin.actions.addAlarm(title = "Today", description = "", time = now.plus(1.hours))
+
+        // Act
+        val todayAlarms = plugin.actions.getTodayAlarms()
+
+        // Assert
+        assertThat(todayAlarms).isNotEmpty()
+    }
+}
