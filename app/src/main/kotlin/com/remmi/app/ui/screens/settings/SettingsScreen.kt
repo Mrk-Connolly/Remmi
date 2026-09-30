@@ -32,10 +32,19 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
 import com.remmi.app.core.controller.RemmiThemeMode
+import com.remmi.app.core.memory.MemoryProviderType
+import com.remmi.app.core.memory.migration.TableMigrationSpec
+import com.remmi.app.plugins.alarm.models.AlarmItem
+import com.remmi.app.plugins.calendar.models.CalendarItem
+import com.remmi.app.plugins.tasks.models.TaskItem
 import com.remmi.app.ui.components.RemmiDestination
 import com.remmi.app.ui.components.getIconForName
 import com.remmi.app.ui.components.HueRingPicker
 import com.remmi.app.ui.PrimaryPalette
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.remmi.app.core.eventBus.commands.SetCallRecordingModeCommand
 
 /**
  * SETTINGS SCREEN
@@ -129,90 +138,23 @@ fun SettingsScreen(
                 }
 
                 item {
-                    RemmiCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(DesignTokens.SpacingLarge)) {
-                            Text(
-                                "Theme",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.height(DesignTokens.SpacingSmall))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSmall)
-                            ) {
-                                listOf(
-                                    RemmiThemeMode.LIGHT to "Light",
-                                    RemmiThemeMode.DARK to "Dark",
-                                    RemmiThemeMode.SYSTEM to "System"
-                                ).forEach { (mode, label) ->
-                                    val isSelected = GlobalUIState.themePreference == mode
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (isSelected) MaterialTheme.colorScheme.primary 
-                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                            )
-                                            .clickable {
-                                                GlobalUIState.themePreference = mode
-                                                runtime.androidManager.settingsService.setString("theme_pref", mode.name)
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            label,
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary 
-                                                    else MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                }
-                            }
+                    AppearanceSettings(runtime)
+                }
 
-                            var showColorPicker by remember { mutableStateOf(false) }
+                item {
+                    RemmiSectionHeader(title = "Memory & Storage")
+                }
 
-                            Spacer(Modifier.height(DesignTokens.SpacingLarge))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "Theme Colour",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .background(
-                                            Color(android.graphics.Color.parseColor(GlobalUIState.primaryColorHex)),
-                                            CircleShape
-                                        )
-                                        .clickable { showColorPicker = true }
-                                )
-                            }
-                            
-                            if (showColorPicker) {
-                                HueRingPicker(
-                                    initialColorHex = GlobalUIState.primaryColorHex,
-                                    onDismiss = { showColorPicker = false },
-                                    onApply = { newColor ->
-                                        GlobalUIState.primaryColorHex = newColor
-                                        runtime.androidManager.settingsService.setString("primary_color_hex", newColor)
-                                        showColorPicker = false
-                                    }
-                                )
-                            }
-                        }
-                    }
+                item {
+                    MemoryStorageSettings(runtime)
                 }
 
                 item {
                     RemmiSectionHeader(title = "System Features")
+                }
+
+                item {
+                    CallRecordingSettings(runtime)
                 }
 
                 item {
@@ -227,6 +169,23 @@ fun SettingsScreen(
                             Icon(Icons.Default.Schedule, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(DesignTokens.SpacingMedium))
                             Text(text = "Daily Briefing & Automations", modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
+                        }
+                    }
+                }
+
+                item {
+                    RemmiCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { navController.navigate(RemmiDestination.LAUNCHER_SETTINGS.route) }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(DesignTokens.SpacingMedium),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Home, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(DesignTokens.SpacingMedium))
+                            Text(text = "Launcher & Personal Dashboard", modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
                         }
                     }
@@ -289,6 +248,315 @@ fun SettingsScreen(
                 }
             },
             icon = { Icon(Icons.Default.Info, contentDescription = null) }
+        )
+    }
+}
+
+/**
+ * CALL RECORDING SETTINGS
+ */
+@Composable
+fun CallRecordingSettings(runtime: RemmiController) {
+    val settings = runtime.androidManager.settingsService
+    val scope = rememberCoroutineScope()
+    
+    var recordingMode by remember {
+        mutableStateOf(settings.getString("call_recording_mode", "ASK_EVERY_CALL") ?: "ASK_EVERY_CALL")
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium)) {
+        RemmiCard(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(DesignTokens.SpacingLarge)) {
+                Text(
+                    "Call Recording",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(DesignTokens.SpacingSmall))
+                
+                listOf(
+                    "ASK_EVERY_CALL" to "Ask every call",
+                    "ALWAYS_RECORD" to "Automatically record",
+                    "NEVER_RECORD" to "Never record"
+                ).forEach { (mode, label) ->
+                    val isSelected = recordingMode == mode
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                recordingMode = mode
+                                settings.setString("call_recording_mode", mode)
+                                scope.launch {
+                                    runtime.eventBus.publishCommand(SetCallRecordingModeCommand(mode))
+                                }
+                            }
+                            .padding(vertical = DesignTokens.SpacingSmall),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = isSelected, onClick = {
+                            recordingMode = mode
+                            settings.setString("call_recording_mode", mode)
+                            scope.launch {
+                                runtime.eventBus.publishCommand(SetCallRecordingModeCommand(mode))
+                            }
+                        })
+                        Column {
+                            Text(text = label, style = MaterialTheme.typography.bodyLarge)
+                            if (mode == "ASK_EVERY_CALL") {
+                                Text(
+                                    "Remmi will ask before recording each call",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * APPEARANCE SETTINGS
+ */
+@Composable
+fun AppearanceSettings(runtime: RemmiController) {
+    RemmiCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(DesignTokens.SpacingLarge)) {
+            Text(
+                "Theme",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(DesignTokens.SpacingSmall))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(DesignTokens.SpacingSmall)
+            ) {
+                listOf(
+                    RemmiThemeMode.LIGHT to "Light",
+                    RemmiThemeMode.DARK to "Dark",
+                    RemmiThemeMode.SYSTEM to "System"
+                ).forEach { (mode, label) ->
+                    val isSelected = GlobalUIState.themePreference == mode
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isSelected) MaterialTheme.colorScheme.primary 
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                            .clickable {
+                                GlobalUIState.themePreference = mode
+                                runtime.androidManager.settingsService.setString("theme_pref", mode.name)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary 
+                                    else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
+            var showColorPicker by remember { mutableStateOf(false) }
+
+            Spacer(Modifier.height(DesignTokens.SpacingLarge))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Theme Colour",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(
+                            Color(android.graphics.Color.parseColor(GlobalUIState.primaryColorHex)),
+                            CircleShape
+                        )
+                        .clickable { showColorPicker = true }
+                )
+            }
+            
+            if (showColorPicker) {
+                HueRingPicker(
+                    initialColorHex = GlobalUIState.primaryColorHex,
+                    onDismiss = { showColorPicker = false },
+                    onApply = { newColor ->
+                        GlobalUIState.primaryColorHex = newColor
+                        runtime.androidManager.settingsService.setString("primary_color_hex", newColor)
+                        showColorPicker = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * MEMORY & STORAGE SETTINGS
+ */
+@Composable
+fun MemoryStorageSettings(runtime: RemmiController) {
+    val settings = runtime.androidManager.settingsService
+    val authService = runtime.androidManager.googleAuthService
+    val scope = rememberCoroutineScope()
+    
+    var currentProvider by remember {
+        mutableStateOf(
+            MemoryProviderType.valueOf(
+                settings.getString("memory_provider_type", MemoryProviderType.DATABASE.name) ?: MemoryProviderType.DATABASE.name
+            )
+        )
+    }
+    
+    var showMigrationDialog by remember { mutableStateOf<MemoryProviderType?>(null) }
+    var isMigrating by remember { mutableStateOf(false) }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+            // Success - UI will update on next composition via getLastSignedInAccount
+        } catch (e: Exception) {
+            Log.e("Remmi", "[GoogleSignIn] - Failed: ${e.message}")
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(DesignTokens.SpacingMedium)) {
+        RemmiCard(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(DesignTokens.SpacingLarge)) {
+                Text(
+                    "Storage Mode",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(DesignTokens.SpacingSmall))
+                
+                MemoryProviderType.entries.forEach { type ->
+                    val isSelected = currentProvider == type
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (currentProvider != type) {
+                                    showMigrationDialog = type
+                                }
+                            }
+                            .padding(vertical = DesignTokens.SpacingSmall),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = isSelected, onClick = {
+                            if (currentProvider != type) {
+                                showMigrationDialog = type
+                            }
+                        })
+                        Text(
+                            text = when(type) {
+                                MemoryProviderType.DATABASE -> "Database (Supabase)"
+                                MemoryProviderType.LOCAL -> "Local Storage"
+                                MemoryProviderType.GOOGLE_DRIVE -> "Google Drive"
+                            },
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        }
+
+        if (currentProvider == MemoryProviderType.GOOGLE_DRIVE) {
+            val account = authService.getLastSignedInAccount()
+            RemmiCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(DesignTokens.SpacingLarge)) {
+                    Text(
+                        "Google Account",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(DesignTokens.SpacingSmall))
+                    
+                    if (account != null) {
+                        Text(account.email ?: "Connected", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(DesignTokens.SpacingMedium))
+                        Button(
+                            onClick = { authService.signOut { /* UI updates */ } },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)
+                        ) {
+                            Text("Disconnect")
+                        }
+                    } else {
+                        Text("Not connected", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.outline)
+                        Spacer(Modifier.height(DesignTokens.SpacingMedium))
+                        Button(
+                            onClick = { googleSignInLauncher.launch(authService.getSignInIntent()) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Connect Google Account")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    showMigrationDialog?.let { targetType ->
+        AlertDialog(
+            onDismissRequest = { showMigrationDialog = null },
+            title = { Text("Change Storage System?") },
+            text = { 
+                Text("Your existing Remmi data is currently stored using ${currentProvider.name.lowercase().replaceFirstChar { it.uppercase() }}. " +
+                     "To use ${targetType.name.lowercase().replaceFirstChar { it.uppercase() }}, your existing data can be transferred.") 
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            isMigrating = true
+                            // Perform migration for known tables
+                            val tables = listOf(
+                                TableMigrationSpec("tasks", TaskItem.serializer()),
+                                TableMigrationSpec("calendar_events", CalendarItem.serializer()),
+                                TableMigrationSpec("alarms", AlarmItem.serializer())
+                            )
+                            try {
+                                runtime.memoryMigrationService.migrate(currentProvider, targetType, tables)
+                                settings.setString("memory_provider_type", targetType.name)
+                                currentProvider = targetType
+                            } catch (e: Exception) {
+                                Log.e("Remmi", "Migration failed: ${e.message}")
+                            }
+                            isMigrating = false
+                            showMigrationDialog = null
+                        }
+                    },
+                    enabled = !isMigrating
+                ) {
+                    Text(if (isMigrating) "Transferring..." else "Transfer Data")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    settings.setString("memory_provider_type", targetType.name)
+                    currentProvider = targetType
+                    showMigrationDialog = null
+                }) {
+                    Text("Change Only")
+                }
+            }
         )
     }
 }

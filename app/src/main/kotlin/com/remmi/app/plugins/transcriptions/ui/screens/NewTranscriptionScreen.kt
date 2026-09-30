@@ -194,7 +194,11 @@ fun RecordingScreen(
         Spacer(Modifier.height(32.dp))
 
         if (item.status == "RECORDING") {
-            Text(text = "🔴 RECORDING", color = Color.Red, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "🔴 RECORDING", color = Color.Red, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                Text(text = "• Live Capture Active", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         } else if (item.status == "PAUSED") {
             Text(text = "⏸ PAUSED", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
         }

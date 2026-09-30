@@ -1,44 +1,51 @@
 package com.remmi.app.plugins.callrecorder
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.eventBus.EventBus
 import com.remmi.app.core.eventBus.commands.RemmiCommand
-import com.remmi.app.core.eventBus.events.DataFetchedEvent
-import com.remmi.app.core.eventBus.events.RemmiEvent
+import com.remmi.app.core.eventBus.commands.UpsertDataCommand
+import com.remmi.app.core.eventBus.events.*
+import com.remmi.app.core.plugin.BaseRemmiPlugin
 import com.remmi.app.core.plugin.PluginMetadata
-import com.remmi.app.core.plugin.RemmiPlugin
 import com.remmi.app.core.plugin.ui.RemmiScreen
 import com.remmi.app.core.plugin.ui.RemmiWidget
-import com.remmi.app.plugins.callrecorder.logic.AudioPlayerManager
 import com.remmi.app.plugins.callrecorder.logic.CallRecordingManager
-import com.remmi.app.plugins.callrecorder.logic.NativeAndroidRecorder
 import com.remmi.app.plugins.callrecorder.models.CallRecording
+import com.remmi.app.plugins.callrecorder.models.RecordingStatus
+import com.remmi.app.plugins.callrecorder.models.CallDirection
 import com.remmi.app.plugins.callrecorder.ui.CallRecorderScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 
 class CallRecorderPlugin(
-    override val metadata: PluginMetadata,
-    private val eventBus: EventBus
-) : RemmiPlugin {
-
-    companion object {
-        private var instance: CallRecorderPlugin? = null
-        fun getActions() = instance!!.actions
-        fun getManager() = instance!!.manager
-    }
+    metadata: PluginMetadata,
+    eventBus: EventBus,
+    private val context: Context
+) : BaseRemmiPlugin<CallRecording>(metadata, eventBus, CallRecording::class.java) {
 
     private val _repository = CallRecorderRepository()
     private val _playerManager = AudioPlayerManager()
-    private val _actions = CallRecorderActions(_repository, _playerManager) { manager }
-    
-    // We lazily initialize the manager because it needs a Context
-    private val manager by lazy {
-        val ctx = CallRecorderContext.context!!
-        CallRecordingManager(ctx, NativeAndroidRecorder(ctx))
+    private val _actions = CallRecorderActions(_repository, _playerManager).apply {
+        this.eventBus = this@CallRecorderPlugin.eventBus
+    }
+
+    private lateinit var _manager: CallRecordingManager
+
+    companion object {
+        private var instance: CallRecorderPlugin? = null
+
+        fun getManager(): CallRecordingManager {
+            return instance?._manager ?: throw IllegalStateException("CallRecorderPlugin not initialized")
+        }
+
+        fun getActions(): CallRecorderActions {
+            return instance?.actions ?: throw IllegalStateException("CallRecorderPlugin not initialized")
+        }
     }
 
     override val actions: CallRecorderActions get() = _actions
@@ -54,48 +61,55 @@ class CallRecorderPlugin(
     }
 
     init {
-        instance = this
         Log.d("Remmi", "[CallRecorderPlugin] - Initialized")
+        instance = this
     }
 
-    override suspend fun initialize() {}
+    override suspend fun initialize() {
+        super.initialize()
+        _manager = CallRecordingManager(context)
+    }
 
-    override suspend fun onCommand(command: RemmiCommand) {}
+    override suspend fun onCommand(command: RemmiCommand) {
+        super.onCommand(command)
+    }
 
     override suspend fun onEvent(event: RemmiEvent) {
+        super.onEvent(event)
         when (event) {
-            is DataFetchedEvent<*> -> {
-                if (event.items.isNotEmpty() && event.items[0] is CallRecording) {
-                    Log.d("Remmi", "[CallRecorderPlugin] - Received ${event.items.size} recordings from cloud")
-                    _repository.clear()
-                    @Suppress("UNCHECKED_CAST")
-                    (event.items as List<CallRecording>).forEach { _repository.add(it) }
-                    actions.updateRecordingsList()
-                }
+            is CallRecordingFinishedEvent -> {
+                Log.d("Remmi", "[CallRecorderPlugin] - Received CallRecordingFinishedEvent")
+                handleNewRecording(event)
             }
         }
     }
 
-    override fun onLoad() {
-        Log.d("Remmi", "[CallRecorderPlugin] - onLoad")
+    private fun handleNewRecording(event: CallRecordingFinishedEvent) {
+        val id = java.util.UUID.randomUUID().toString()
+        val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+        val recording = CallRecording(
+            id = id,
+            created = now,
+            modified = now,
+            filePath = event.filePath,
+            durationMillis = event.durationMillis,
+            phoneNumber = event.phoneNumber,
+            direction = if (event.direction == "OUTGOING") CallDirection.OUTGOING else CallDirection.INCOMING,
+            status = RecordingStatus.COMPLETED
+        )
+        
         CoroutineScope(Dispatchers.IO).launch {
-            refresh()
+            _repository.add(recording)
+            _actions.updateRecordingsList()
+            
+            eventBus.publishCommand(
+                UpsertDataCommand(
+                    tableName = "call_recordings",
+                    item = recording,
+                    serializer = CallRecording.serializer(),
+                    source = "call_recorder"
+                )
+            )
         }
-        CallRecorderContext.context?.let {
-            repository.loadFromPrefs(it)
-            actions.updateRecordingsList()
-        }
-    }
-
-    override suspend fun refresh() {
-        Log.d("Remmi", "[CallRecorderPlugin] - Refreshing data (Syncing with cloud)")
-        actions.sync()
-    }
-
-    override fun onUnload() {}
-
-    override suspend fun reformat() {
-        _repository.clear()
-        CallRecorderContext.context?.let { _repository.saveToPrefs(it) }
     }
 }

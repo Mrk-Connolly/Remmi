@@ -1,86 +1,94 @@
 package com.remmi.app.plugins.callrecorder.logic
 
 import android.content.Context
+import android.media.MediaRecorder
+import android.os.Build
 import android.util.Log
 import com.remmi.app.plugins.callrecorder.models.CallRecording
 import com.remmi.app.plugins.callrecorder.models.RecordingStatus
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import com.remmi.app.plugins.callrecorder.models.CallDirection
 import kotlinx.datetime.Instant
 import java.io.File
-import java.util.*
+import java.util.UUID
 
-class CallRecordingManager(
-    private val context: Context,
-    private val backend: CallRecordingBackend
-) {
-    private val scope = CoroutineScope(Dispatchers.IO)
-    private val _currentRecording = MutableStateFlow<CallRecording?>(null)
-    val currentRecording = _currentRecording.asStateFlow()
+class CallRecordingManager(private val context: Context) {
 
-    private val _isRecordingActive = MutableStateFlow(false)
-    val isRecordingActive = _isRecordingActive.asStateFlow()
+    private var recorder: MediaRecorder? = null
+    private var isRecording = false
+    private var currentFile: File? = null
+    private var startTime: Long = 0
+    private var currentPhoneNumber: String? = null
 
-    suspend fun startRecording(call: CallInfo) {
-        if (_isRecordingActive.value) return
+    fun startRecording(phoneNumber: String?) {
+        if (isRecording) return
+        
+        try {
+            val recordingId = UUID.randomUUID().toString()
+            val file = File(context.filesDir, "recordings/$recordingId.m4a")
+            file.parentFile?.mkdirs()
+            currentFile = file
+            currentPhoneNumber = phoneNumber
 
-        val recordingId = UUID.randomUUID().toString()
-        val timestamp = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-        val file = File(context.filesDir, "recordings/$recordingId.m4a").apply {
-            parentFile?.mkdirs()
-        }
+            recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(context)
+            } else {
+                @Suppress("DEPRECATION")
+                MediaRecorder()
+            }
 
-        val recording = CallRecording(
-            id = recordingId,
-            created = timestamp,
-            modified = timestamp,
-            filePath = file.absolutePath,
-            direction = call.direction,
-            phoneNumber = call.phoneNumber,
-            status = RecordingStatus.RECORDING,
-            appPackage = call.appPackage
-        )
+            recorder?.apply {
+                try {
+                    setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+                } catch (e: Exception) {
+                    setAudioSource(MediaRecorder.AudioSource.MIC)
+                }
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(file.absolutePath)
+                prepare()
+                start()
+            }
 
-        val success = backend.startRecording(call, file)
-        if (success) {
-            _currentRecording.value = recording
-            _isRecordingActive.value = true
-            Log.d("Remmi", "[CallRecordingManager] - Recording started: $recordingId")
-        } else {
-            Log.e("Remmi", "[CallRecordingManager] - Failed to start recording")
+            isRecording = true
+            startTime = System.currentTimeMillis()
+            Log.i("Remmi", "[CallRecordingManager] - Recording started: $recordingId")
+        } catch (e: Exception) {
+            Log.e("Remmi", "[CallRecordingManager] - Failed to start recording: ${e.message}")
+            isRecording = false
         }
     }
 
-    suspend fun stopRecording(): CallRecording? {
-        if (!_isRecordingActive.value) return null
-
-        val result = backend.stopRecording()
-        val current = _currentRecording.value ?: return null
-        val now = Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
-
-        val finalRecording = when (result) {
-            is RecordingResult.Success -> {
-                current.copy(
+    fun stopRecording(): CallRecording? {
+        if (!isRecording) return null
+        
+        try {
+            recorder?.apply {
+                stop()
+                release()
+            }
+            val duration = System.currentTimeMillis() - startTime
+            val file = currentFile
+            
+            if (file != null && file.exists()) {
+                val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+                return CallRecording(
+                    id = UUID.randomUUID().toString(),
+                    created = now,
                     modified = now,
-                    durationMillis = result.durationMillis,
+                    filePath = file.absolutePath,
+                    durationMillis = duration,
+                    phoneNumber = currentPhoneNumber,
+                    direction = CallDirection.INCOMING, // Simplified for now
                     status = RecordingStatus.COMPLETED
                 )
             }
-            is RecordingResult.Failure -> {
-                current.copy(
-                    modified = now,
-                    status = RecordingStatus.FAILED,
-                    errorMessage = result.message
-                )
-            }
+        } catch (e: Exception) {
+            Log.e("Remmi", "[CallRecordingManager] - Error stopping recorder: ${e.message}")
+        } finally {
+            recorder = null
+            isRecording = false
+            currentFile = null
         }
-
-        _currentRecording.value = null
-        _isRecordingActive.value = false
-        Log.d("Remmi", "[CallRecordingManager] - Recording stopped: ${finalRecording.id}")
-        return finalRecording
+        return null
     }
 }

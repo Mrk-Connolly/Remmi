@@ -33,5 +33,7 @@ data class CallRecording(
     val errorMessage: String? = null,
     @SerialName("group_name")
     val group: String? = null,
-    val appPackage: String? = null
+    val appPackage: String? = null,
+    val transcriptionId: String? = null,
+    val answeredAt: Instant? = null
 ) : RemmiModel

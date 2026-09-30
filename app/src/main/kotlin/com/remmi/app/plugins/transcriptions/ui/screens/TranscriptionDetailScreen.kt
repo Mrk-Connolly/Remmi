@@ -26,6 +26,10 @@ fun TranscriptionDetailScreen(
     onBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    
+    // Reactive observation of this specific item
+    val transcriptions by actions.getTranscriptions().collectAsState(initial = emptyList())
+    val currentItem = transcriptions.find { it.id == item.id } ?: item
 
     RemmiSecondaryScreen(
         title = "", // Empty title as per user request to remove top title
@@ -36,7 +40,7 @@ fun TranscriptionDetailScreen(
             }
             IconButton(onClick = { 
                 scope.launch { 
-                    actions.deleteTranscription(item.id)
+                    actions.deleteTranscription(currentItem.id)
                     onBack()
                 }
             }) {
@@ -52,31 +56,46 @@ fun TranscriptionDetailScreen(
                 .padding(16.dp)
                 .verticalScroll(scrollState)
         ) {
-            val date = item.created.toLocalDateTime(TimeZone.currentSystemDefault()).date
-            val duration = formatDuration(item.durationMillis)
+            val date = currentItem.created.toLocalDateTime(TimeZone.currentSystemDefault()).date
+            val duration = formatDuration(currentItem.durationMillis)
             
             Text(text = "$date · $duration", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             
-            if (!item.description.isNullOrBlank()) {
+            if (!currentItem.description.isNullOrBlank()) {
                 Spacer(Modifier.height(8.dp))
-                Text(text = item.description, style = MaterialTheme.typography.bodyMedium)
+                Text(text = currentItem.description, style = MaterialTheme.typography.bodyMedium)
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-            Text(text = "TRANSCRIPT", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            if (currentItem.status == "RECORDING") {
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Text(
+                        text = "🔴 RECORDING LIVE",
+                        color = androidx.compose.ui.graphics.Color.Red,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "(Optimized for Lecture)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+
             Spacer(Modifier.height(8.dp))
-            
-            Text(
-                text = item.transcript ?: "No transcript available.",
-                style = MaterialTheme.typography.bodyLarge
-            )
 
             Spacer(Modifier.height(32.dp))
 
             Button(
-                onClick = { /* Play recording */ },
-                modifier = Modifier.fillMaxWidth()
+                onClick = { 
+                    currentItem.audioFilePath?.let { scope.launch { actions.playAudio(it) } }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = currentItem.audioFilePath != null
             ) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
@@ -84,13 +103,44 @@ fun TranscriptionDetailScreen(
             }
 
             OutlinedButton(
-                onClick = { /* Export TXT */ },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                onClick = { 
+                    currentItem.textFilePath?.let { scope.launch { actions.openFile(it) } }
+                },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                enabled = currentItem.textFilePath != null
             ) {
                 Icon(Icons.Default.FileOpen, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Open TXT File")
             }
+
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                text = "PREVIEW",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(8.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                ),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Box(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = currentItem.transcript ?: "No transcript text found.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(40.dp))
         }
     }
 }

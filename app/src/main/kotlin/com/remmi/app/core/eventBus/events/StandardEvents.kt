@@ -503,3 +503,68 @@ data class TranscriptionFinishedEvent(
     override val creationContext: CreationContext? = null,
     override val deletionContext: DeletionContext? = null
 ) : RemmiEvent
+
+// ----------------------------------------------------------------------------
+//                               CALL RECORDING EVENTS
+// ----------------------------------------------------------------------------
+
+/**
+ * CALL DETECTED EVENT
+ */
+data class CallDetectedEvent(
+    val phoneNumber: String?,
+    val direction: String, // INCOMING, OUTGOING
+    override val source: String = "android",
+    override val eventId: String = UUID.randomUUID().toString(),
+    override val type: EventType = EventType.LOADED,
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiEvent
+
+/**
+ * CALL RECORDING STARTED EVENT
+ */
+data class CallRecordingStartedEvent(
+    val recordingId: String,
+    val filePath: String,
+    override val source: String = "android",
+    override val eventId: String = UUID.randomUUID().toString(),
+    override val type: EventType = EventType.UPDATED,
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiEvent
+
+/**
+ * CALL RECORDING FINISHED EVENT
+ */
+data class CallRecordingFinishedEvent(
+    val filePath: String,
+    val durationMillis: Long,
+    val phoneNumber: String? = null,
+    val direction: String? = null,
+    override val source: String = "android",
+    override val eventId: String = UUID.randomUUID().toString(),
+    override val type: EventType = EventType.LOADED,
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiEvent
+
+/**
+ * CALL RECORDING FAILED EVENT
+ */
+data class CallRecordingFailedEvent(
+    val reason: String,
+    override val source: String = "android",
+    override val eventId: String = UUID.randomUUID().toString(),
+    override val type: EventType = EventType.ERROR,
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiEvent

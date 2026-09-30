@@ -15,7 +15,7 @@ import kotlinx.serialization.json.Json
 
 class SupabaseService(
     private val eventBus: EventBus
-) : DatabaseService, CommandListener {
+) : DatabaseService {
 
     // ----------------------------------------------------------------------------
     //                                  VARIABLES
@@ -175,78 +175,6 @@ class SupabaseService(
             Log.i(TAG, "[clearTable] - SUCCESS: $tableName")
         } catch (e: Exception) {
             Log.e(TAG, "[clearTable] - FAILURE: $tableName. Error: ${e.message}", e)
-        }
-    }
-
-    override suspend fun onCommand(command: RemmiCommand) {
-        try {
-            when (command) {
-                is SaveDataCommand -> {
-                    Log.i(TAG, "Global save requested by ${command.source}")
-                }
-
-                is UpsertDataCommand<*> -> {
-                    Log.i(TAG, "Upserting item into ${command.tableName}")
-                    @Suppress("UNCHECKED_CAST")
-                    val typedCommand = command as UpsertDataCommand<RemmiModel>
-                    val jsonElement = json.encodeToJsonElement(typedCommand.serializer, typedCommand.item)
-                    Log.d(TAG, "[onCommand:Upsert] - Payload: $jsonElement")
-                    client.postgrest.from(typedCommand.tableName).upsert(jsonElement)
-                    Log.i(TAG, "[onCommand:Upsert] - SUCCESS: ${typedCommand.tableName}")
-                }
-
-                is DeleteDataCommand -> {
-                    Log.i(TAG, "Deleting item ${command.itemId} from ${command.tableName}")
-                    delete(command.tableName, command.itemId)
-                }
-
-                is FetchDataByIdCommand<*> -> {
-                    Log.i(TAG, "Fetching item ${command.itemId} from ${command.tableName}")
-                    @Suppress("UNCHECKED_CAST")
-                    val typedCommand = command as FetchDataByIdCommand<RemmiModel>
-                    val result = getById(typedCommand.tableName, typedCommand.itemId, typedCommand.serializer)
-                    eventBus.publishEvent(
-                        DataFetchedEvent(
-                            items = listOfNotNull(result),
-                            requestId = typedCommand.commandId,
-                            correlationId = typedCommand.correlationId ?: typedCommand.commandId,
-                            causationId = typedCommand.commandId
-                        )
-                    )
-                }
-
-                is FetchDataBySourceCommand<*> -> {
-                    Log.i(TAG, "Fetching items for source ${command.sourcePlugin}/${command.sourceItemId} in ${command.tableName}")
-                    @Suppress("UNCHECKED_CAST")
-                    val typedCommand = command as FetchDataBySourceCommand<RemmiModel>
-                    val results = getBySource(typedCommand.tableName, typedCommand.sourcePlugin, typedCommand.sourceItemId, typedCommand.serializer)
-                    eventBus.publishEvent(
-                        DataFetchedEvent(
-                            items = results,
-                            requestId = typedCommand.commandId,
-                            correlationId = typedCommand.correlationId ?: typedCommand.commandId,
-                            causationId = typedCommand.commandId
-                        )
-                    )
-                }
-
-                is FetchAllDataCommand<*> -> {
-                    Log.i(TAG, "Fetching all items from ${command.tableName}")
-                    @Suppress("UNCHECKED_CAST")
-                    val typedCommand = command as FetchAllDataCommand<RemmiModel>
-                    val results = getAll(typedCommand.tableName, typedCommand.serializer)
-                    eventBus.publishEvent(
-                        DataFetchedEvent(
-                            items = results,
-                            requestId = typedCommand.commandId,
-                            correlationId = typedCommand.correlationId ?: typedCommand.commandId,
-                            causationId = typedCommand.commandId
-                        )
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Critical failure handling command ${command::class.simpleName}: ${e.message}", e)
         }
     }
 }

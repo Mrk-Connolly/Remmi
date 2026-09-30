@@ -35,6 +35,11 @@ import com.remmi.app.ui.screens.settings.AutomatizationSettingsScreen
 import com.remmi.app.ui.screens.settings.SettingsScreen
 import kotlinx.coroutines.launch
 
+import androidx.compose.ui.platform.LocalContext
+import com.remmi.app.core.android.launcher.LauncherManagerService
+import com.remmi.app.ui.screens.launcher.LauncherDashboardScreen
+import com.remmi.app.ui.screens.launcher.settings.LauncherSettingsScreen
+
 /**
  * NEW navigation orchestrator for the Remmi application.
  * Implements the Category-based interaction model with horizontal swiping and right-side launcher.
@@ -45,11 +50,19 @@ fun AppNavigation(
     runtime: RemmiController
 ) {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val launcherManager = remember { LauncherManagerService(context) }
+    val isDefaultLauncher = remember { launcherManager.isDefaultLauncher() }
     
+    // Check for required permissions on startup
+    StartupPermissionCheck()
+
+    val startDest = if (isDefaultLauncher) RemmiDestination.LAUNCHER.route else RemmiDestination.HOME.route
+
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
-            startDestination = RemmiDestination.HOME.route,
+            startDestination = startDest,
             modifier = Modifier.fillMaxSize()
         ) {
             composable(RemmiDestination.HOME.route) {
@@ -59,6 +72,24 @@ fun AppNavigation(
                     },
                     onProfileClick = { /* Profile Action */ },
                     onSettingsClick = { navController.navigate(RemmiDestination.SETTINGS.route) }
+                )
+            }
+
+            composable(RemmiDestination.LAUNCHER.route) {
+                LauncherDashboardScreen(
+                    controller = runtime,
+                    onNavigateToPlugin = { pluginId ->
+                        navController.navigate(RemmiDestination.pluginRoute(pluginId))
+                    },
+                    onNavigateToLauncherSettings = {
+                        navController.navigate(RemmiDestination.LAUNCHER_SETTINGS.route)
+                    }
+                )
+            }
+
+            composable(RemmiDestination.LAUNCHER_SETTINGS.route) {
+                LauncherSettingsScreen(
+                    onBack = { navController.popBackStack() }
                 )
             }
 
@@ -196,6 +227,8 @@ fun TopNavigationOverlay(
 
 sealed class RemmiDestination(val route: String) {
     data object HOME : RemmiDestination("main")
+    data object LAUNCHER : RemmiDestination("launcher")
+    data object LAUNCHER_SETTINGS : RemmiDestination("launcher/settings")
     data object CATEGORY : RemmiDestination("category/{categoryId}")
     data object SETTINGS : RemmiDestination("settings")
     companion object {

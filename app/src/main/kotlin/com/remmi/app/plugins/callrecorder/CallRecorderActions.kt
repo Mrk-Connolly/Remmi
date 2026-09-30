@@ -8,17 +8,15 @@ import androidx.core.content.FileProvider
 import com.remmi.app.core.eventBus.EventBus
 import com.remmi.app.core.eventBus.commands.*
 import com.remmi.app.core.plugin.actions.RemmiAction
-import com.remmi.app.plugins.callrecorder.logic.AudioPlayerManager
-import com.remmi.app.plugins.callrecorder.logic.CallRecordingManager
 import com.remmi.app.plugins.callrecorder.models.CallRecording
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.io.File
 
 class CallRecorderActions(
     private val repository: CallRecorderRepository,
-    private val playerManager: AudioPlayerManager,
-    private val recordingManagerProvider: () -> CallRecordingManager
+    private val playerManager: AudioPlayerManager
 ) : RemmiAction {
 
     override var eventBus: EventBus? = null
@@ -34,41 +32,12 @@ class CallRecorderActions(
     val isPlaying = playerManager.isPlaying
     val currentPlayingPath = playerManager.currentPlayingPath
     
-    val isRecordingActive get() = recordingManagerProvider().isRecordingActive
-    val currentRecording get() = recordingManagerProvider().currentRecording
-
     fun updateRecordingsList() {
         _recordings.value = repository.getAll().sortedByDescending { it.created }
     }
 
-    fun isNotificationEnabled(): Boolean {
-        return CallRecorderContext.context?.let { repository.isNotificationEnabled(it) } ?: true
-    }
-
-    fun setNotificationEnabled(enabled: Boolean) {
-        CallRecorderContext.context?.let { repository.setNotificationEnabled(it, enabled) }
-    }
-
     fun setViewMode(mode: CallRecorderViewMode) {
         _viewMode.value = mode
-    }
-
-    fun startService(context: Context) {
-        val intent = Intent(context, CallRecorderService::class.java)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
-        }
-    }
-
-    fun stopService(context: Context) {
-        val intent = Intent(context, CallRecorderService::class.java)
-        context.stopService(intent)
-    }
-
-    suspend fun stopRecording(): CallRecording? {
-        return recordingManagerProvider().stopRecording()
     }
 
     fun playRecording(recording: CallRecording) {
@@ -93,21 +62,6 @@ class CallRecorderActions(
         context.startActivity(Intent.createChooser(intent, "Share Recording"))
     }
 
-    suspend fun saveRecording(recording: CallRecording) {
-        repository.add(recording)
-        
-        eventBus?.publishCommand(
-            UpsertDataCommand(
-                tableName = "call_recordings",
-                item = recording,
-                serializer = CallRecording.serializer()
-            )
-        )
-
-        CallRecorderContext.context?.let { repository.saveToPrefs(it) }
-        updateRecordingsList()
-    }
-
     suspend fun deleteRecording(recording: CallRecording) {
         playerManager.stop()
         repository.remove(recording.id)
@@ -123,7 +77,6 @@ class CallRecorderActions(
         if (file.exists()) {
             file.delete()
         }
-        CallRecorderContext.context?.let { repository.saveToPrefs(it) }
         updateRecordingsList()
     }
 
@@ -141,8 +94,6 @@ class CallRecorderActions(
                 serializer = CallRecording.serializer()
             )
         )
-
-        CallRecorderContext.context?.let { repository.saveToPrefs(it) }
         updateRecordingsList()
     }
 
@@ -153,6 +104,31 @@ class CallRecorderActions(
                 serializer = CallRecording.serializer()
             )
         )
+    }
+
+    // Settings
+    suspend fun setRecordingMode(mode: String) {
+        eventBus?.publishCommand(SetCallRecordingModeCommand(mode))
+    }
+
+    fun isNotificationEnabled(): Boolean = true
+
+    fun saveRecording(recording: CallRecording) {
+        repository.add(recording)
+        updateRecordingsList()
+        
+        eventBus?.let { bus ->
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                bus.publishCommand(
+                    UpsertDataCommand(
+                        tableName = "call_recordings",
+                        item = recording,
+                        serializer = CallRecording.serializer(),
+                        source = "call_recorder"
+                    )
+                )
+            }
+        }
     }
 }
 

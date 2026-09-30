@@ -1,39 +1,35 @@
 package com.remmi.app.testing.core
 
-import androidx.test.platform.app.InstrumentationRegistry
-import com.remmi.app.core.controller.RemmiController
-import kotlinx.coroutines.test.runTest
-import org.junit.Before
+import com.remmi.app.testing.base.BaseIntegrationTest
+import com.google.common.truth.Truth.assertThat
 import org.junit.Test
-import org.junit.Assert.*
 
-class CoreManagersTest {
+/**
+ * CORE MANAGERS TEST
+ * 
+ * Verifies that the core system components are correctly initialized and registered.
+ */
+class CoreManagersTest : BaseIntegrationTest() {
 
-    private lateinit var controller: RemmiController
-
-    @Before
-    fun setup() = runTest {
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        controller = RemmiController(appContext, MockDatabaseService())
-        controller.start()
+    @Test
+    fun databaseManager_queryService_returnsNonNullService() {
+        // Arrange & Act & Assert
+        assertThat(controller.databaseManager).isNotNull()
+        assertThat(controller.databaseManager.service).isNotNull()
     }
 
     @Test
-    fun testDatabaseManager() = runTest {
-        assertNotNull(controller.databaseManager)
-        assertNotNull(controller.databaseManager.service)
+    fun fileService_queryService_returnsNonNullService() {
+        // Arrange & Act & Assert
+        assertThat(controller.androidManager.fileService).isNotNull()
     }
 
     @Test
-    fun testFileService() = runTest {
-        assertNotNull(controller.androidManager.fileService)
-    }
-
-    @Test
-    fun testAndroidManager() = runTest {
-        assertNotNull(controller.androidManager)
-        assertNotNull(controller.androidManager.alarmService)
-        assertNotNull(controller.androidManager.notificationService)
-        assertNotNull(controller.androidManager.weatherService)
+    fun androidManager_queryServices_returnsNonNullServices() {
+        // Arrange & Act & Assert
+        assertThat(controller.androidManager).isNotNull()
+        assertThat(controller.androidManager.alarmService).isNotNull()
+        assertThat(controller.androidManager.notificationService).isNotNull()
+        assertThat(controller.androidManager.weatherService).isNotNull()
     }
 }

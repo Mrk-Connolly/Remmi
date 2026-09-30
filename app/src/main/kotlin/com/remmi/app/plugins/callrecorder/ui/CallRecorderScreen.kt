@@ -1,7 +1,6 @@
 package com.remmi.app.plugins.callrecorder.ui
 
 import android.Manifest
-import android.content.Intent
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,7 +17,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -43,29 +41,36 @@ fun CallRecorderScreen(
     actions: CallRecorderActions
 ) {
     val context = LocalContext.current
-    CallRecorderContext.context = context
     val scope = rememberCoroutineScope()
     
     val recordings by actions.recordings.collectAsState()
     val viewMode by actions.viewMode.collectAsState()
-    var isServiceRunning by remember { mutableStateOf(CallRecorderService.isRunning) }
 
+    // Permissions for call recording
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val allGranted = permissions.entries.all { it.value }
-        if (allGranted) {
-            actions.startService(context)
-            isServiceRunning = true
+        if (!allGranted) {
+            Log.w("Remmi", "[CallRecorderScreen] - Some permissions were denied")
         }
+    }
+
+    LaunchedEffect(Unit) {
+        permissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.READ_PHONE_STATE,
+                Manifest.permission.READ_CALL_LOG,
+                Manifest.permission.READ_CONTACTS,
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+        )
     }
 
     RemmiHomeScreen(
         title = "Call Recorder"
     ) { padding ->
-        val isRecordingActive by actions.isRecordingActive.collectAsState()
-        val currentRecordingData by actions.currentRecording.collectAsState()
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -73,192 +78,29 @@ fun CallRecorderScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Active Recording Indicator
-            if (isRecordingActive) {
-                RemmiCard(
-                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f),
-                    modifier = Modifier.fillMaxWidth()
+            // Summary Card
+            RemmiCard(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp)
-                                .background(Color.Red, CircleShape)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Recording Call...",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                fontWeight = FontWeight.ExtraBold
-                            )
-                            currentRecordingData?.let {
-                                Text(
-                                    text = it.phoneNumber ?: "Unknown Number",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
-                                )
-                            }
-                        }
-                        
-                        Button(
-                            onClick = { 
-                                scope.launch {
-                                    val recording = actions.stopRecording()
-                                    recording?.let { actions.saveRecording(it) }
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Text("Stop", style = MaterialTheme.typography.labelLarge)
-                        }
-                    }
-                }
-            }
-
-            // Service Toggle Card
-            RemmiCard(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Automatic Recording",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = if (isServiceRunning) "Service is active and monitoring calls" else "Service is stopped",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                        Switch(
-                            checked = isServiceRunning,
-                            onCheckedChange = { active ->
-                                if (active) {
-                                    permissionLauncher.launch(
-                                        arrayOf(
-                                            Manifest.permission.RECORD_AUDIO,
-                                            Manifest.permission.READ_PHONE_STATE,
-                                            Manifest.permission.READ_CALL_LOG,
-                                            Manifest.permission.READ_CONTACTS
-                                        )
-                                    )
-                                } else {
-                                    actions.stopService(context)
-                                    isServiceRunning = false
-                                }
-                            }
-                        )
-                    }
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
                     )
-
-                    // WhatsApp Support Toggle
-                    var voipEnabled by remember { mutableStateOf(true) } // Could be persistent
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "WhatsApp Support",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Requires Accessibility and Notification permissions",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                        Switch(
-                            checked = voipEnabled,
-                            onCheckedChange = { voipEnabled = it }
-                        )
-                    }
-
-                    if (voipEnabled) {
-                        Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.width(16.dp))
+                    Column {
                         Text(
-                            text = "To enable WhatsApp recording:",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            text = "Call Recordings",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
-                        TextButton(
-                            onClick = { 
-                                // Open Accessibility Settings
-                                val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                                context.startActivity(intent)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text("1. Enable Remmi in Accessibility Settings", textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
-                        }
-                        TextButton(
-                            onClick = { 
-                                // Open Notification Listener Settings
-                                val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
-                                context.startActivity(intent)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text("2. Grant Notification Access to Remmi", textAlign = TextAlign.Start, modifier = Modifier.fillMaxWidth())
-                        }
-                    }
-                    
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                    )
-                    
-                    var notificationEnabled by remember { mutableStateOf(actions.isNotificationEnabled()) }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Recording Notification",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Show status in system drawer",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                        Checkbox(
-                            checked = notificationEnabled,
-                            onCheckedChange = { 
-                                notificationEnabled = it
-                                actions.setNotificationEnabled(it)
-                            }
+                        Text(
+                            text = "${recordings.size} recordings saved",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
                 }

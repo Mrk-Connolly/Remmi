@@ -42,7 +42,7 @@ object PluginRegistry {
         "ingredient_stock" to { metadata, eventBus, _ -> IngredientPlugin(metadata, eventBus) },
         "weather" to { metadata, eventBus, _ -> WeatherPlugin(metadata, eventBus) },
         "maps" to { metadata, eventBus, _ -> MapsPlugin(metadata, eventBus) },
-        "call_recorder" to { metadata, eventBus, _ -> CallRecorderPlugin(metadata, eventBus) },
+        "call_recorder" to { metadata, eventBus, context -> CallRecorderPlugin(metadata, eventBus, context) },
         "shopping_list" to { metadata, eventBus, _ -> ShoppingListPlugin(metadata, eventBus) },
         "voice_recorder" to { metadata, eventBus, _ -> VoiceRecorderPlugin(metadata, eventBus) },
         "health" to { metadata, eventBus, _ -> HealthPlugin(metadata, eventBus) },

@@ -638,3 +638,82 @@ data class FinishRecordingCommand(
     override val creationContext: CreationContext? = null,
     override val deletionContext: DeletionContext? = null
 ) : RemmiCommand
+
+// ----------------------------------------------------------------------------
+//                               MEDIA COMMANDS
+// ----------------------------------------------------------------------------
+
+data class PlayAudioCommand(
+    val filePath: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+data class StopAudioCommand(
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+// ----------------------------------------------------------------------------
+//                               SYSTEM ACTION COMMANDS
+// ----------------------------------------------------------------------------
+
+data class OpenFileCommand(
+    val filePath: String,
+    val mimeType: String = "*/*",
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+// ----------------------------------------------------------------------------
+//                               CALL RECORDING COMMANDS
+// ----------------------------------------------------------------------------
+
+/**
+ * START CALL RECORDING COMMAND
+ */
+data class StartCallRecordingCommand(
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+/**
+ * STOP CALL RECORDING COMMAND
+ */
+data class StopCallRecordingCommand(
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+/**
+ * SET CALL RECORDING MODE COMMAND
+ */
+data class SetCallRecordingModeCommand(
+    val mode: String, // ASK_EVERY_CALL, ALWAYS_RECORD, NEVER_RECORD
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand

@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * Action controller for the Weather plugin via EventBus.
  */
 class WeatherActions(
-    private val repository: WeatherRepository,
+    val repository: WeatherRepository,
     override val id: String = "weather_actions",
     override val name: String = "Weather Actions"
 ) : RemmiAction {

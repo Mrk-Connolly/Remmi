@@ -22,7 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 class PluginManager(
     private val context: Context,
-    private val eventBus: EventBus
+    private val eventBus: EventBus,
+    private val defaultDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : CommandListener, EventListener, RemmiComponent {
 
     // ----------------------------------------------------------------------------
@@ -173,7 +174,7 @@ class PluginManager(
         _pluginMetadata.value.forEach { metadata ->
             val factory = PluginRegistry.getFactory(metadata.id)
             if (factory != null) {
-                launch(Dispatchers.Default) {
+                launch(defaultDispatcher) {
                     try {
                         val plugin = factory(metadata, eventBus, context)
                         synchronized(plugins) {

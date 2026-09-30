@@ -25,6 +25,12 @@ interface FileService {
      * */
     fun writeText(fileName: String, content: String)
 
+    /**                                 Delete
+     * Delete a file or directory.
+     * @param path The path to the file or directory.
+     */
+    fun delete(path: String): Boolean
+
     /**                                 Exists
      * Check if a file exists.
      * @param fileName The name of the file to check.
@@ -39,4 +45,17 @@ interface FileService {
      * @return The absolute path of the saved image.
      */
     fun saveImage(bytes: ByteArray, folder: String, fileName: String): String?
+
+    /**
+     * List files in a directory.
+     * @param directory The directory path relative to filesDir.
+     * @return List of filenames.
+     */
+    fun listFiles(directory: String): List<String>
+
+    /**
+     * Ensure a directory exists.
+     * @param directory The directory path relative to filesDir.
+     */
+    fun ensureDirectory(directory: String)
 }

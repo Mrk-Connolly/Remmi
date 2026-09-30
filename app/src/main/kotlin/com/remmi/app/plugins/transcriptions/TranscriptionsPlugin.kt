@@ -67,6 +67,13 @@ class TranscriptionsPlugin(
                 if (item != null) {
                     val updated = item.copy(transcript = event.partialText, modified = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis()))
                     repository.update(updated)
+                    
+                    // INCREMENTAL PERSISTENCE: Save to database whenever a segment is finalized
+                    if (event.isFinal) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            actions.updateTranscription(updated)
+                        }
+                    }
                 }
             }
             is TranscriptionFinishedEvent -> {
@@ -103,15 +110,5 @@ class TranscriptionsPlugin(
 
     override fun onLoad() {
         super.onLoad()
-        // Fetch groups too
-        CoroutineScope(Dispatchers.IO).launch {
-            eventBus.publishCommand(
-                FetchAllDataCommand(
-                    tableName = "transcription_groups",
-                    serializer = TranscriptionGroup.serializer(),
-                    source = "transcriptions"
-                )
-            )
-        }
     }
 }

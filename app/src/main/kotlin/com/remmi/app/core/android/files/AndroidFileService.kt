@@ -38,7 +38,19 @@ class AndroidFileService(private val context: Context) : FileService {
 
     override fun writeText(fileName: String, content: String) {
         Log.d("Remmi", "[AndroidFileService] - Writing file: $fileName")
-        File(context.filesDir, fileName).writeText(content)
+        val file = File(context.filesDir, fileName)
+        file.parentFile?.mkdirs()
+        file.writeText(content)
+    }
+
+    override fun delete(path: String): Boolean {
+        Log.d("Remmi", "[AndroidFileService] - Deleting: $path")
+        val file = File(context.filesDir, path)
+        return if (file.isDirectory) {
+            file.deleteRecursively()
+        } else {
+            file.delete()
+        }
     }
 
     override fun exists(fileName: String): Boolean {
@@ -64,6 +76,24 @@ class AndroidFileService(private val context: Context) : FileService {
         } catch (e: Exception) {
             Log.e("Remmi", "[AndroidFileService] - Failed to save image", e)
             null
+        }
+    }
+
+    override fun listFiles(directory: String): List<String> {
+        Log.d("Remmi", "[AndroidFileService] - Listing files in: $directory")
+        val dir = File(context.filesDir, directory)
+        return if (dir.exists() && dir.isDirectory) {
+            dir.list()?.toList() ?: emptyList()
+        } else {
+            emptyList()
+        }
+    }
+
+    override fun ensureDirectory(directory: String) {
+        Log.d("Remmi", "[AndroidFileService] - Ensuring directory: $directory")
+        val dir = File(context.filesDir, directory)
+        if (!dir.exists()) {
+            dir.mkdirs()
         }
     }
 }

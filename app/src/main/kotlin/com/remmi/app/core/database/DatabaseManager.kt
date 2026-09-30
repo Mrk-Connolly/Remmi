@@ -11,11 +11,12 @@ import com.remmi.app.core.eventBus.EventBus
  * Managers only create and configure their dedicated services.
  */
 class DatabaseManager(
-    private val eventBus: EventBus
+    private val eventBus: EventBus,
+    private val injectedService: DatabaseService? = null
 ) : RemmiComponent {
 
     /** The dedicated database service */
-    val service: DatabaseService = SupabaseService(eventBus)
+    val service: DatabaseService = injectedService ?: SupabaseService(eventBus)
 
     init {
         Log.d("Remmi", "[DatabaseManager] - Constructor initialized")
@@ -26,7 +27,7 @@ class DatabaseManager(
      */
     override suspend fun start() {
         Log.d("Remmi", "[DatabaseManager] - Starting database service")
-        eventBus.subscribeCommand(service)
+        // Subscription is now handled by MemoryService
     }
 
     /**
@@ -34,6 +35,6 @@ class DatabaseManager(
      */
     override fun stop() {
         Log.d("Remmi", "[DatabaseManager] - Stopping database service")
-        eventBus.unsubscribeCommand(service)
+        // Unsubscription is now handled by MemoryService
     }
 }

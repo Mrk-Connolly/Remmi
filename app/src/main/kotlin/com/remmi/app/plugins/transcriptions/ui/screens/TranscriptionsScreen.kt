@@ -20,6 +20,7 @@ import com.remmi.app.ui.components.RemmiFAB
 import com.remmi.app.plugins.transcriptions.TranscriptionsActions
 import com.remmi.app.plugins.transcriptions.models.TranscriptionItem
 import com.remmi.app.plugins.transcriptions.models.TranscriptionGroup
+import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 
 enum class TranscriptionViewMode {
@@ -36,6 +37,7 @@ fun TranscriptionsScreen(
     var searchQuery by remember { mutableStateOf("") }
     var isSearching by remember { mutableStateOf(false) }
     var editorMode by remember { mutableStateOf<TranscriptionEditorMode?>(null) }
+    val scope = rememberCoroutineScope()
 
     val transcriptions by actions.getTranscriptions().collectAsState(initial = emptyList())
     val groups by actions.getGroups().collectAsState(initial = emptyList())
@@ -64,6 +66,25 @@ fun TranscriptionsScreen(
         RemmiHomeScreen(
             title = "Transcriptions",
             topBarActions = {
+                IconButton(onClick = {
+                    val id = "test_" + java.util.UUID.randomUUID().toString().substring(0, 8)
+                    val now = kotlinx.datetime.Instant.fromEpochMilliseconds(java.lang.System.currentTimeMillis())
+                    val testItem = TranscriptionItem(
+                        id = id,
+                        created = now,
+                        modified = now,
+                        title = "Test Transcription",
+                        status = "RECORDING",
+                        startedAt = now
+                    )
+                    actions.repository.add(testItem)
+                    editorMode = TranscriptionEditorMode.Detail(testItem)
+                    scope.launch {
+                        actions.testTranscription(id)
+                    }
+                }) {
+                    Icon(Icons.Default.BugReport, contentDescription = "Test UI")
+                }
                 IconButton(onClick = { isSearching = !isSearching }) {
                     Icon(Icons.Default.Search, contentDescription = "Search")
                 }

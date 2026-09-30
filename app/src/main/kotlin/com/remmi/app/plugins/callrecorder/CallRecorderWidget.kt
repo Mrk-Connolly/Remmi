@@ -21,9 +21,6 @@ class CallRecorderWidget(
 
     @Composable
     override fun Content() {
-        val context = LocalContext.current
-        CallRecorderContext.context = context
-        
         val recordings by actions.recordings.collectAsState()
 
         RemmiCard(

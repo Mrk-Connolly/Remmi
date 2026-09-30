@@ -57,6 +57,8 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/DEPENDENCIES"
         }
     }
 }
@@ -88,29 +90,41 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.4.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
 
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation("com.google.api-client:google-api-client-android:2.6.0")
+    implementation("com.google.http-client:google-http-client-android:1.44.1")
+    implementation("com.google.apis:google-api-services-drive:v3-rev20241027-2.0.0")
+    implementation("com.google.http-client:google-http-client-gson:1.44.1")
+
     // Room
     val roomVersion = "2.8.5"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
 
-    // Hilt
-    val hiltVersion = "2.60.1"
-    implementation("com.google.dagger:hilt-android:$hiltVersion")
-    ksp("com.google.dagger:hilt-compiler:$hiltVersion")
-
     // OCR
     implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    
+    // Unit Testing
     testImplementation("junit:junit:4.13.2")
+    testImplementation("io.mockk:mockk:1.14.11")
+    testImplementation("org.robolectric:robolectric:4.17")
+    testImplementation("app.cash.turbine:turbine:1.2.1")
+    testImplementation("com.google.truth:truth:1.4.5")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+    testImplementation("androidx.test:core:1.7.0")
 
+    // Instrumented Testing
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
     androidTestImplementation(platform("androidx.compose:compose-bom:2026.08.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    androidTestImplementation("io.mockk:mockk-android:1.14.11")
+    androidTestImplementation("com.google.truth:truth:1.4.5")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
