@@ -1,10 +1,12 @@
 package com.remmi.app.ui.screens.launcher.modules
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Person
@@ -34,19 +36,22 @@ class ContactsLauncherModule : LauncherModule {
         val contacts by contactPlugin?.repository?.asFlow()?.collectAsState(initial = emptyList())
             ?: remember { mutableStateOf(emptyList()) }
 
-        Card(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 6.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            shape = MaterialTheme.shapes.medium
+                .padding(vertical = 6.dp)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(20.dp)
+                ),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 // Header
                 Row(
@@ -79,7 +84,7 @@ class ContactsLauncherModule : LauncherModule {
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 if (contacts.isEmpty()) {
                     Text(
@@ -98,7 +103,7 @@ class ContactsLauncherModule : LauncherModule {
                             ) {
                                 Surface(
                                     modifier = Modifier
-                                        .size(48.dp)
+                                        .size(52.dp)
                                         .clip(CircleShape),
                                     color = MaterialTheme.colorScheme.primaryContainer
                                 ) {
@@ -108,17 +113,17 @@ class ContactsLauncherModule : LauncherModule {
                                     ) {
                                         Text(
                                             text = contact.name.take(1).uppercase(),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Black,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = contact.name,
                                     style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Medium,
+                                    fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1
                                 )

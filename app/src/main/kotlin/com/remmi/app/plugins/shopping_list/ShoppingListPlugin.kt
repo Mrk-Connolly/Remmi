@@ -1,63 +1,62 @@
 package com.remmi.app.plugins.shopping_list
 
-import androidx.compose.material3.Card
-import androidx.compose.material3.Text
+import android.util.Log
 import androidx.compose.runtime.Composable
 import com.remmi.app.core.controller.RemmiController
 import com.remmi.app.core.eventBus.EventBus
+import com.remmi.app.core.eventBus.commands.CreateShoppingItemCommand
+import com.remmi.app.core.eventBus.commands.DeleteShoppingItemCommand
 import com.remmi.app.core.eventBus.commands.RemmiCommand
-import com.remmi.app.core.eventBus.events.RemmiEvent
+import com.remmi.app.core.eventBus.commands.ToggleShoppingItemCommand
+import com.remmi.app.core.plugin.BaseRemmiPlugin
 import com.remmi.app.core.plugin.PluginMetadata
-import com.remmi.app.core.plugin.RemmiPlugin
-import com.remmi.app.core.plugin.actions.RemmiAction
-import com.remmi.app.core.plugin.model.models.RemmiModel
-import com.remmi.app.core.plugin.repository.RemmiRepository
 import com.remmi.app.core.plugin.ui.RemmiScreen
 import com.remmi.app.core.plugin.ui.RemmiWidget
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import com.remmi.app.plugins.shopping_list.models.ShoppingItem
 
 class ShoppingListPlugin(
-    override val metadata: PluginMetadata,
-    private val eventBus: EventBus
-) : RemmiPlugin {
+    metadata: PluginMetadata,
+    eventBus: EventBus
+) : BaseRemmiPlugin<ShoppingItem>(metadata, eventBus, ShoppingItem::class.java) {
 
-    override val repository: RemmiRepository<RemmiModel> = object : RemmiRepository<RemmiModel> {
-        override fun add(item: RemmiModel) {}
-        override fun remove(id: String) {}
-        override fun update(item: RemmiModel) {}
-        override fun get(id: String): RemmiModel? = null
-        override fun getAll(): List<RemmiModel> = emptyList()
-        override fun asFlow(): Flow<List<RemmiModel>> = flowOf(emptyList())
-        override fun clear() {}
+    private val _repository = ShoppingRepository()
+    private val _actions = ShoppingActions(_repository).apply {
+        this.eventBus = this@ShoppingListPlugin.eventBus
     }
 
-    override val actions: RemmiAction = object : RemmiAction {
-        override val id: String = metadata.id
-        override val name: String = metadata.name
-        override var eventBus: EventBus? = this@ShoppingListPlugin.eventBus
-    }
+    override val repository: ShoppingRepository get() = _repository
+    override val actions: ShoppingActions get() = _actions
 
-    override val widget: RemmiWidget = object : RemmiWidget {
-        override val metadata: PluginMetadata = this@ShoppingListPlugin.metadata
-        @Composable override fun Content() {
-            Card {
-                Text(text = " ${metadata.name} Plugin")
+    override val widget: RemmiWidget by lazy {
+        object : RemmiWidget {
+            override val metadata: PluginMetadata = this@ShoppingListPlugin.metadata
+            @Composable
+            override fun Content() {
+                androidx.compose.material3.Text("Shopping List Plugin")
             }
         }
     }
 
     override val screen: RemmiScreen = object : RemmiScreen {
-        @Composable override fun Content(controller: RemmiController) {
-            Text(text = "Welcome to ${metadata.name} Plugin")
+        @Composable
+        override fun Content(controller: RemmiController) {
+            androidx.compose.material3.Text("Welcome to Shopping List")
         }
     }
 
-    override suspend fun initialize() {}
-    override suspend fun onCommand(command: RemmiCommand) {}
-    override suspend fun onEvent(event: RemmiEvent) {}
-    override fun onLoad() {}
-    override suspend fun refresh() {}
-    override fun onUnload() {}
-    override suspend fun reformat() {}
+    override suspend fun onCommand(command: RemmiCommand) {
+        super.onCommand(command)
+        Log.d("Remmi", "[ShoppingListPlugin] - Command received: ${command::class.simpleName}")
+        when (command) {
+            is CreateShoppingItemCommand -> {
+                _actions.addItem(command.name, command.quantity)
+            }
+            is ToggleShoppingItemCommand -> {
+                _actions.toggleItem(command.itemId)
+            }
+            is DeleteShoppingItemCommand -> {
+                _actions.deleteItem(command.itemId)
+            }
+        }
+    }
 }

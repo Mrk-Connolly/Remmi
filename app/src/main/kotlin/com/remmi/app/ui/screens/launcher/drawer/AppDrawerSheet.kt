@@ -1,10 +1,12 @@
 package com.remmi.app.ui.screens.launcher.drawer
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import com.remmi.app.core.android.launcher.AppModel
 import com.remmi.app.core.android.launcher.LauncherAppService
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +34,8 @@ fun AppDrawerSheet(
 ) {
     val context = LocalContext.current
     val launcherAppService = remember { LauncherAppService(context) }
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     var allApps by remember { mutableStateOf<List<AppModel>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
@@ -49,6 +54,9 @@ fun AppDrawerSheet(
         launcherAppService.getFrequentlyUsedApps(allApps)
     }
 
+    // Alphabet index list
+    val alphabet = remember { ('A'..'Z').toList() }
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -66,7 +74,7 @@ fun AppDrawerSheet(
                 onValueChange = { searchQuery = it },
                 placeholder = { Text("Search installed applications...") },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
+                    Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.primary)
                 },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
@@ -79,6 +87,10 @@ fun AppDrawerSheet(
                     .fillMaxWidth()
                     .padding(bottom = 12.dp),
                 shape = CircleShape,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                ),
                 singleLine = true
             )
 
@@ -92,24 +104,55 @@ fun AppDrawerSheet(
                     CircularProgressIndicator()
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    contentPadding = PaddingValues(bottom = 32.dp)
-                ) {
-                    // Frequently Used Apps Section
-                    if (searchQuery.isEmpty() && frequentApps.isNotEmpty()) {
+                Row(modifier = Modifier.weight(1f)) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        contentPadding = PaddingValues(bottom = 32.dp)
+                    ) {
+                        // Frequently Used Apps Section
+                        if (searchQuery.isEmpty() && frequentApps.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "FREQUENTLY USED",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    letterSpacing = 1.sp,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            }
+                            items(frequentApps) { app ->
+                                AppListItem(
+                                    app = app,
+                                    onClick = {
+                                        launcherAppService.launchApp(app.packageName)
+                                        onDismissRequest()
+                                    }
+                                )
+                            }
+                            item {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 12.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+
+                        // All Apps List Header
                         item {
                             Text(
-                                text = "FREQUENTLY USED",
+                                text = if (searchQuery.isEmpty()) "ALL APPLICATIONS (${filteredApps.size})" else "SEARCH RESULTS (${filteredApps.size})",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 letterSpacing = 1.sp,
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
                         }
-                        items(frequentApps) { app ->
+
+                        items(filteredApps, key = { it.packageName + it.activityName }) { app ->
                             AppListItem(
                                 app = app,
                                 onClick = {
@@ -118,34 +161,38 @@ fun AppDrawerSheet(
                                 }
                             )
                         }
-                        item {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 12.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                            )
-                        }
                     }
 
-                    // All Apps List Header
-                    item {
-                        Text(
-                            text = if (searchQuery.isEmpty()) "ALL APPLICATIONS (${filteredApps.size})" else "SEARCH RESULTS (${filteredApps.size})",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = 1.sp,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-
-                    items(filteredApps, key = { it.packageName + it.activityName }) { app ->
-                        AppListItem(
-                            app = app,
-                            onClick = {
-                                launcherAppService.launchApp(app.packageName)
-                                onDismissRequest()
+                    // Fast Alphabet Scroller
+                    if (searchQuery.isEmpty() && filteredApps.size > 10) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(start = 8.dp),
+                            verticalArrangement = Arrangement.SpaceEvenly,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            alphabet.forEach { char ->
+                                Text(
+                                    text = char.toString(),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable {
+                                        val targetIndex = filteredApps.indexOfFirst {
+                                            it.label.startsWith(char, ignoreCase = true)
+                                        }
+                                        if (targetIndex >= 0) {
+                                            coroutineScope.launch {
+                                                listState.animateScrollToItem(targetIndex + if (frequentApps.isNotEmpty()) frequentApps.size + 2 else 1)
+                                            }
+                                        }
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
                 }
             }
@@ -161,12 +208,17 @@ fun AppListItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface
+            .clickable(onClick = onClick)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(16.dp)
+            ),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val iconBitmap = remember(app.icon) {
@@ -178,21 +230,21 @@ fun AppListItem(
                     bitmap = iconBitmap,
                     contentDescription = app.label,
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(10.dp))
                 )
             } else {
                 Surface(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(8.dp)),
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(10.dp)),
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
                             text = app.label.take(1).uppercase(),
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Black
                         )
                     }
                 }
@@ -204,7 +256,7 @@ fun AppListItem(
                 Text(
                     text = app.label,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(

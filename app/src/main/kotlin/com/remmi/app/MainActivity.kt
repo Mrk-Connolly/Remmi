@@ -51,6 +51,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        Log.d("Remmi", "[MainActivity] - New intent received (Home button or app re-launch)")
+    }
+
     /**                               On Destroy
      * On destroy end activity from Remmi Application overriding parent class
      * */

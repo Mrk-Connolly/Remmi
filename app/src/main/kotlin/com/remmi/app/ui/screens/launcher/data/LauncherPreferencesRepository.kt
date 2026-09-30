@@ -18,6 +18,7 @@ class LauncherPreferencesRepository(context: Context) {
         private const val KEY_SWIPE_DOWN_ACTION = "swipe_down_action" // "NOTIFICATIONS" or "SEARCH"
         private const val KEY_SHOW_CLOCK = "show_clock"
         private const val KEY_HIGH_DENSITY = "high_density"
+        private const val KEY_WIDGET_IDS = "widget_ids"
     }
 
     /**
@@ -87,4 +88,28 @@ class LauncherPreferencesRepository(context: Context) {
         set(value) {
             prefs.edit().putBoolean(KEY_HIGH_DENSITY, value).apply()
         }
+
+    fun getWidgetIds(): List<Int> {
+        val stringSet = prefs.getStringSet(KEY_WIDGET_IDS, emptySet()) ?: emptySet()
+        return stringSet.mapNotNull { it.toIntOrNull() }
+    }
+
+    fun saveWidgetIds(ids: List<Int>) {
+        val stringSet = ids.map { it.toString() }.toSet()
+        prefs.edit().putStringSet(KEY_WIDGET_IDS, stringSet).apply()
+    }
+
+    fun addWidgetId(id: Int) {
+        val current = getWidgetIds().toMutableList()
+        if (!current.contains(id)) {
+            current.add(id)
+            saveWidgetIds(current)
+        }
+    }
+
+    fun removeWidgetId(id: Int) {
+        val current = getWidgetIds().toMutableList()
+        current.remove(id)
+        saveWidgetIds(current)
+    }
 }

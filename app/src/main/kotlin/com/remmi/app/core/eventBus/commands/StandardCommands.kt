@@ -501,6 +501,41 @@ data class BulkDeleteTasksCommand(
 ) : RemmiCommand
 
 // ----------------------------------------------------------------------------
+//                            SHOPPING LIST COMMANDS
+// ----------------------------------------------------------------------------
+
+data class CreateShoppingItemCommand(
+    val name: String,
+    val quantity: Int = 1,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+data class ToggleShoppingItemCommand(
+    val itemId: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+data class DeleteShoppingItemCommand(
+    val itemId: String,
+    override val commandId: String = UUID.randomUUID().toString(),
+    override val source: String = "system",
+    override val correlationId: String? = null,
+    override val causationId: String? = null,
+    override val creationContext: CreationContext? = null,
+    override val deletionContext: DeletionContext? = null
+) : RemmiCommand
+
+// ----------------------------------------------------------------------------
 //                               MAP COMMANDS
 // ----------------------------------------------------------------------------
 

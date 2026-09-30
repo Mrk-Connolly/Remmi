@@ -1,7 +1,10 @@
 package com.remmi.app.ui.screens.launcher.modules
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
@@ -39,19 +42,22 @@ class TasksLauncherModule : LauncherModule {
         val coroutineScope = rememberCoroutineScope()
         var newTaskText by remember { mutableStateOf("") }
 
-        Card(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 6.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            shape = MaterialTheme.shapes.medium
+                .padding(vertical = 6.dp)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(20.dp)
+                ),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
                 // Header
                 Row(
@@ -70,7 +76,7 @@ class TasksLauncherModule : LauncherModule {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "TASKS",
+                            text = "TASKS & REMINDERS",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -84,7 +90,7 @@ class TasksLauncherModule : LauncherModule {
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Pending tasks list
                 val pendingTasks = tasks.filter { !it.completed }.take(4)
@@ -132,7 +138,7 @@ class TasksLauncherModule : LauncherModule {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Quick add task input
                 OutlinedTextField(
@@ -141,6 +147,11 @@ class TasksLauncherModule : LauncherModule {
                     placeholder = { Text("Quick add task...") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    shape = CircleShape,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    ),
                     trailingIcon = {
                         if (newTaskText.isNotBlank()) {
                             IconButton(
